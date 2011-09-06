@@ -12,10 +12,11 @@ class DivListModelConfiguration {
   typedef std::vector<Exponent> Monomial;
   typedef Monomial Entry;
 
-  DivListModelConfiguration(size_t varCount):
-   _varCount(varCount), _expQueryCount(0) {}
+  DivListModelConfiguration(size_t varCount, bool sortOnInsert):
+  _varCount(varCount), _sortOnInsert(sortOnInsert), _expQueryCount(0) {}
 
   size_t getVarCount() const {return _varCount;}
+  bool getSortOnInsert() const {return _sortOnInsert;}
 
   Exponent getExponent(const Monomial& monomial, size_t var) const {
     ++_expQueryCount;
@@ -30,10 +31,21 @@ class DivListModelConfiguration {
     return true;
   }
 
+  bool isLessThan(const Monomial& a, const Monomial& b) const {
+    for (size_t var = 0; var < getVarCount(); ++var) {
+      if (getExponent(a, var) < getExponent(b, var))
+        return true;
+      if (getExponent(b, var) < getExponent(a, var))
+        return false;
+	}
+    return false;
+  }
+
   unsigned long getExpQueryCount() const {return _expQueryCount;}
 
  private:
   const size_t _varCount;
+  const bool _sortOnInsert;
   mutable unsigned long _expQueryCount;
 };
 
@@ -52,15 +64,27 @@ class DivListModel {
   typedef typename Finder::Monomial Monomial;
   typedef typename Finder::Entry Entry;
 
- DivListModel(size_t varCount, bool minimizeOnInsert):
-  _finder(C(varCount)), _minimizeOnInsert(minimizeOnInsert) {}
+ DivListModel(size_t varCount,
+			  bool minimizeOnInsert,
+			  bool moveDivisorToFront,
+			  bool sortOnInsert):
+  _finder(C(varCount, sortOnInsert)),
+  _minimizeOnInsert(minimizeOnInsert),
+  _moveDivisorToFront(moveDivisorToFront) {
+    ASSERT(!sortOnInsert || !moveDivisorToFront);
+  }
 
   void insert(const Entry& entry);
   iterator findDivisor(const Monomial& monomial) {
-    return _finder.findDivisor(monomial);
+    iterator it = _finder.findDivisor(monomial);
+    if (_moveDivisorToFront && it != _finder.end()) {
+      _finder.moveToFront(it);
+	  it = _finder.begin();
+	}
+    return it;
   }
   const_iterator findDivisor(const Monomial& monomial) const {
-    return _finder.findDivisor(monomial);
+    return const_cast<DivListModel<ULL>&>(*this).findDivisor(monomial);
   }
   std::string getName() const;
 
@@ -76,20 +100,30 @@ class DivListModel {
  private:
   Finder _finder;
   bool _minimizeOnInsert;
+  bool _moveDivisorToFront;
 };
 
 template<bool ULL>
 inline void DivListModel<ULL>::insert(const Entry& entry) {
-  if (_minimizeOnInsert)
-    _finder.insertReminimize(entry);
-  else
+  if (!_minimizeOnInsert) {
     _finder.insert(entry);
+    return;
+  }
+  if (findDivisor(entry) != _finder.end())
+    return;
+  bool hasMultiples = _finder.removeMultiples(entry);
+  _finder.insert(entry);
+  if (_moveDivisorToFront && hasMultiples) {
+    iterator it = _finder.end();
+    _finder.moveToFront(--it);
+  }
 } 
 
 template<bool ULL>
 inline std::string DivListModel<ULL>::getName() const {
   return _finder.getName() +
-    (_minimizeOnInsert ? " remin" : "");
+    (_minimizeOnInsert ? " remin" : " nomin") +
+    (_moveDivisorToFront ? " toFront" : "");
 }
 
 #endif

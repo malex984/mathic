@@ -4,15 +4,22 @@
 #include <vector>
 #include <string>
 #include <list>
+#include <algorithm>
 
 /** An object that supports queries for divisors of a monomial using
  an array of monomials. See DivFinder for more documentation.
+
+ Extra fields for Configuration:
+
+ * bool getSortOnInsert() const
+  Keep the monomials sorted to speed up queries.
 */
 template<class Configuration, bool UseLinkedList = false>
 class DivList;
 
-// implementation details for DivList.
 namespace DivListHelper {
+  // Implementation details for DivList.
+
   template<bool B, class E>
   struct ListImpl;
 
@@ -21,7 +28,7 @@ namespace DivListHelper {
     typedef std::vector<Entry> Impl;
   };
   template<class Entry>
-	struct ListImpl<true, Entry> {
+  struct ListImpl<true, Entry> {
     typedef std::list<Entry> Impl;
   };
 }
@@ -43,9 +50,8 @@ class DivList {
 
   DivList(const C& configuration): _conf(configuration) {}
 
-  void removeMultiples(const Monomial& monomial);
+  bool removeMultiples(const Monomial& monomial);
   void insert(const Entry& entry);
-  void insertReminimize(const Entry& entry);
   iterator findDivisor(const Monomial& monomial);
   const_iterator findDivisor(const Monomial& monomial) const;
 
@@ -59,6 +65,8 @@ class DivList {
   C& getConfiguration() {return _conf;}
   const C& getConfiguration() const {return _conf;}
 
+  void moveToFront(iterator pos);
+
  private:
   List _list;
   C _conf;
@@ -66,7 +74,7 @@ class DivList {
 
 namespace DivListHelper {
   template<class C, class E, class M>
-  void removeMultiples(C& conf, std::vector<E>& list, const M& monomial) {
+  bool removeMultiples(C& conf, std::vector<E>& list, const M& monomial) {
     typedef typename std::vector<E>::iterator iterator;
 	iterator it = list.begin();
 	iterator oldEnd = list.end();
@@ -74,7 +82,7 @@ namespace DivListHelper {
 	  if (conf.divides(monomial, *it))
 		break;
 	if (it == oldEnd)
-	  return;
+	  return false;
 	iterator newEnd = it;
 	for (++it; it != oldEnd; ++it) {
 	  if (!conf.divides(monomial, *it)) {
@@ -82,54 +90,134 @@ namespace DivListHelper {
 		++newEnd;
 	  }
 	}
-	list.resize(std::distance(list.begin(), newEnd));
+	const size_t newSize = newEnd - list.begin();
+    ASSERT(newSize < list.size());
+	list.resize(newSize);
+    return true;
   }
 
   template<class C, class E, class M>
-  void removeMultiples(C& conf, std::list<E>& list, const M& monomial) {
+  bool removeMultiples(C& conf, std::list<E>& list, const M& monomial) {
     typedef typename std::list<E>::iterator iterator;
 	iterator it = list.begin();
 	iterator oldEnd = list.end();
-	for (; it != oldEnd; ++it)
-	  if (conf.divides(monomial, *it))
-		break;
-	if (it == oldEnd)
-	  return;
-	iterator newEnd = it;
-	for (++it; it != oldEnd; ++it) {
-	  if (!conf.divides(monomial, *it)) {
-		*newEnd = *it;
-		++newEnd;
-	  }
+    bool removedSome = false;
+    while (it != oldEnd) {
+	  if (conf.divides(monomial, *it)) {
+		removedSome = true;
+		it = list.erase(it);
+	  } else
+		++it;
 	}
-	list.resize(std::distance(list.begin(), newEnd));
+	return removedSome;
+  }
+
+  template<class E, class It>
+  void moveToFront(std::vector<E>& list, It pos) {
+    E valueToMove = *pos;
+    It begin = list.begin();
+    while (pos != begin) {
+      It prev = pos;
+	  --pos;
+      *prev = *pos;
+	}
+    list.front() = valueToMove;
+  }
+
+  template<class E, class It>
+  void moveToFront(std::list<E>& list, It pos) {
+    list.splice(list.begin(), list, pos);
+  }
+
+  template<class C, class E>
+  class Comparer {
+  public:
+    Comparer(const C& c): _c(c) {}
+	bool operator()(const E& a, const E& b) const {return _c.isLessThan(a, b);}
+  private:
+	const C& _c;
+  };
+
+  template<class C, class E>
+  typename std::list<E>::iterator
+  insertSort(C& conf, std::list<E>& list, const E& entry) {
+    typedef typename std::list<E>::iterator iterator;
+    iterator end = list.end();
+    iterator it = list.begin();
+    for (; it != end; ++it)
+	  if (conf.isLessThan(entry, *it))
+		break;
+	return list.insert(it, entry);
+  }
+
+  template<class C, class E>
+  typename std::vector<E>::iterator
+  insertSort(C& conf, std::vector<E>& list, const E& entry) {
+    typedef typename std::vector<E>::iterator iterator;
+    iterator it = std::upper_bound(list.begin(), list.end(), entry,
+      Comparer<C, E>(conf));
+	return list.insert(it, entry);
+  }
+
+  template<class C, class E, class M>
+  typename std::vector<E>::iterator  
+  findDivisorSorted(C& conf, std::vector<E>& list, const M& monomial) {
+    typedef typename std::vector<E>::iterator iterator;
+    iterator rangeEnd =
+      std::upper_bound(list.begin(), list.end(), monomial,
+					   Comparer<C, E>(conf));
+    iterator it = list.begin();
+    for (; it != rangeEnd; ++it)
+      if (conf.divides(*it, monomial))
+	    return it;
+	return list.end();
+  }
+
+  template<class C, class E, class M>
+  typename std::list<E>::iterator  
+  findDivisorSorted(C& conf, std::list<E>& list, const M& monomial) {
+    typedef typename std::list<E>::iterator iterator;
+    iterator end = list.end();
+    iterator it = list.begin();
+    size_t count = 0;
+    for (; it != end; ++it) {
+	  ++count;
+      if (count == 35) {
+		count = 0;
+        if (conf.isLessThan(monomial, *it))
+		  break;
+	  }
+      if (conf.divides(*it, monomial))
+	    return it;
+    }
+	return end;
   }
 }
 
 template<class C, bool ULL>
-  void DivList<C, ULL>::insert(const Entry& entry) {
-  _list.push_back(entry);
+void DivList<C, ULL>::insert(const Entry& entry) {
+  if (!_conf.getSortOnInsert())
+    _list.push_back(entry);
+  else
+	DivListHelper::insertSort(_conf, _list, entry);
 }
 
 template<class C, bool ULL>
-  void DivList<C, ULL>::insertReminimize(const Entry& entry) {
-  removeMultiples(entry);
-  insert(entry);
-}
-
-template<class C, bool ULL>
-void DivList<C, ULL>::removeMultiples(const Monomial& monomial) {
-  DivListHelper::removeMultiples(_conf, _list, monomial);
+bool DivList<C, ULL>::removeMultiples(const Monomial& monomial) {
+  return DivListHelper::removeMultiples(_conf, _list, monomial);
 }
 
 template<class C, bool ULL>
 typename DivList<C, ULL>::iterator
 DivList<C, ULL>::findDivisor(const Monomial& monomial) {
-  const iterator stop = end();
-  for (iterator it = begin(); it != stop; ++it)
-    if (_conf.divides(*it, monomial))
-      return it;
-  return stop;
+  if (!_conf.getSortOnInsert()) {
+	const iterator stop = end();
+	for (iterator it = begin(); it != stop; ++it)
+	  if (_conf.divides(*it, monomial))
+		return it;
+	return stop;
+  } else
+	return DivListHelper::findDivisorSorted(_conf, _list, monomial);
 }
 
 template<class C, bool ULL>
@@ -141,7 +229,13 @@ DivList<C, ULL>::findDivisor(const Monomial& monomial) const {
 template<class C, bool ULL>
 std::string DivList<C, ULL>::getName() const {
   return std::string("DivList") +
+	(_conf.getSortOnInsert() ? " sort" : "") +
     (ULL ? " linked" : " array");
+}
+
+template<class C, bool ULL>
+void DivList<C, ULL>::moveToFront(iterator pos) {
+  DivListHelper::moveToFront(_list, pos);
 }
 
 #endif

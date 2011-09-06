@@ -237,7 +237,7 @@ commit: test
 
 # ***** Distribution
 
-remoteUrl = ssh://daimi/projs/divmodel
+remoteUrl = ssh://daimi/projs/momodel
 pull:
 	hg pull $(remoteUrl)
 push:

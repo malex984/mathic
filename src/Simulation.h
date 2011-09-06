@@ -17,6 +17,10 @@ class Simulation {
   void run();
   template<class DivFinder, class Param1>
   void run(const Param1& param1);
+  template<class DivFinder, class Param1, class Param2>
+  void run(const Param1& param1, const Param2& param2);
+  template<class DivFinder, class Param1, class Param2, class Param3>
+  void run(const Param1& param1, const Param2& param2, const Param3& param3);
 
   void printData(std::ostream& out) const;
 
@@ -61,6 +65,19 @@ void Simulation::run() {
 template<class DivFinder, class Param1>
 void Simulation::run(const Param1& param1) {
   DivFinder finder(_varCount, param1);
+  run(finder);
+}
+
+template<class DivFinder, class Param1, class Param2>
+void Simulation::run(const Param1& param1, const Param2& param2) {
+  DivFinder finder(_varCount, param1, param2);
+  run(finder);
+}
+
+template<class DivFinder, class Param1, class Param2, class Param3>
+void Simulation::run
+(const Param1& param1, const Param2& param2, const Param3& param3) {
+  DivFinder finder(_varCount, param1, param2, param3);
   run(finder);
 }
 
