@@ -59,6 +59,7 @@ class DivList {
   const_iterator begin() const {return _list.begin();}
   iterator end() {return _list.end();}
   const_iterator end() const {return _list.end();}
+  size_t size() const {return _list.size();}
 
   std::string getName() const;
 
@@ -130,15 +131,6 @@ namespace DivListHelper {
   }
 
   template<class C, class E>
-  class Comparer {
-  public:
-    Comparer(const C& c): _c(c) {}
-	bool operator()(const E& a, const E& b) const {return _c.isLessThan(a, b);}
-  private:
-	const C& _c;
-  };
-
-  template<class C, class E>
   typename std::list<E>::iterator
   insertSort(C& conf, std::list<E>& list, const E& entry) {
     typedef typename std::list<E>::iterator iterator;
@@ -155,7 +147,7 @@ namespace DivListHelper {
   insertSort(C& conf, std::vector<E>& list, const E& entry) {
     typedef typename std::vector<E>::iterator iterator;
     iterator it = std::upper_bound(list.begin(), list.end(), entry,
-      Comparer<C, E>(conf));
+      conf.getComparer());
 	return list.insert(it, entry);
   }
 
@@ -165,7 +157,7 @@ namespace DivListHelper {
     typedef typename std::vector<E>::iterator iterator;
     iterator rangeEnd =
       std::upper_bound(list.begin(), list.end(), monomial,
-					   Comparer<C, E>(conf));
+        conf.getComparer());
     iterator it = list.begin();
     for (; it != rangeEnd; ++it)
       if (conf.divides(*it, monomial))

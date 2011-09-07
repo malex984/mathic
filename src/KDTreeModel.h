@@ -1,19 +1,22 @@
-#ifndef DIV_ARRAY_MODEL_GUARD
-#define DIV_ARRAY_MODEL_GUARD
+#ifndef K_D_TREE_MODEL_GUARD
+#define K_D_TREE_MODEL_GUARD
 
-#include "DivList.h"
+#include "KDTree.h"
 #include <string>
 #include <vector>
 
-/** Helper class for DivListModel. */
-class DivListModelConfiguration {
+/** Helper class for KDTreeModel. */
+class KDTreeModelConfiguration {
  public:
   typedef int Exponent;
   typedef std::vector<Exponent> Monomial;
   typedef Monomial Entry;
 
-  DivListModelConfiguration(size_t varCount, bool sortOnInsert):
-  _varCount(varCount), _sortOnInsert(sortOnInsert), _expQueryCount(0) {}
+  KDTreeModelConfiguration(size_t varCount, size_t leafSize, bool sortOnInsert):
+   _varCount(varCount),
+   _leafSize(leafSize),
+   _sortOnInsert(sortOnInsert),
+   _expQueryCount(0) {}
 
   size_t getVarCount() const {return _varCount;}
   bool getSortOnInsert() const {return _sortOnInsert;}
@@ -41,61 +44,52 @@ class DivListModelConfiguration {
     return false;
   }
 
+  size_t getLeafSize() const {return _leafSize;}
+
   unsigned long getExpQueryCount() const {return _expQueryCount;}
 
   class Comparer {
   public:
-  Comparer(const DivListModelConfiguration& conf): _conf(conf) {}
+  Comparer(const KDTreeModelConfiguration& conf): _conf(conf) {}
 	bool operator()(const Entry& a, const Entry& b) const {
 	  return _conf.isLessThan(a, b);
 	}
   private:
-	const DivListModelConfiguration& _conf;
+	const KDTreeModelConfiguration& _conf;
   };
   Comparer getComparer() const {return *this;}
 
  private:
   const size_t _varCount;
+  const size_t _leafSize;
   const bool _sortOnInsert;
   mutable unsigned long _expQueryCount;
 };
 
-template<bool UseLinkedList>
-class DivListModel;
-
-/** An instantiation of the capabilities of DivList. */
-template<bool ULL>
-class DivListModel {
+/** An instantiation of the capabilities of KDTree. */
+class KDTreeModel {
  private:
-  typedef DivListModelConfiguration C;
-  typedef DivList<C, ULL> Finder;
+  typedef KDTreeModelConfiguration C;
+  typedef KDTree<C> Finder;
  public:
-  typedef typename Finder::iterator iterator;
-  typedef typename Finder::const_iterator const_iterator;
-  typedef typename Finder::Monomial Monomial;
-  typedef typename Finder::Entry Entry;
+  typedef Finder::iterator iterator;
+  typedef Finder::const_iterator const_iterator;
+  typedef Finder::Monomial Monomial;
+  typedef Finder::Entry Entry;
 
- DivListModel(size_t varCount,
-			  bool minimizeOnInsert,
-			  bool moveDivisorToFront,
-			  bool sortOnInsert):
-  _finder(C(varCount, sortOnInsert)),
-  _minimizeOnInsert(minimizeOnInsert),
-  _moveDivisorToFront(moveDivisorToFront) {
-    ASSERT(!sortOnInsert || !moveDivisorToFront);
-  }
+ KDTreeModel(size_t varCount,
+			 size_t leafSize,
+			 bool minimizeOnInsert,
+			 bool sortOnInsert):
+  _finder(C(varCount, leafSize, sortOnInsert)),
+  _minimizeOnInsert(minimizeOnInsert) {}
 
   void insert(const Entry& entry);
   iterator findDivisor(const Monomial& monomial) {
-    iterator it = _finder.findDivisor(monomial);
-    if (_moveDivisorToFront && it != _finder.end()) {
-      _finder.moveToFront(it);
-	  it = _finder.begin();
-	}
-    return it;
+    return _finder.findDivisor(monomial);
   }
   const_iterator findDivisor(const Monomial& monomial) const {
-    return const_cast<DivListModel<ULL>&>(*this).findDivisor(monomial);
+    return _finder.findDivisor(monomial);
   }
   std::string getName() const;
 
@@ -109,33 +103,27 @@ class DivListModel {
     return _finder.getConfiguration().getExpQueryCount();
   }
 
+  class Comparer;
+
  private:
   Finder _finder;
   bool _minimizeOnInsert;
-  bool _moveDivisorToFront;
 };
 
-template<bool ULL>
-inline void DivListModel<ULL>::insert(const Entry& entry) {
+inline void KDTreeModel::insert(const Entry& entry) {
   if (!_minimizeOnInsert) {
     _finder.insert(entry);
     return;
   }
   if (findDivisor(entry) != _finder.end())
     return;
-  bool hasMultiples = _finder.removeMultiples(entry);
+  _finder.removeMultiples(entry);
   _finder.insert(entry);
-  if (_moveDivisorToFront && hasMultiples) {
-    iterator it = _finder.end();
-    _finder.moveToFront(--it);
-  }
-} 
+}
 
-template<bool ULL>
-inline std::string DivListModel<ULL>::getName() const {
+inline std::string KDTreeModel::getName() const {
   return _finder.getName() +
-    (_minimizeOnInsert ? " remin" : " nomin") +
-    (_moveDivisorToFront ? " toFront" : "");
+    (_minimizeOnInsert ? " remin" : " nomin");
 }
 
 #endif

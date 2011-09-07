@@ -8,7 +8,7 @@
 #endif
 
 #ifndef _MSC_VER
-#define NO_INLINE
+#define NO_INLINE __attribute__ ((noinline))
 #endif
 
 #ifdef _MSC_VER // For Microsoft Compiler in Visual Studio C++.
@@ -46,3 +46,5 @@
 #define ASSERT(X)
 #define IF_DEBUG(X)
 #endif
+
+static const size_t MemoryAlignment = sizeof(void*);

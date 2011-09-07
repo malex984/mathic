@@ -122,6 +122,7 @@ void Simulation::run(DivFinder& finder) {
   _data.push_back(data);
   if (_printPartialData)
 	data.print(std::cerr);
+  std::cout << finder.size() << std::endl;
 }
 
 #endif
