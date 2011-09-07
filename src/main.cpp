@@ -8,7 +8,7 @@
 int main() {
   const size_t repeats = IF_DEBUG(true ? 1 :) 10;
   Simulation sim(repeats, true);
-  sim.makeStandard(10, 100, 1000);
+  sim.makeStandard(10, 1000, 10000);
   /*
   for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
 	for (int order = 0; order <= 2; ++order) {

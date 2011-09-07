@@ -7,6 +7,7 @@
 #include <string>
 #include <algorithm>
 #include <iterator>
+#include <sstream>
 
 /** An object that supports queries for divisors of a monomial using
  a KD Tree (K Dimensional Tree). See DivFinder for more documentation.
@@ -45,6 +46,7 @@ class KDTree {
         changed = true;
     return changed;
   }
+
   void insert(const Entry& entry) {
     if (_leaves.empty() || _leaves.back().size() >= _conf.getLeafSize()) {
       _leaves.resize(_leaves.size() + 1);
@@ -94,14 +96,16 @@ size_t KDTree<C>::size() const {
   size_t sum = 0;
   for (CTreeIt it = _leaves.begin(); it != _leaves.end(); ++it)
     sum += it->size();
-  ASSERT(sum == std::distance(begin(), end()));
+  ASSERT(sum == static_cast<size_t>(std::distance(begin(), end())));
   return sum;
 }
 
 template<class C>
 std::string KDTree<C>::getName() const {
-  return std::string("KDTree") +
-	(_conf.getSortOnInsert() ? " sort" : "");
+  std::stringstream out;
+  out << "KDTree-" << _conf.getLeafSize()
+    << (_conf.getSortOnInsert() ? " sort" : "");
+  return out.str();
 }
 
 template<class C>
@@ -110,13 +114,18 @@ class KDTree<C>::IterHelper {
  public:
   IterHelper() {} // singular iterator
   IterHelper(const IterHelper& it):
-   _macro(it._macro), _macroEnd(it._macroEnd), _micro(it._micro) {}
+   _macro(it._macro), _macroEnd(it._macroEnd), _micro(it._micro) {
+    avoidEndOfMacro();
+  }
   IterHelper(MacroIt macroEnd):
-   _macro(macroEnd), _macroEnd(macroEnd) {}
+   _macro(macroEnd), _macroEnd(macroEnd) {
+    avoidEndOfMacro();
+  }
   IterHelper(const MacroIt& macro, const MacroIt& macroEnd):
    _macro(macro), _macroEnd(macroEnd) {
     if (macro != macroEnd)
       _micro = macro->begin();
+    avoidEndOfMacro();
    }
   IterHelper
     (const MacroIt& macro, const MacroIt& macroEnd, const MicroIt& micro):
@@ -135,11 +144,12 @@ class KDTree<C>::IterHelper {
 	  ++_macro;
 	  if (_macro != _macroEnd)
 		_micro = _macro->begin();
+      avoidEndOfMacro();
 	}
   }
 
   void decrement() {
-	if (_macro == _macroEnd || _micro == _macro->begin()) {
+	while (_macro == _macroEnd || _micro == _macro->begin()) {
 	  --_macro;
 	  _micro = _macro->end();
 	}
@@ -160,6 +170,17 @@ class KDTree<C>::IterHelper {
   const MicroIt& get() const {return _micro;}
 
  private:
+  void avoidEndOfMacro() {
+    if (_macro == _macroEnd)
+      return;
+    while (_micro == _macro->end()) {
+      ++_macro;
+      if (_macro == _macroEnd)
+        return;
+      _micro = _macro->begin();
+    }
+  }
+
   MacroIt _macro;
   MacroIt _macroEnd;
   MicroIt _micro;
