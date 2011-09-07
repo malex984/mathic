@@ -25,7 +25,7 @@ int main() {
   for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
 	for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
       sim.run<KDTreeModel>(100000, minimizeOnInsert, sortOnInsert);
-      sim.run<KDTreeModel>(1, minimizeOnInsert, sortOnInsert);
+      sim.run<KDTreeModel>(2, minimizeOnInsert, sortOnInsert);
 	}
   }
 
