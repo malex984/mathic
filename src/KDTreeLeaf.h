@@ -3,19 +3,130 @@
 
 #include "Arena.h"
 
+/** A helper class for KDTree. A node in the tree. */
+template<class Configuration>
+class KDTreeNode;
+
+/** A helper class for KDTree. An interior node in the tree. */
+template<class Configuration>
+class KDTreeInterior;
+
 /** A helper class for KDTree. Represents a leaf in the tree. Leaves
- hold the actual monomials. The Configuration is as for KdTree. */
+ hold the monomials. The Configuration is as for KdTree. */
 template<class Configuration>
 class KDTreeLeaf;
 
 template<class C>
-class KDTreeLeaf {
+class KDTreeNode {
+  typedef KDTreeNode<C> Node;
+  typedef KDTreeLeaf<C> Leaf;
+  typedef KDTreeInterior<C> Interior;
+  friend class KDTreeInterior<C>;
+  friend class KDTreeLeaf<C>;
+public:
+  virtual ~KDTreeNode() {}
+
+  bool isLeaf() const {return _isLeaf;}
+  const Leaf& asLeaf() const {
+    ASSERT(isLeaf());
+    return static_cast<const Leaf&>(*this);
+  }
+  Leaf& asLeaf() {
+    ASSERT(isLeaf());
+    return static_cast<Leaf&>(*this);
+  }
+
+  bool isInterior() const {return !isLeaf();}
+  const Interior& asInterior() const {
+    ASSERT(isInterior());
+    return static_cast<Interior&>(*this);
+  }
+  Interior& asInterior() {
+    ASSERT(isInterior());
+    return static_cast<Interior&>(*this);
+  }
+
+  Interior* getParent() {return _parent;}
+  const Interior* getParent() const {return _parent;}
+
+protected:
+  KDTreeNode(bool isLeaf, Interior* parent):
+    _isLeaf(isLeaf), _parent(parent) {}
+  void setParent(Interior* parent) {_parent = parent;}
+
+private:
+  const bool _isLeaf; // todo: check performance of virtual replacement
+  Interior* _parent;
+};
+
+template<class C>
+class KDTreeInterior : public KDTreeNode<C> {
+public:
+  typedef typename C::Exponent Exponent;
+  typedef KDTreeInterior<C> Interior;
+  typedef KDTreeLeaf<C> Leaf;
+  typedef KDTreeNode<C> Node;
+
+  using Node::getParent;
+
+  KDTreeInterior(): Node(false, 0) {}
+  void reset(Leaf& toSplit, Leaf& other, Arena& arena, const C& conf) {
+    ASSERT(conf.getVarCount() > 0);
+    //_var = (parent == 0 ? 0 : parent->getVar() % conf.getVarCount());
+
+    _equalOrLess = &toSplit;
+    _strictlyGreater = &other;
+
+    setParent(toSplit.getParent());
+    if (getParent() != 0) {
+      if (&getParent()->getEqualOrLess() == &toSplit)
+        getParent()->setEqualOrLess(this);
+      else {
+        ASSERT(&getParent()->getStrictlyGreater() == &toSplit);
+        getParent()->setStrictlyGreater(this);
+      }
+    }
+    toSplit.setParent(this);
+    other.reset(arena, conf);
+    other.setParent(this);
+    size_t toMove = toSplit.size() / 2;
+    while (other.size() < toMove) {
+      other.push_back(toSplit.back());
+      toSplit.pop_back();
+    }
+  }
+  size_t getVar() const {return _var;}
+  Exponent getExponent() const {return _exponent;}
+
+  Node& getEqualOrLess() {return *_equalOrLess;}
+  const Node& getEqualOrLess() const {return *_equalOrLess;}
+  void setEqualOrLess(Node* equalOrLess) {_equalOrLess = equalOrLess;}
+  
+  Node& getStrictlyGreater() {return *_strictlyGreater;}
+  const Node& getStrictlyGreater() const {return *_strictlyGreater;}
+  void setStrictlyGreater(Node* strictlyGreater) {
+    _strictlyGreater = strictlyGreater;
+  }
+
+private:
+  KDTreeInterior(const Interior&); // unavailable
+  void operator=(const Interior&); // unavailable
+
+  size_t _var;
+  Exponent _exponent;
+  KDTreeNode<C>* _equalOrLess;
+  KDTreeNode<C>* _strictlyGreater;
+};
+
+template<class C>
+class KDTreeLeaf : public KDTreeNode<C> {
   typedef std::vector<typename C::Entry> List;
  public:
   typedef typename C::Monomial Monomial;
   typedef typename C::Entry Entry;
   typedef Entry* iterator;
   typedef const Entry* const_iterator;
+  typedef KDTreeNode<C> Node;
 
   KDTreeLeaf();
   ~KDTreeLeaf();
@@ -45,7 +156,7 @@ class KDTreeLeaf {
     return const_cast<KDTreeLeaf<C>&>(*this).findDivisor(monomial, conf);
   }
 
-  KDTreeLeaf(const KDTreeLeaf& t): _begin(0), _end(0) {
+  KDTreeLeaf(const KDTreeLeaf& t): Node(t), _begin(0), _end(0) {
     IF_DEBUG(_capacityDebug = 0);
     ASSERT(t._begin == 0);
     ASSERT(t._end == 0);
@@ -54,15 +165,13 @@ class KDTreeLeaf {
   void operator=(const KDTreeLeaf&) {ASSERT(false);} // unavailable
 
  private:
-
   iterator _begin;
   iterator _end;
   IF_DEBUG(size_t _capacityDebug;)
 };
 
 template<class C>
-KDTreeLeaf<C>::KDTreeLeaf():
- _begin(0), _end(0) {
+KDTreeLeaf<C>::KDTreeLeaf(): Node(true, 0), _begin(0), _end(0) {
   IF_DEBUG(_capacityDebug = 0);
 }
 

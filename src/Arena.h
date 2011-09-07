@@ -74,6 +74,15 @@ class Arena {
   void freeAndAllAfter(void* ptr);
 
 
+  // ***** Object interface *****
+
+  /** Allocates and default constructs an instance of T.
+   Only default construction supported so far. */
+  template<class T>
+  T* allocObject() {
+    return new (alloc(sizeof(T))) T();
+  }
+
   // ***** Array interface *****
 
   /** As alloc(elementCount * sizeof(T)). Constructors for the
