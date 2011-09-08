@@ -31,7 +31,7 @@ class Simulation {
 
     std::string _name;
     unsigned long _mseconds;
-    unsigned long _expQueryCount;
+    unsigned long long _expQueryCount;
   };
 
   template<class DivFinder>

@@ -41,7 +41,7 @@ class DivListModelConfiguration {
     return false;
   }
 
-  unsigned long getExpQueryCount() const {return _expQueryCount;}
+  unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
   class Comparer {
   public:
@@ -57,7 +57,7 @@ class DivListModelConfiguration {
  private:
   const size_t _varCount;
   const bool _sortOnInsert;
-  mutable unsigned long _expQueryCount;
+  mutable unsigned long long _expQueryCount;
 };
 
 template<bool UseLinkedList>
@@ -105,7 +105,7 @@ class DivListModel {
   const_iterator end() const {return _finder.end();}
   size_t size() const {return _finder.size();}
 
-  unsigned long getExpQueryCount() const {
+  unsigned long long getExpQueryCount() const {
     return _finder.getConfiguration().getExpQueryCount();
   }
 

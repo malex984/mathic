@@ -14,7 +14,7 @@ ifndef BIN_INSTALL_DIR
   BIN_INSTALL_DIR = "/usr/local/bin/"
 endif
 
-cflags = $(CFLAGS) $(CPPFLAGS) -Wall -ansi -pedantic -I $(GMP_INC_DIR)	\
+cflags = $(CFLAGS) $(CPPFLAGS) -Wall -ansi -I $(GMP_INC_DIR)	\
          -Wno-uninitialized -Wno-unused-parameter
 program = mm
 

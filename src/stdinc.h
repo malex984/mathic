@@ -7,6 +7,12 @@
 #pragma warning (push, 1) // Reduce warning level for GMP headers.
 #endif
 
+#ifdef PROFILE
+#define NO_PINLINE NO_INLINE
+#else
+#define NO_PINLINE
+#endif
+
 #ifndef _MSC_VER
 #define NO_INLINE __attribute__ ((noinline))
 #endif

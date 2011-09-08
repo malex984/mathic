@@ -37,6 +37,10 @@ public:
 
   bool atBegin() const {return _prev == 0;}
   bool atEnd() const {return _node == 0;}
+  bool atRoot() const {ASSERT(!atEnd()); return _node->getParent() == 0;}
+
+  Node* getNode() {return _node;}
+  const Node* getNode() const {return _node;}
 
   bool atLeaf() const {return _node->isLeaf();}
   bool atInterior() const {return _node->isInterior();}
@@ -182,6 +186,7 @@ public:
   Walker& operator=(const Walker& walker) {
     _node = walker._node;
     _prev = walker._prev;
+    return *this;
   }
 
 private:

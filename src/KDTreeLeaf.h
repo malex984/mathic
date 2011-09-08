@@ -250,7 +250,7 @@ bool KDTreeLeaf<C>::removeMultiples(const Monomial& monomial, const C& conf) {
 
 template<class C>
 typename KDTreeLeaf<C>::iterator
-KDTreeLeaf<C>::findDivisor(const Monomial& monomial, const C& conf) {
+NO_PINLINE KDTreeLeaf<C>::findDivisor(const Monomial& monomial, const C& conf) {
   if (!conf.getSortOnInsert()) {
 	const iterator stop = end();
 	for (iterator it = begin(); it != stop; ++it)
@@ -269,63 +269,63 @@ KDTreeLeaf<C>::findDivisor(const Monomial& monomial, const C& conf) {
 }
 
 template<class C>
-KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) {
+NO_PINLINE KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) {
   ASSERT(conf.getVarCount() > 0);
   ASSERT(size() >= 2);
   // ASSERT not all equal
-    Leaf& other = *new (arena.allocObjectNoCon<Leaf>()) Leaf(arena, conf);
+  Leaf& other = *new (arena.allocObjectNoCon<Leaf>()) Leaf(arena, conf);
 
-    size_t var;
-    typename C::Exponent exp;
-    while (true) {
-      var = rand() % conf.getVarCount();
-      typename C::Exponent min = conf.getExponent(front(), var);
-      typename C::Exponent max = conf.getExponent(front(), var);
-      for (iterator it = begin(); it != end(); ++it) {
-        min = std::min(min, conf.getExponent(*it, var));
-        max = std::max(max, conf.getExponent(*it, var));
-      }
-      if (min == max) {
-        if (back() == front())
-          pop_back();
-        else
-          continue;
-      }
-      exp = min + (max - min) / 2; // this formula for avg avoids overflow
-
-      iterator newEnd = begin();
-      for (iterator it = begin(); it != end(); ++it) {
-        if (exp < conf.getExponent(*it, var))
-          other.push_back(*it);
-        else {
-          if (it != newEnd)
-            *newEnd = *it;
-          ++newEnd;
-        }
-      }
-      while (newEnd != end())
+  size_t var;
+  typename C::Exponent exp;
+  while (true) {
+    var = rand() % conf.getVarCount();
+    typename C::Exponent min = conf.getExponent(front(), var);
+    typename C::Exponent max = conf.getExponent(front(), var);
+    for (iterator it = begin(); it != end(); ++it) {
+      min = std::min(min, conf.getExponent(*it, var));
+      max = std::max(max, conf.getExponent(*it, var));
+    }
+    if (min == max) {
+      if (back() == front())
         pop_back();
-      ASSERT(other.size() < conf.getLeafSize());
-      ASSERT(size() < conf.getLeafSize());
-      break;
+      else
+        continue;
     }
+    exp = min + (max - min) / 2; // this formula for avg avoids overflow
 
-    Interior& interior = *new (arena.allocObjectNoCon<Interior>())
-      Interior(Node::getParent(), *this, other, var, exp);
-
-    if (Node::hasParent()) {
-      if (Node::isEqualOrLessChild())
-        Node::getParent()->setEqualOrLess(&interior);
+    iterator newEnd = begin();
+    for (iterator it = begin(); it != end(); ++it) {
+      if (exp < conf.getExponent(*it, var))
+        other.push_back(*it);
       else {
-        ASSERT(Node::isStrictlyGreaterChild());
-        Node::getParent()->setStrictlyGreater(&interior);
+        if (it != newEnd)
+          *newEnd = *it;
+        ++newEnd;
       }
     }
-    setParent(&interior);
-    other.setParent(&interior);
-
-    return interior;
+    while (newEnd != end())
+      pop_back();
+    ASSERT(other.size() < conf.getLeafSize());
+    ASSERT(size() < conf.getLeafSize());
+    break;
   }
+
+  Interior& interior = *new (arena.allocObjectNoCon<Interior>())
+    Interior(Node::getParent(), *this, other, var, exp);
+
+  if (Node::hasParent()) {
+    if (Node::isEqualOrLessChild())
+      Node::getParent()->setEqualOrLess(&interior);
+    else {
+      ASSERT(Node::isStrictlyGreaterChild());
+      Node::getParent()->setStrictlyGreater(&interior);
+    }
+  }
+  setParent(&interior);
+  other.setParent(&interior);
+
+  return interior;
+}
 
 
 #endif

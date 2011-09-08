@@ -6,7 +6,7 @@
 #include <algorithm>
 
 namespace {
-  std::string commafy(unsigned long l) {
+  std::string commafy(unsigned long long l) {
     std::stringstream out;
     out << l;
     std::string str;

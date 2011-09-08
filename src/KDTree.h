@@ -9,6 +9,7 @@
 #include <algorithm>
 #include <iterator>
 #include <sstream>
+#include <vector>
 
 /** An object that supports queries for divisors of a monomial using
  a KD Tree (K Dimensional Tree). See DivFinder for more documentation.
@@ -77,6 +78,11 @@ class KDTree {
   template<class TreeIt>
   class IterHelper;
 
+#ifdef DEBUG
+  bool debugIsValid() const;
+#endif
+
+  std::vector<Node*> _tmp;
   Arena _arena;
   C _conf;
   Node* _root;
@@ -161,7 +167,7 @@ public std::iterator<std::bidirectional_iterator_tag, Entry> {
  public:
   iterator() {} // singular iterator
   iterator(const iterator& it): _it(it._it) {}
-  iterator& operator=(const iterator& it) {_it.assign(it._it);}
+  iterator& operator=(const iterator& it) {_it.assign(it._it); return *this;}
 
   iterator& operator++() {_it.increment(); return *this;}
   iterator operator++(int) {iterator tmp = *this; operator++(); return tmp;}
@@ -201,7 +207,7 @@ public std::iterator<std::bidirectional_iterator_tag, Entry> {
   const_iterator() {} // singular iterator
   const_iterator(const typename KDTree<C>::iterator& it): _it(it._it) {}
   const_iterator(const const_iterator& it): _it(it._it) {}
-  const_iterator& operator=(const const_iterator& it) {_it.assign(it._it);}
+  const_iterator& operator=(const const_iterator& it) {_it.assign(it._it); return *this;}
 
   const_iterator& operator++() {_it.increment(); return *this;}
   const_iterator operator++(int) {const_iterator tmp = *this; operator++(); return tmp;}
@@ -256,50 +262,122 @@ std::string KDTree<C>::getName() const {
 }
 
 template<class C>
-bool KDTree<C>::removeMultiples(const Monomial& monomial) {
+NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
+  ASSERT(_tmp.empty());
   bool changed = false;
-  for (Walker walker(_root); !walker.atEnd(); walker.next())
-    if (walker.atLeaf())
-      if (walker.asLeaf().removeMultiples(monomial, _conf))
-        changed = true;
+  Node* node = _root;
+  while (true) {
+    while (node->isInterior()) {
+      Interior& interior = node->asInterior();
+      if (!(interior.getExponent() <
+        _conf.getExponent(monomial, interior.getVar())))
+        _tmp.push_back(&interior.getEqualOrLess());
+      node = &interior.getStrictlyGreater();
+    }
+    ASSERT(node->isLeaf());
+    if (node->asLeaf().removeMultiples(monomial, _conf))
+      changed = true;
+    if (_tmp.empty())
+      break;
+    node = _tmp.back();
+    _tmp.pop_back();
+  }
+  ASSERT(debugIsValid());
+  ASSERT(_tmp.empty());
   return changed;
 }
 
 template<class C>
-void KDTree<C>::insert(const Entry& entry) {
+NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
   Node* node = _root;
   while (node->isInterior())
     node = &node->asInterior().getChildFor(entry, _conf);
-  Leaf& leaf = node->asLeaf();
+  Leaf* leaf = &node->asLeaf();
 
-  ASSERT(leaf.size() <= _conf.getLeafSize());
-  if (leaf.size() == _conf.getLeafSize()) {
-    Interior& interior = leaf.split(_arena, _conf);
-    if (&leaf == _root)
+  ASSERT(leaf->size() <= _conf.getLeafSize());
+  if (leaf->size() == _conf.getLeafSize()) {
+    Interior& interior = leaf->split(_arena, _conf);
+    if (leaf == _root)
       _root = &interior;
+    leaf = &interior.getChildFor(entry, _conf).asLeaf();
   }
-  ASSERT(leaf.size() < _conf.getLeafSize());
-  leaf.insert(entry, _conf);
+  ASSERT(leaf->size() < _conf.getLeafSize());
+  leaf->insert(entry, _conf);
+
+  ASSERT(debugIsValid());
 }
 
 template<class C>
-typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& monomial) {  
-  Walker walker(_root);
-  while (!walker.atEnd()) {
-    if (walker.atLeaf()) {
-      Leaf& leaf = walker.asLeaf();
-      LeafIt leafIt = leaf.findDivisor(monomial, _conf);
-      if (leafIt != leaf.end())
-        return iterator(leaf, leafIt);
-    } else if (walker.nextIsStrictlyGreater() &&
-      &walker.asInterior().getChildFor(monomial, _conf) !=
-      &walker.asInterior().getStrictlyGreater()) {
-      walker.toParent();
-      continue;
+NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& monomial) {  
+  ASSERT(_tmp.empty());
+  Node* node = _root;
+  while (true) {
+    while (node->isInterior()) {
+      Interior& interior = node->asInterior();
+      if (interior.getExponent() <
+        _conf.getExponent(monomial, interior.getVar()))
+        _tmp.push_back(&interior.getStrictlyGreater());
+      node = &interior.getEqualOrLess();
     }
-    walker.next();
+    ASSERT(node->isLeaf());
+    Leaf& leaf = node->asLeaf();
+    LeafIt leafIt = leaf.findDivisor(monomial, _conf);
+    if (leafIt != leaf.end()) {
+      _tmp.clear();
+      return iterator(leaf, leafIt);
+    }
+    if (_tmp.empty())
+      break;
+    node = _tmp.back();
+    _tmp.pop_back();
   }
+  ASSERT(_tmp.empty());
   return end();
 }
+
+#ifdef DEBUG
+template<class C>
+bool KDTree<C>::debugIsValid() const {
+  ASSERT(_tmp.empty());
+  Walker walker(_root);
+  if (walker.atEnd())
+    return true;
+  ASSERT(walker.getNode()->getParent() == 0);
+  for (; !walker.atEnd(); walker.next()) {
+    if (walker.atLeaf()) {
+      Leaf& leaf = walker.asLeaf();
+      Walker ancestor(walker);
+      // Check all interior nodes above leaf have each monomial in the
+      // leaf in the correct child.
+      while (!ancestor.atRoot()) {
+        Node* child = ancestor.getNode();
+        ancestor.toParent();
+        ASSERT(!ancestor.atEnd());
+        Interior& interior = ancestor.asInterior();
+        if (child == &interior.getEqualOrLess()) {
+          typename Leaf::const_iterator it = leaf.begin();
+          for (; it != leaf.end(); ++it) {
+            ASSERT(!(interior.getExponent() <
+              _conf.getExponent(*it, interior.getVar())));
+          }
+        } else {
+          ASSERT(child == &ancestor.getStrictlyGreater());
+          typename Leaf::const_iterator it = leaf.begin();
+          for (; it != leaf.end(); ++it) {
+            ASSERT(interior.getExponent() <
+              _conf.getExponent(*it, interior.getVar()));
+          }
+        }
+      }
+    } else {
+      Interior& interior = walker.asInterior();
+      ASSERT(walker.getEqualOrLess().getParent() == &interior);
+      ASSERT(walker.getStrictlyGreater().getParent() == &interior);
+      ASSERT(interior.getVar() < _conf.getVarCount());
+    }
+  }
+  return true;
+}
+#endif
 
 #endif

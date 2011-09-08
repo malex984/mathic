@@ -9,6 +9,7 @@ int main() {
   const size_t repeats = IF_DEBUG(true ? 1 :) 1;
   Simulation sim(repeats, true);
   sim.makeStandard(10, 1000000, 0);
+  //sim.makeStandard(10, 1000, 10000);
   /*
   for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
 	for (int order = 0; order <= 2; ++order) {
@@ -21,8 +22,8 @@ int main() {
 	}
   }
   */
+  //sim.run<DivListModel<0> >(1, 0, 0);
   /*
-  sim.run<DivListModel<0> >(1, 0, 0);
   sim.run<DivListModel<0> >(1, 1, 0);
   sim.run<DivListModel<0> >(1, 0, 1);
   sim.run<DivListModel<1> >(1, 0, 0);
@@ -32,12 +33,13 @@ int main() {
 
   //*
   for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
-	for (int sortOnInsert = 1; sortOnInsert <= 1; ++sortOnInsert) {
+	for (int sortOnInsert = 0; sortOnInsert <= 0; ++sortOnInsert) {
       //sim.run<KDTreeModel>(100000, minimizeOnInsert, sortOnInsert);
       //sim.run<KDTreeModel>(400, minimizeOnInsert, sortOnInsert);
       //sim.run<KDTreeModel>(200, minimizeOnInsert, sortOnInsert);
       //sim.run<KDTreeModel>(100, minimizeOnInsert, sortOnInsert);
-      sim.run<KDTreeModel>(50, minimizeOnInsert, sortOnInsert);
+      sim.run<KDTreeModel>(2, minimizeOnInsert, sortOnInsert);
+      sim.run<KDTreeModel>(10, minimizeOnInsert, sortOnInsert);
 	}
   }
   //*/

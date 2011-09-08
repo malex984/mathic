@@ -46,7 +46,7 @@ class KDTreeModelConfiguration {
 
   size_t getLeafSize() const {return _leafSize;}
 
-  unsigned long getExpQueryCount() const {return _expQueryCount;}
+  unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
   class Comparer {
   public:
@@ -63,7 +63,7 @@ class KDTreeModelConfiguration {
   const size_t _varCount;
   const size_t _leafSize;
   const bool _sortOnInsert;
-  mutable unsigned long _expQueryCount;
+  mutable unsigned long long _expQueryCount;
 };
 
 /** An instantiation of the capabilities of KDTree. */
@@ -99,7 +99,7 @@ class KDTreeModel {
   const_iterator end() const {return _finder.end();}
   size_t size() const {return _finder.size();}
 
-  unsigned long getExpQueryCount() const {
+  unsigned long long getExpQueryCount() const {
     return _finder.getConfiguration().getExpQueryCount();
   }
 
