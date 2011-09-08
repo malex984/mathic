@@ -79,8 +79,7 @@ class KDTree {
 
   Arena _arena;
   C _conf;
-  Tree _leaves;
-  KDTreeNode<C>* _root;
+  Node* _root;
 };
 
 template<class C>
@@ -234,9 +233,7 @@ public std::iterator<std::bidirectional_iterator_tag, Entry> {
 template<class C>
 KDTree<C>::KDTree(const C& configuration): _conf(configuration) {
   ASSERT(_conf.getLeafSize() >= 2);
-  _leaves.resize(1);
-  _leaves.back().reset(_arena, _conf);
-  _root = &_leaves.back();
+  _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
 }
 
 template<class C>
@@ -270,36 +267,37 @@ bool KDTree<C>::removeMultiples(const Monomial& monomial) {
 
 template<class C>
 void KDTree<C>::insert(const Entry& entry) {
-  // pretend to be searching for the right node
   Node* node = _root;
-  while (!node->isLeaf()) {
-    Interior& interior = node->asInterior();
-    node = rand() % 2 ?
-      &interior.getEqualOrLess() : &interior.getStrictlyGreater();
-  }
+  while (node->isInterior())
+    node = &node->asInterior().getChildFor(entry, _conf);
   Leaf& leaf = node->asLeaf();
 
-  if (leaf.size() >= _conf.getLeafSize()) {
-    _leaves.resize(_leaves.size() + 1);
-    _leaves.back().reset(_arena, _conf);
-    Leaf& newLeaf = _leaves.back();
-    Interior* newInterior = _arena.allocObject<KDTreeInterior<C> >();
-    newInterior->reset(leaf, newLeaf, _arena, _conf);
+  ASSERT(leaf.size() <= _conf.getLeafSize());
+  if (leaf.size() == _conf.getLeafSize()) {
+    Interior& interior = leaf.split(_arena, _conf);
     if (&leaf == _root)
-      _root = newInterior;
+      _root = &interior;
   }
+  ASSERT(leaf.size() < _conf.getLeafSize());
   leaf.insert(entry, _conf);
 }
 
 template<class C>
 typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& monomial) {  
-  for (Walker walker(_root); !walker.atEnd(); walker.next()) {
+  Walker walker(_root);
+  while (!walker.atEnd()) {
     if (walker.atLeaf()) {
       Leaf& leaf = walker.asLeaf();
       LeafIt leafIt = leaf.findDivisor(monomial, _conf);
       if (leafIt != leaf.end())
         return iterator(leaf, leafIt);
+    } else if (walker.nextIsStrictlyGreater() &&
+      &walker.asInterior().getChildFor(monomial, _conf) !=
+      &walker.asInterior().getStrictlyGreater()) {
+      walker.toParent();
+      continue;
     }
+    walker.next();
   }
   return end();
 }

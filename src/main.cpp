@@ -6,9 +6,9 @@
 #include <iostream>
 
 int main() {
-  const size_t repeats = IF_DEBUG(true ? 1 :) 10;
+  const size_t repeats = IF_DEBUG(true ? 1 :) 1;
   Simulation sim(repeats, true);
-  sim.makeStandard(10, 1000, 10000);
+  sim.makeStandard(10, 1000000, 0);
   /*
   for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
 	for (int order = 0; order <= 2; ++order) {
@@ -21,13 +21,26 @@ int main() {
 	}
   }
   */
+  /*
+  sim.run<DivListModel<0> >(1, 0, 0);
+  sim.run<DivListModel<0> >(1, 1, 0);
   sim.run<DivListModel<0> >(1, 0, 1);
+  sim.run<DivListModel<1> >(1, 0, 0);
+  sim.run<DivListModel<1> >(1, 1, 0);
+  sim.run<DivListModel<1> >(1, 0, 1);
+  */
+
+  //*
   for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
-	for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
-      sim.run<KDTreeModel>(100000, minimizeOnInsert, sortOnInsert);
-      sim.run<KDTreeModel>(2, minimizeOnInsert, sortOnInsert);
+	for (int sortOnInsert = 1; sortOnInsert <= 1; ++sortOnInsert) {
+      //sim.run<KDTreeModel>(100000, minimizeOnInsert, sortOnInsert);
+      //sim.run<KDTreeModel>(400, minimizeOnInsert, sortOnInsert);
+      //sim.run<KDTreeModel>(200, minimizeOnInsert, sortOnInsert);
+      //sim.run<KDTreeModel>(100, minimizeOnInsert, sortOnInsert);
+      sim.run<KDTreeModel>(50, minimizeOnInsert, sortOnInsert);
 	}
   }
+  //*/
 
   std::cout << "\n\n";
   sim.printData(std::cout);

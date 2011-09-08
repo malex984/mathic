@@ -72,6 +72,9 @@ public:
     ASSERT(atInterior());
     return asInterior().getEqualOrLess();
   }
+  const Node& getEqualOrLess() const {
+    return const_cast<Walker&>(*this).getEqualOrLess();
+  }
   void toEqualOrLess() {
     ASSERT(_node != 0);
     ASSERT(atInterior());
@@ -84,6 +87,9 @@ public:
     ASSERT(_node != 0);
     ASSERT(atInterior());
     return asInterior().getStrictlyGreater();
+  }
+  const Node& getStrictlyGreater() const {
+    return const_cast<Walker&>(*this).getStrictlyGreater();
   }
   void toStrictlyGreater() {
     ASSERT(_node != 0);
@@ -115,6 +121,11 @@ public:
       _prev == &_node->asInterior().getEqualOrLess() ||
       _prev == &_node->asInterior().getStrictlyGreater());
 
+  }
+  /** Returns true if next() will move to the strictlyGreater child. */
+  bool nextIsStrictlyGreater() const {
+    ASSERT(!atEnd());
+    return atInterior() && _prev == &getEqualOrLess();
   }
 
   /** Moves to next non empty leaf in depth first traversal. */
@@ -174,7 +185,7 @@ public:
   }
 
 private:
-  KDTreeWalker(Node* node, Node* prev): _node(node), _prev(prev) {}
+  KDTreeWalker(Node* node, Node* previous): _node(node), _prev(previous) {}
 
   Node* _node;
   Node* _prev;

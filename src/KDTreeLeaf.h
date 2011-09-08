@@ -46,12 +46,20 @@ public:
     return static_cast<Interior&>(*this);
   }
 
+  bool isEqualOrLessChild() const {
+    return hasParent() && &getParent()->getEqualOrLess() == this;
+  }
+  bool isStrictlyGreaterChild() const {
+    return hasParent() && &getParent()->getStrictlyGreater() == this;
+  }
+
+  bool hasParent() const {return _parent != 0;}
   Interior* getParent() {return _parent;}
   const Interior* getParent() const {return _parent;}
 
 protected:
-  KDTreeNode(bool isLeaf, Interior* parent):
-    _isLeaf(isLeaf), _parent(parent) {}
+  KDTreeNode(bool leaf, Interior* parent):
+    _isLeaf(leaf), _parent(parent) {}
   void setParent(Interior* parent) {_parent = parent;}
 
 private:
@@ -69,31 +77,17 @@ public:
 
   using Node::getParent;
 
-  KDTreeInterior(): Node(false, 0) {}
-  void reset(Leaf& toSplit, Leaf& other, Arena& arena, const C& conf) {
-    ASSERT(conf.getVarCount() > 0);
-    //_var = (parent == 0 ? 0 : parent->getVar() % conf.getVarCount());
-
-    _equalOrLess = &toSplit;
-    _strictlyGreater = &other;
-
-    setParent(toSplit.getParent());
-    if (getParent() != 0) {
-      if (&getParent()->getEqualOrLess() == &toSplit)
-        getParent()->setEqualOrLess(this);
-      else {
-        ASSERT(&getParent()->getStrictlyGreater() == &toSplit);
-        getParent()->setStrictlyGreater(this);
-      }
-    }
-    toSplit.setParent(this);
-    other.reset(arena, conf);
-    other.setParent(this);
-    size_t toMove = toSplit.size() / 2;
-    while (other.size() < toMove) {
-      other.push_back(toSplit.back());
-      toSplit.pop_back();
-    }
+  KDTreeInterior
+    (Interior* parent,
+     Node& equalOrLess,
+     Node& strictlyGreater,
+     size_t var,
+     Exponent exponent):
+   Node(false, parent),
+   _equalOrLess(&equalOrLess),
+   _strictlyGreater(&strictlyGreater),
+   _var(var),
+   _exponent(exponent) {
   }
   size_t getVar() const {return _var;}
   Exponent getExponent() const {return _exponent;}
@@ -101,36 +95,44 @@ public:
   Node& getEqualOrLess() {return *_equalOrLess;}
   const Node& getEqualOrLess() const {return *_equalOrLess;}
   void setEqualOrLess(Node* equalOrLess) {_equalOrLess = equalOrLess;}
-  
+
   Node& getStrictlyGreater() {return *_strictlyGreater;}
   const Node& getStrictlyGreater() const {return *_strictlyGreater;}
   void setStrictlyGreater(Node* strictlyGreater) {
     _strictlyGreater = strictlyGreater;
   }
 
+  Node& getChildFor(const typename C::Entry& entry, const C& conf) {
+    if (getExponent() < conf.getExponent(entry, getVar()))
+      return getStrictlyGreater();
+    else
+      return getEqualOrLess();
+  }
+
 private:
   KDTreeInterior(const Interior&); // unavailable
   void operator=(const Interior&); // unavailable
 
-  size_t _var;
-  Exponent _exponent;
   KDTreeNode<C>* _equalOrLess;
   KDTreeNode<C>* _strictlyGreater;
+  size_t _var;
+  Exponent _exponent;
 };
 
 template<class C>
 class KDTreeLeaf : public KDTreeNode<C> {
   typedef std::vector<typename C::Entry> List;
+  typedef KDTreeInterior<C> Interior;
+  typedef KDTreeLeaf<C> Leaf;
+  typedef KDTreeNode<C> Node;
  public:
   typedef typename C::Monomial Monomial;
   typedef typename C::Entry Entry;
   typedef Entry* iterator;
   typedef const Entry* const_iterator;
-  typedef KDTreeNode<C> Node;
 
-  KDTreeLeaf();
+  KDTreeLeaf(Arena& arena, const C& conf);
   ~KDTreeLeaf();
-  void reset(Arena& arena, const C& conf);
 
   iterator begin() {return _begin;}
   const_iterator begin() const {return _begin;}
@@ -156,36 +158,31 @@ class KDTreeLeaf : public KDTreeNode<C> {
     return const_cast<KDTreeLeaf<C>&>(*this).findDivisor(monomial, conf);
   }
 
-  KDTreeLeaf(const KDTreeLeaf& t): Node(t), _begin(0), _end(0) {
-    IF_DEBUG(_capacityDebug = 0);
-    ASSERT(t._begin == 0);
-    ASSERT(t._end == 0);
-    ASSERT(t._capacityDebug == 0);
-  } // unavailable
-  void operator=(const KDTreeLeaf&) {ASSERT(false);} // unavailable
+  Interior& split(Arena& arena, const C& conf);
 
  private:
+  KDTreeLeaf(const KDTreeLeaf& t); // unavailable
+  void operator=(const KDTreeLeaf&) {ASSERT(false);} // unavailable
+
   iterator _begin;
   iterator _end;
   IF_DEBUG(size_t _capacityDebug;)
 };
 
 template<class C>
-KDTreeLeaf<C>::KDTreeLeaf(): Node(true, 0), _begin(0), _end(0) {
+KDTreeLeaf<C>::KDTreeLeaf(Arena& arena, const C& conf):
+ Node(true, 0), _begin(0), _end(0) {
   IF_DEBUG(_capacityDebug = 0);
+
+  IF_DEBUG(_capacityDebug = conf.getLeafSize());
+  _begin = arena.allocArrayNoCon<Entry>(conf.getLeafSize()).first;
+  _end = _begin;
 }
 
 template<class C>
 KDTreeLeaf<C>::~KDTreeLeaf() {
   while (!empty())
     pop_back();
-}
-
-template<class C>
-void KDTreeLeaf<C>::reset(Arena& arena, const C& conf) {
-  IF_DEBUG(_capacityDebug = conf.getLeafSize());
-  _begin = arena.allocArrayNoCon<Entry>(conf.getLeafSize()).first;
-  _end = _begin;
 }
 
 template<class C>
@@ -270,5 +267,65 @@ KDTreeLeaf<C>::findDivisor(const Monomial& monomial, const C& conf) {
 	return end();
   }
 }
+
+template<class C>
+KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) {
+  ASSERT(conf.getVarCount() > 0);
+  ASSERT(size() >= 2);
+  // ASSERT not all equal
+    Leaf& other = *new (arena.allocObjectNoCon<Leaf>()) Leaf(arena, conf);
+
+    size_t var;
+    typename C::Exponent exp;
+    while (true) {
+      var = rand() % conf.getVarCount();
+      typename C::Exponent min = conf.getExponent(front(), var);
+      typename C::Exponent max = conf.getExponent(front(), var);
+      for (iterator it = begin(); it != end(); ++it) {
+        min = std::min(min, conf.getExponent(*it, var));
+        max = std::max(max, conf.getExponent(*it, var));
+      }
+      if (min == max) {
+        if (back() == front())
+          pop_back();
+        else
+          continue;
+      }
+      exp = min + (max - min) / 2; // this formula for avg avoids overflow
+
+      iterator newEnd = begin();
+      for (iterator it = begin(); it != end(); ++it) {
+        if (exp < conf.getExponent(*it, var))
+          other.push_back(*it);
+        else {
+          if (it != newEnd)
+            *newEnd = *it;
+          ++newEnd;
+        }
+      }
+      while (newEnd != end())
+        pop_back();
+      ASSERT(other.size() < conf.getLeafSize());
+      ASSERT(size() < conf.getLeafSize());
+      break;
+    }
+
+    Interior& interior = *new (arena.allocObjectNoCon<Interior>())
+      Interior(Node::getParent(), *this, other, var, exp);
+
+    if (Node::hasParent()) {
+      if (Node::isEqualOrLessChild())
+        Node::getParent()->setEqualOrLess(&interior);
+      else {
+        ASSERT(Node::isStrictlyGreaterChild());
+        Node::getParent()->setStrictlyGreater(&interior);
+      }
+    }
+    setParent(&interior);
+    other.setParent(&interior);
+
+    return interior;
+  }
+
 
 #endif

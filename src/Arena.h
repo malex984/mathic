@@ -77,10 +77,17 @@ class Arena {
   // ***** Object interface *****
 
   /** Allocates and default constructs an instance of T.
-   Only default construction supported so far. */
+   Only default construction supported. */
   template<class T>
   T* allocObject() {
-    return new (alloc(sizeof(T))) T();
+    return new (allocObjectNoCon<T>()) T();
+  }
+
+  /** Allocates memory for an instance of T. No construction
+   is performed. */
+  template<class T>
+  void* allocObjectNoCon() {
+    return alloc(sizeof(T));
   }
 
   // ***** Array interface *****
