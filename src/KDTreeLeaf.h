@@ -159,6 +159,9 @@ class KDTreeLeaf : public KDTreeNode<C> {
     return const_cast<KDTreeLeaf<C>&>(*this).findDivisor(monomial, conf);
   }
 
+  template<class DO>
+  void findAllDivisors(const Monomial& monomial, DO& out, const C& conf);
+
   Interior& split(Arena& arena, const C& conf);
 
  private:
@@ -250,8 +253,8 @@ bool KDTreeLeaf<C>::removeMultiples(const Monomial& monomial, const C& conf) {
 }
 
 template<class C>
-typename KDTreeLeaf<C>::iterator
-NO_PINLINE KDTreeLeaf<C>::findDivisor(const Monomial& monomial, const C& conf) {
+NO_PINLINE typename KDTreeLeaf<C>::iterator
+KDTreeLeaf<C>::findDivisor(const Monomial& monomial, const C& conf) {
   if (!conf.getSortOnInsert()) {
 	const iterator stop = end();
 	for (iterator it = begin(); it != stop; ++it)
@@ -269,17 +272,36 @@ NO_PINLINE KDTreeLeaf<C>::findDivisor(const Monomial& monomial, const C& conf) {
   }
 }
 
-      template<class C>
-      struct ExpOrder {
-        typedef typename C::Entry Entry;
-        ExpOrder(size_t var, const C& conf): _var(var), _conf(conf) {}
-        bool operator()(const Entry& a, const Entry& b) const {
-          return _conf.getExponent(a, _var) < _conf.getExponent(b, _var);
-        }
-      private:
-        const size_t _var;
-        const C& _conf;
-      };
+template<class C>
+template<class DO>
+NO_PINLINE void KDTreeLeaf<C>::
+findAllDivisors(const Monomial& monomial, DO& out, const C& conf) {
+  if (!conf.getSortOnInsert()) {
+	const iterator stop = end();
+	for (iterator it = begin(); it != stop; ++it)
+	  if (conf.divides(*it, monomial))
+        out.push_back(out);
+  } else {
+    iterator rangeEnd =
+      std::upper_bound(begin(), end(), monomial, conf.getComparer());
+    iterator it = begin();
+    for (; it != rangeEnd; ++it)
+      if (conf.divides(*it, monomial))
+        out.push_back(out);
+  }  
+}
+
+template<class C>
+struct ExpOrder {
+  typedef typename C::Entry Entry;
+  ExpOrder(size_t var, const C& conf): _var(var), _conf(conf) {}
+  bool operator()(const Entry& a, const Entry& b) const {
+    return _conf.getExponent(a, _var) < _conf.getExponent(b, _var);
+  }
+private:
+  const size_t _var;
+  const C& _conf;
+};
 
 template<class C>
 NO_PINLINE KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) {

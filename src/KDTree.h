@@ -123,6 +123,19 @@ class KDTree {
   template<class TreeIt>
   class IterHelper;
 
+  /** Transfers push_back from iterator to const_iterator. */
+  template<class DO>
+  class ConstDivisorOutput {
+  public:
+    ConstDivisorOutput(DO& out): _out(out) {}
+    void push_back(iterator it) {
+      const_iterator cit = it;
+      _out.push_back(cit);
+    }
+  private:
+    DO& _out;
+  };
+
 #ifdef DEBUG
   bool debugIsValid() const;
 #endif
@@ -395,13 +408,32 @@ NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& m
 template<class C>
 template<class DO>
 void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) {
-  // todo
+  ASSERT(_tmp.empty());
+  Node* node = _root;
+  while (true) {
+    while (node->isInterior()) {
+      Interior& interior = node->asInterior();
+      if (interior.getExponent() <
+        _conf.getExponent(monomial, interior.getVar()))
+        _tmp.push_back(&interior.getStrictlyGreater());
+      node = &interior.getEqualOrLess();
+    }
+    ASSERT(node->isLeaf());
+    Leaf& leaf = node->asLeaf();
+    leaf.findAllDivisors(monomial, output, _conf);
+    if (_tmp.empty())
+      break;
+    node = _tmp.back();
+    _tmp.pop_back();
+  }
+  ASSERT(_tmp.empty());
 }
 
 template<class C>
 template<class DO>
 void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) const {
-  // todo
+  ConstDivisorOutput<DO> constOutput(output);
+  const_cast<KDTree<C>&>(*this).findAllDivisors(monomial, constOutput);
 }
 
 #ifdef DEBUG
