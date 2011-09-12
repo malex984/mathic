@@ -43,9 +43,16 @@ class KDTree {
   typedef typename C::Entry Entry;
   typedef typename C::Exponent Exponent;
 
+  /** Iterator for enumerating all entries. */
   class iterator;
+
+  /** Const iterator for enumerating all entries. */
   class const_iterator;
+
+  /** Reverse iterator for enumerating all entries. */
   typedef std::reverse_iterator<iterator> reverse_iterator;
+
+  /** Reverse const iterator for enumerating all entries. */
   typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
   /** Constructs an object with the given configuration. The configuration
@@ -65,6 +72,20 @@ class KDTree {
   /** Returns the position of a divisor of monomial. Returns end() if no
    entries divide monomial. */
   iterator findDivisor(const Monomial& monomial);
+
+  /** Calls output.push_back(iter) for each entry that divides monomial
+   where iter is an iterator referring to the entry. So a std::vector
+   will work, but any other class with a push_back method accepting
+   an iterator will also work. */
+  template<class DivisorOutput>
+  void findAllDivisors(const Monomial& monomial, DivisorOutput& output);
+
+  /** Calls output.push_back(iter) for each entry that divides monomial
+   where iter is a const_iterator referring to the entry. So a std::vector
+   will work, but any other class with a push_back method accepting
+   an iterator will also work. */
+  template<class DivisorOutput>
+  void findAllDivisors(const Monomial& monomial, DivisorOutput& output) const;
 
   /** Returns the position of a divisor of monomial. Returns end() if no
    entries divide monomial. */
@@ -369,6 +390,18 @@ NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& m
   }
   ASSERT(_tmp.empty());
   return end();
+}
+
+template<class C>
+template<class DO>
+void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) {
+  // todo
+}
+
+template<class C>
+template<class DO>
+void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) const {
+  // todo
 }
 
 #ifdef DEBUG
