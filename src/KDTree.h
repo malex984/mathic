@@ -12,12 +12,15 @@
 #include <vector>
 
 /** An object that supports queries for divisors of a monomial using
- a KD Tree (K Dimensional Tree). See DivFinder for more documentation.
+ a KD Tree (K Dimensional Tree). See DivFinder.h for more documentation.
 
  Extra fields for Configuration:
 
  * bool getSortOnInsert() const
-  Keep the monomials sorted to speed up queries.
+  Keep the monomials in leaves sorted to speed up queries.
+
+ * size_t getLeafSize() const
+  Returns the fixed maximal size of a leaf.
 */
 template<class Configuration>
 class KDTree;
@@ -45,11 +48,26 @@ class KDTree {
   typedef std::reverse_iterator<iterator> reverse_iterator;
   typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
 
+  /** Constructs an object with the given configuration. The configuration
+   is copied into the object, so a reference to the passed-in object is
+   not kept. */
   KDTree(const C& configuration);
 
+  /** Removes all multiples of monomial. A duplicate of monomial counts
+   as a multiple. Returns true if any multiples were removed. */
   bool removeMultiples(const Monomial& monomial);
+
+  /** Inserts entry into the data structure. Does NOT remove multiples
+   of entry and entry is inserted even if it is a multiple of another
+   entry. */
   void insert(const Entry& entry);
+
+  /** Returns the position of a divisor of monomial. Returns end() if no
+   entries divide monomial. */
   iterator findDivisor(const Monomial& monomial);
+
+  /** Returns the position of a divisor of monomial. Returns end() if no
+   entries divide monomial. */
   const_iterator findDivisor(const Monomial& monomial) const {
     return const_cast<KDTree<C>&>(*this).findDivisor(monomial);
   }
@@ -64,17 +82,23 @@ class KDTree {
   reverse_iterator rend() {return reverse_iterator(begin());}
   const_reverse_iterator rend() const {return const_reverse_iterator(begin());}
 
+  /** Returns the number of entries. Not O(1) so don't call it in a loop. */
   size_t size() const;
 
+  /** Returns a string that describes the data structure. */
   std::string getName() const;
 
+  /** Returns a reference to this object's configuration object. */
   C& getConfiguration() {return _conf;}
+
+  /** Returns a reference to this object's configuration object. */
   const C& getConfiguration() const {return _conf;}
 
  private:
   KDTree(const KDTree<C>&); // unavailable
   void operator=(const KDTree<C>&); // unavailable
 
+  /** Encapsulates the common code between iterator and const_iterator. */
   template<class TreeIt>
   class IterHelper;
 
