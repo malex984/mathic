@@ -2,6 +2,7 @@
 #define K_D_TREE_LEAF_GUARD
 
 #include "Arena.h"
+#include <algorithm>
 
 /** A helper class for KDTree. A node in the tree. */
 template<class Configuration>
@@ -268,6 +269,18 @@ NO_PINLINE KDTreeLeaf<C>::findDivisor(const Monomial& monomial, const C& conf) {
   }
 }
 
+      template<class C>
+      struct ExpOrder {
+        typedef typename C::Entry Entry;
+        ExpOrder(size_t var, const C& conf): _var(var), _conf(conf) {}
+        bool operator()(const Entry& a, const Entry& b) const {
+          return _conf.getExponent(a, _var) < _conf.getExponent(b, _var);
+        }
+      private:
+        const size_t _var;
+        const C& _conf;
+      };
+
 template<class C>
 NO_PINLINE KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) {
   ASSERT(conf.getVarCount() > 0);
@@ -275,36 +288,88 @@ NO_PINLINE KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) 
   // ASSERT not all equal
   Leaf& other = *new (arena.allocObjectNoCon<Leaf>()) Leaf(arena, conf);
 
-  size_t var;
   typename C::Exponent exp;
+  size_t var = Node::hasParent() ?
+    Node::getParent()->getVar() : static_cast<size_t>(-1);
   while (true) {
-    var = rand() % conf.getVarCount();
-    typename C::Exponent min = conf.getExponent(front(), var);
-    typename C::Exponent max = conf.getExponent(front(), var);
-    for (iterator it = begin(); it != end(); ++it) {
-      min = std::min(min, conf.getExponent(*it, var));
-      max = std::max(max, conf.getExponent(*it, var));
-    }
-    if (min == max) {
-      if (back() == front())
-        pop_back();
-      else
-        continue;
-    }
-    exp = min + (max - min) / 2; // this formula for avg avoids overflow
-
-    iterator newEnd = begin();
-    for (iterator it = begin(); it != end(); ++it) {
-      if (exp < conf.getExponent(*it, var))
-        other.push_back(*it);
-      else {
-        if (it != newEnd)
-          *newEnd = *it;
-        ++newEnd;
+    var = (var + 1) % conf.getVarCount();
+    
+    if (1) {
+      typename C::Exponent min = conf.getExponent(front(), var);
+      typename C::Exponent max = conf.getExponent(front(), var);
+      for (iterator it = begin(); it != end(); ++it) {
+        min = std::min(min, conf.getExponent(*it, var));
+        max = std::max(max, conf.getExponent(*it, var));
       }
+      if (min == max && size() > 1) {
+        if (back() == front()) {
+          // no good way to split a leaf of all duplicates other than to
+          // detect and remove them.
+          while (back() == front())
+            pop_back();
+        }
+        continue;
+      }
+      exp = min + (max - min) / 2; // this formula for avg avoids overflow
+
+      iterator newEnd = begin();
+      for (iterator it = begin(); it != end(); ++it) {
+        if (exp < conf.getExponent(*it, var))
+          other.push_back(*it);
+        else {
+          if (it != newEnd)
+            *newEnd = *it;
+          ++newEnd;
+        }
+      }
+      while (newEnd != end())
+        pop_back();
+    } else {
+      iterator middle = begin() + size() / 2;
+      ExpOrder<C> order(var, conf);
+
+      std::nth_element(begin(), middle, end(), order);
+      if (middle != end()) {
+        exp = conf.getExponent(*middle, var);
+        while (middle != end() && conf.getExponent(*middle, var) == exp)
+          ++middle;
+      }
+      if (middle == end() && size() > 1) {
+        if (back() == front()) {
+          // no good way to split a leaf of all duplicates other than to
+          // detect and remove them.
+          while (back() == front())
+            pop_back();
+        }
+        continue; // bad split, use another variable
+      }
+      ASSERT(middle != end());
+      ASSERT(exp != conf.getExponent(*middle, var));
+
+#ifdef DEBUG
+      for (iterator it = begin(); it != middle; ++it) {
+        ASSERT(!(exp < conf.getExponent(*it, var)));
+      }
+      for (iterator it = middle; it != end(); ++it) {
+        ASSERT(!(conf.getExponent(*it, var) < exp));
+      }
+#endif
+      // nth_element does not guarantee where equal elements go,
+      // so we cannot just copy [middle, end()).
+      iterator newEnd = begin();
+      for (iterator it = begin(); it != end(); ++it) {
+        if (exp < conf.getExponent(*it, var))
+          other.push_back(*it);
+        else {
+          if (it != newEnd)
+            *newEnd = *it;
+          ++newEnd;
+        }
+      }
+      while (newEnd != end())
+        pop_back();
+
     }
-    while (newEnd != end())
-      pop_back();
     ASSERT(other.size() < conf.getLeafSize());
     ASSERT(size() < conf.getLeafSize());
     break;

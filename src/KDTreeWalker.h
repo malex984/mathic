@@ -15,7 +15,7 @@ public:
   typedef KDTreeInterior<C> Interior;
   typedef KDTreeWalker<C> Walker;
 
-  KDTreeWalker(Node* root): _node(root), _prev(0) {}
+  KDTreeWalker(Node* root = 0): _node(root), _prev(0) {}
 
   static Walker makeAtFirstNonEmptyLeaf(Node* root) {
     Walker walker(root);

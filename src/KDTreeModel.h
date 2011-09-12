@@ -12,10 +12,15 @@ class KDTreeModelConfiguration {
   typedef std::vector<Exponent> Monomial;
   typedef Monomial Entry;
 
-  KDTreeModelConfiguration(size_t varCount, size_t leafSize, bool sortOnInsert):
+  KDTreeModelConfiguration
+    (size_t varCount,
+     size_t leafSize,
+      bool sortOnInsert,
+      bool useDivisorCache):
    _varCount(varCount),
    _leafSize(leafSize),
    _sortOnInsert(sortOnInsert),
+   _useDivisorCache(useDivisorCache),
    _expQueryCount(0) {}
 
   size_t getVarCount() const {return _varCount;}
@@ -45,6 +50,7 @@ class KDTreeModelConfiguration {
   }
 
   size_t getLeafSize() const {return _leafSize;}
+  bool getUseDivisorCache() const {return _useDivisorCache;}
 
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
@@ -63,6 +69,7 @@ class KDTreeModelConfiguration {
   const size_t _varCount;
   const size_t _leafSize;
   const bool _sortOnInsert;
+  const bool _useDivisorCache;
   mutable unsigned long long _expQueryCount;
 };
 
@@ -80,8 +87,9 @@ class KDTreeModel {
  KDTreeModel(size_t varCount,
 			 size_t leafSize,
 			 bool minimizeOnInsert,
-			 bool sortOnInsert):
-  _finder(C(varCount, leafSize, sortOnInsert)),
+			 bool sortOnInsert,
+             bool useDivisorCache):
+  _finder(C(varCount, leafSize, sortOnInsert, useDivisorCache)),
   _minimizeOnInsert(minimizeOnInsert) {}
 
   void insert(const Entry& entry);

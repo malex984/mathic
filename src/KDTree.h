@@ -86,6 +86,7 @@ class KDTree {
   Arena _arena;
   C _conf;
   Node* _root;
+  iterator _divisorCache; // The divisor in the previous query. Can be end().
 };
 
 template<class C>
@@ -240,6 +241,8 @@ template<class C>
 KDTree<C>::KDTree(const C& configuration): _conf(configuration) {
   ASSERT(_conf.getLeafSize() >= 2);
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
+  if (_conf.getUseDivisorCache())
+    _divisorCache = end();
 }
 
 template<class C>
@@ -257,7 +260,8 @@ template<class C>
 std::string KDTree<C>::getName() const {
   std::stringstream out;
   out << "KDTree-" << _conf.getLeafSize()
-    << (_conf.getSortOnInsert() ? " sort" : "");
+    << (_conf.getSortOnInsert() ? " sort" : "")
+    << (_conf.getUseDivisorCache() ? " cache" : "");
   return out.str();
 }
 
@@ -284,6 +288,8 @@ NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
   }
   ASSERT(debugIsValid());
   ASSERT(_tmp.empty());
+  if (_conf.getUseDivisorCache() && changed)
+    _divisorCache = end();
   return changed;
 }
 
@@ -304,11 +310,17 @@ NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
   ASSERT(leaf->size() < _conf.getLeafSize());
   leaf->insert(entry, _conf);
 
+  if (_conf.getUseDivisorCache())
+    _divisorCache = end();
   ASSERT(debugIsValid());
 }
 
 template<class C>
-NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& monomial) {  
+NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& monomial) {
+  if (_conf.getUseDivisorCache() &&
+    _divisorCache != end() && _conf.divides(*_divisorCache, monomial))
+    return _divisorCache;
+
   ASSERT(_tmp.empty());
   Node* node = _root;
   while (true) {
@@ -324,7 +336,7 @@ NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& m
     LeafIt leafIt = leaf.findDivisor(monomial, _conf);
     if (leafIt != leaf.end()) {
       _tmp.clear();
-      return iterator(leaf, leafIt);
+      return _divisorCache = iterator(leaf, leafIt);
     }
     if (_tmp.empty())
       break;
