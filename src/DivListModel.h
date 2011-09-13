@@ -97,6 +97,16 @@ class DivListModel {
   const_iterator findDivisor(const Monomial& monomial) const {
     return const_cast<DivListModel<ULL>&>(*this).findDivisor(monomial);
   }
+
+  template<class DO>
+  void findAllDivisors(const Monomial& monomial, DO& out) {
+    _finder.findAllDivisors(monomial, out);
+  }
+  template<class DO>
+  void findAllDivisors(const Monomial& monomial, DO& out) const {
+    _finder.findAllDivisors(monomial, out);
+  }
+
   std::string getName() const;
 
   iterator begin() {return _finder.begin();}

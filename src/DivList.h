@@ -55,6 +55,11 @@ class DivList {
   iterator findDivisor(const Monomial& monomial);
   const_iterator findDivisor(const Monomial& monomial) const;
 
+  template<class DO>
+  void findAllDivisors(const Monomial& monomial, DO& out);
+  template<class DO>
+  void findAllDivisors(const Monomial& monomial, DO& out) const;
+
   iterator begin() {return _list.begin();}
   const_iterator begin() const {return _list.begin();}
   iterator end() {return _list.end();}
@@ -69,6 +74,18 @@ class DivList {
   void moveToFront(iterator pos);
 
  private:
+  template<class DO>
+  class ConstDivisorOutput {
+  public:
+    ConstDivisorOutput(DO& out): _out(out) {}
+    void push_back(Entry& entry) {
+      const Entry& constEntry = entry;
+      _out.push_back(constEntry);
+    }
+  private:
+    DO& _out;
+  };
+
   List _list;
   C _conf;
 };
@@ -184,6 +201,37 @@ namespace DivListHelper {
     }
 	return end;
   }
+
+  template<class C, class E, class M, class DO>
+  void findAllDivisorsSorted
+   (C& conf, std::vector<E>& list, const M& monomial, DO& out) {
+    typedef typename std::vector<E>::iterator iterator;
+    iterator rangeEnd =
+      std::upper_bound(list.begin(), list.end(), monomial, conf.getComparer());
+    iterator it = list.begin();
+    for (; it != rangeEnd; ++it)
+      if (conf.divides(*it, monomial))
+        out.push_back(*it);
+  }
+
+  template<class C, class E, class M, class O>
+  void findAllDivisorsSorted
+   (C& conf, std::list<E>& list, const M& monomial, O& out) {
+    typedef typename std::list<E>::iterator iterator;
+    iterator end = list.end();
+    iterator it = list.begin();
+    size_t count = 0;
+    for (; it != end; ++it) {
+	  ++count;
+      if (count == 35) {
+		count = 0;
+        if (conf.isLessThan(monomial, *it))
+		  break;
+	  }
+      if (conf.divides(*it, monomial))
+        out.push_back(*it);
+    }
+  }
 }
 
 template<class C, bool ULL>
@@ -216,6 +264,26 @@ template<class C, bool ULL>
 typename DivList<C, ULL>::const_iterator
 DivList<C, ULL>::findDivisor(const Monomial& monomial) const {
   return const_cast<DivList<C>&>(*this).findDivisor(monomial);
+}
+
+template<class C, bool ULL>
+template<class DO>
+void DivList<C, ULL>::
+findAllDivisors(const Monomial& monomial, DO& out) {
+  if (!_conf.getSortOnInsert()) {
+	const iterator stop = end();
+	for (iterator it = begin(); it != stop; ++it)
+	  if (_conf.divides(*it, monomial))
+        out.push_back(*it);
+  } else
+    DivListHelper::findAllDivisorsSorted(_conf, _list, monomial, out);
+}
+
+template<class C, bool ULL>
+template<class DO>
+void DivList<C, ULL>::findAllDivisors(const Monomial& monomial, DO& output) const {
+  ConstDivisorOutput<DO> constOutput(output);
+  const_cast<DivList<C, ULL>&>(*this).findAllDivisors(monomial, constOutput);
 }
 
 template<class C, bool ULL>

@@ -3,13 +3,22 @@
 #include "DivListModel.h"
 #include "KDTreeModel.h"
 #include "Simulation.h"
+#include "Timer.h"
 #include <iostream>
 
 int main() {
   const size_t repeats = IF_DEBUG(true ? 1 :) 1;
   Simulation sim(repeats, true);
-  //sim.makeStandard(10, 1000000, 0);
-  sim.makeStandard(10, 100000, 1000000);
+  Timer timer;
+  std::cout << "Generating simulation. ";
+  timer.print(std::cout);
+  std::cout << std::endl;
+#ifdef DEBUG
+  sim.makeStandard(10, 100, 1000, false);
+#else
+  sim.makeStandard(10, 1000000, 0, false);
+#endif
+  
   /*
   for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
 	for (int order = 0; order <= 2; ++order) {
@@ -21,25 +30,32 @@ int main() {
 		(minimizeOnInsert, moveDivisorToFront, sortOnInsert);
 	}
   }
-  */
-  sim.run<DivListModel<0> >(1, 0, 0);
-  
+  //*/
+
+  IF_DEBUG(sim.run<DivListModel<0> >(1, 0, 0));
+  /*
+  sim.run<DivListModel<0> >(1, 0, 0)
   sim.run<DivListModel<0> >(1, 1, 0);
   sim.run<DivListModel<0> >(1, 0, 1);
   sim.run<DivListModel<1> >(1, 0, 0);
   sim.run<DivListModel<1> >(1, 1, 0);
   sim.run<DivListModel<1> >(1, 0, 1);
-  
+  //*/
 
   //*
-  for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
-	for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
-  	  for (int useDivisorCache = 0; useDivisorCache <= 1; ++useDivisorCache) {
-        sim.run<KDTreeModel>(100, minimizeOnInsert,sortOnInsert,useDivisorCache);
-        sim.run<KDTreeModel>(50, minimizeOnInsert,sortOnInsert,useDivisorCache);
-        sim.run<KDTreeModel>(10, minimizeOnInsert,sortOnInsert,useDivisorCache);
-        sim.run<KDTreeModel>(20, minimizeOnInsert,sortOnInsert,useDivisorCache);
-        sim.run<KDTreeModel>(8, minimizeOnInsert,sortOnInsert,useDivisorCache);
+  for (int mini = 1; mini <= 1; ++mini) {
+	for (int sortOnInsert = 0; sortOnInsert <= 0; ++sortOnInsert) {
+  	  for (int useDivisorCache = 0; useDivisorCache <= 0; ++useDivisorCache) {
+        IF_DEBUG(sim.run<KDTreeModel>(10, mini,sortOnInsert,useDivisorCache, 0.01, 1));
+        sim.run<KDTreeModel>(10, mini,sortOnInsert,useDivisorCache, 0, 0);
+        sim.run<KDTreeModel>(10, mini,sortOnInsert,useDivisorCache, 0.001, 2000);
+        sim.run<KDTreeModel>(10, mini,sortOnInsert,useDivisorCache, 0.001, 4000);
+        sim.run<KDTreeModel>(10, mini,sortOnInsert,useDivisorCache, 0.001, 6000);
+        sim.run<KDTreeModel>(10, mini,sortOnInsert,useDivisorCache, 0.001, 8000);
+        sim.run<KDTreeModel>(10, mini,sortOnInsert,useDivisorCache, 0.001, 10000);
+        //sim.run<KDTreeModel>(10, mini,sortOnInsert,useDivisorCache, 4, 2000);
+        //sim.run<KDTreeModel>(20, mini,sortOnInsert,useDivisorCache, 0.75, 2000);
+        //sim.run<KDTreeModel>(8, mini,sortOnInsert,useDivisorCache, 0.75, 2000);
       }
 	}
   }

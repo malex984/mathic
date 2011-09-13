@@ -24,9 +24,11 @@ namespace {
   }
 }
 
-void Simulation::makeStandard(size_t varCount, size_t inserts, size_t queries) {
+void Simulation::makeStandard
+  (size_t varCount, size_t inserts, size_t queries, bool findAll) {
   srand(0);
 
+  _findAll = findAll;
   _varCount = varCount;
   _events.clear();
   _events.resize(inserts + queries);

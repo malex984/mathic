@@ -61,7 +61,7 @@ class Arena {
   /** Returns a pointer to a buffer of size bytes. Throws bad_alloc if
    that is not possible. All allocated and not freed buffers have
    unique addresses even when size is zero. */
-  void* alloc(size_t size);
+  inline void* alloc(size_t size);
 
   /** Frees the buffer pointed to by ptr. That buffer must be the most
    recently allocated buffer from this Arena that has not yet been
@@ -71,8 +71,11 @@ class Arena {
   /** Frees the buffer pointed to by ptr and all not yet freed
    allocations that have happened since that buffer was allocated. ptr
    must not be null. */
-  void freeAndAllAfter(void* ptr);
+  inline void freeAndAllAfter(void* ptr);
 
+  /** Frees all memory buffers that have been allocated from
+   this Arena. */
+  void freeAll();
 
   // ***** Object interface *****
 
@@ -88,6 +91,25 @@ class Arena {
   template<class T>
   void* allocObjectNoCon() {
     return alloc(sizeof(T));
+  }
+
+  /** Destructs *ptr and then frees it as a memory buffer.
+   That buffer must be the most recently allocated buffer from
+   this Arena that has not yet been freed. Double frees are not
+   allowed. ptr must not be null. */
+  template<class T>
+  void freeTopObject(T* ptr) {
+    ptr->~T();
+    freeTop(ptr);
+  }
+
+  /** Destructs *ptr and then frees it as a memory buffer
+   along with all not yet freed allocations that have happened
+   since that buffer was allocated. ptr must not be null. */
+  template<class T>
+  void freeObjectAndAllAfter(T* ptr) {
+    ptr->~T();
+    freeAndAllAfter(ptr);
   }
 
   // ***** Array interface *****
@@ -132,6 +154,23 @@ class Arena {
 
   /** Returns true if there are no live allocations for this Arena. */
   bool isEmpty() const {return !_block.hasPreviousBlock() && _block.isEmpty();}
+
+  /** The destructor frees all objects allocated on the Arena since
+   the constructor was called. The top object at constuction must
+   not have been deallocated at destruction.
+
+   @todo Expand the Arena interface so this can work without
+   allocating an object. */
+  class ScopeGuard {
+  public:
+    /** Tracks the global Arena::getArena() arena. */
+    ScopeGuard(): _arena(getArena()), _handle(getArena().alloc(0)) {}
+    ScopeGuard(Arena& arena): _arena(arena), _handle(arena.alloc(0)) {}
+    ~ScopeGuard() {_arena.freeAndAllAfter(_handle);}
+  private:
+    Arena& _arena;
+    void* _handle;
+  };
 
   /** Returns an arena object that can be used for non-thread safe
    scratch memory after static objects have been initialized. The
@@ -253,6 +292,16 @@ inline void Arena::freeAndAllAfter(void* ptr) {
 	_block._freeBegin = static_cast<char*>(ptr);
   } else
 	freeAndAllAfterFromOldBlock(ptr);
+}
+
+inline void Arena::freeAll() {
+  while (_block.hasPreviousBlock())
+	discardPreviousBlock();
+  _block._freeBegin = _block._blockBegin;
+#ifdef DEBUG
+  while (!_debugAllocs.empty())
+    _debugAllocs.pop();
+#endif
 }
 
 inline bool Arena::Block::isInBlock(const void* ptr) const {

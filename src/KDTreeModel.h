@@ -15,13 +15,20 @@ class KDTreeModelConfiguration {
   KDTreeModelConfiguration
     (size_t varCount,
      size_t leafSize,
-      bool sortOnInsert,
-      bool useDivisorCache):
+     bool sortOnInsert,
+     bool useDivisorCache,
+     double rebuildRatio,
+     size_t minRebuild):
    _varCount(varCount),
    _leafSize(leafSize),
    _sortOnInsert(sortOnInsert),
    _useDivisorCache(useDivisorCache),
-   _expQueryCount(0) {}
+   _useAutomaticRebuild(rebuildRatio > 0.0),
+   _rebuildRatio(rebuildRatio),
+   _minRebuild(minRebuild),
+   _expQueryCount(0) {
+     ASSERT(rebuildRatio >= 0);
+   }
 
   size_t getVarCount() const {return _varCount;}
   bool getSortOnInsert() const {return _sortOnInsert;}
@@ -51,6 +58,9 @@ class KDTreeModelConfiguration {
 
   size_t getLeafSize() const {return _leafSize;}
   bool getUseDivisorCache() const {return _useDivisorCache;}
+  bool getDoAutomaticRebuilds() const {return _useAutomaticRebuild;}
+  double getRebuildRatio() const {return _rebuildRatio;}
+  size_t getRebuildMin() const {return _minRebuild;}
 
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
@@ -70,6 +80,9 @@ class KDTreeModelConfiguration {
   const size_t _leafSize;
   const bool _sortOnInsert;
   const bool _useDivisorCache;
+  const bool _useAutomaticRebuild;
+  const double _rebuildRatio;
+  const size_t _minRebuild;
   mutable unsigned long long _expQueryCount;
 };
 
@@ -88,8 +101,10 @@ class KDTreeModel {
 			 size_t leafSize,
 			 bool minimizeOnInsert,
 			 bool sortOnInsert,
-             bool useDivisorCache):
-  _finder(C(varCount, leafSize, sortOnInsert, useDivisorCache)),
+             bool useDivisorCache,
+             double rebuildRatio,
+             size_t minRebuild):
+  _finder(C(varCount, leafSize, sortOnInsert, useDivisorCache, rebuildRatio, minRebuild)),
   _minimizeOnInsert(minimizeOnInsert) {}
 
   void insert(const Entry& entry);
@@ -100,6 +115,15 @@ class KDTreeModel {
     return _finder.findDivisor(monomial);
   }
   std::string getName() const;
+
+  template<class DO>
+  void findAllDivisors(const Monomial& monomial, DO& out) {
+    _finder.findAllDivisors(monomial, out);
+  }
+  template<class DO>
+  void findAllDivisors(const Monomial& monomial, DO& out) const {
+    _finder.findAllDivisors(monomial, out);
+  }
 
   iterator begin() {return _finder.begin();}
   const_iterator begin() const {return _finder.begin();}

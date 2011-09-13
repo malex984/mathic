@@ -58,12 +58,22 @@ public:
   Interior* getParent() {return _parent;}
   const Interior* getParent() const {return _parent;}
 
+  /** Partitions [begin, end) into two parts. The
+   returned node has the information about the split, while the returned
+   iterator it is such that the equal-or-less part of the partition
+   is [begin, it) and the striclty-greater part is [it, end). */
+  template<class Iter>
+  static std::pair<Interior*, Iter> preSplit
+    (Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf);
+
 protected:
   KDTreeNode(bool leaf, Interior* parent):
     _isLeaf(leaf), _parent(parent) {}
   void setParent(Interior* parent) {_parent = parent;}
 
 private:
+  class SplitEqualOrLess;
+
   const bool _isLeaf; // todo: check performance of virtual replacement
   Interior* _parent;
 };
@@ -90,6 +100,17 @@ public:
    _var(var),
    _exponent(exponent) {
   }
+  KDTreeInterior
+    (Interior* parent,
+     size_t var,
+     Exponent exponent):
+   Node(false, parent),
+   _equalOrLess(0),
+   _strictlyGreater(0),
+   _var(var),
+   _exponent(exponent) {
+  }
+  ~KDTreeInterior();
   size_t getVar() const {return _var;}
   Exponent getExponent() const {return _exponent;}
 
@@ -131,9 +152,19 @@ class KDTreeLeaf : public KDTreeNode<C> {
   typedef typename C::Entry Entry;
   typedef Entry* iterator;
   typedef const Entry* const_iterator;
+  typedef const Entry& const_reference;
+  typedef Entry value_type;
 
   KDTreeLeaf(Arena& arena, const C& conf);
+  KDTreeLeaf(Arena& arena, size_t capacity);
   ~KDTreeLeaf();
+
+  void clear();
+
+  /** Copies [begin, end) into the new leaf. */
+  template<class Iter>
+  static Leaf* makeLeafCopy
+    (Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf);
 
   iterator begin() {return _begin;}
   const_iterator begin() const {return _begin;}
@@ -141,7 +172,7 @@ class KDTreeLeaf : public KDTreeNode<C> {
   const_iterator end() const {return _end;}
 
   bool empty() const {return _begin == _end;}
-  size_t size() const {return _end - _begin;}
+  size_t size() const {return std::distance(_begin, _end);}
   Entry& front() {ASSERT(!empty()); return *_begin;}
   const Entry& front() const {ASSERT(!empty()); return *_begin;}
   Entry& back() {ASSERT(!empty()); return *(_end - 1);}
@@ -152,7 +183,9 @@ class KDTreeLeaf : public KDTreeNode<C> {
   void insert(iterator it, const Entry& entry);
 
   void insert(const Entry& entry, const C& conf);
-  bool removeMultiples(const Monomial& monomial, const C& conf);
+
+  /** Returns how many were removed. */
+  size_t removeMultiples(const Monomial& monomial, const C& conf);
 
   iterator findDivisor(const Monomial& monomial, const C& conf);
   const_iterator findDivisor(const Monomial& monomial, const C& conf) const {
@@ -166,20 +199,43 @@ class KDTreeLeaf : public KDTreeNode<C> {
 
  private:
   KDTreeLeaf(const KDTreeLeaf& t); // unavailable
-  void operator=(const KDTreeLeaf&) {ASSERT(false);} // unavailable
+  void operator=(const KDTreeLeaf&); // unavailable
 
   iterator _begin;
   iterator _end;
-  IF_DEBUG(size_t _capacityDebug;)
+  IF_DEBUG(const size_t _capacityDebug;)
+  IF_DEBUG(const bool _sortOnInsertDebug;)
 };
 
 template<class C>
-KDTreeLeaf<C>::KDTreeLeaf(Arena& arena, const C& conf):
- Node(true, 0), _begin(0), _end(0) {
-  IF_DEBUG(_capacityDebug = 0);
+KDTreeInterior<C>::~KDTreeInterior() {
+  if (_equalOrLess != 0)
+    _equalOrLess->~KDTreeNode();
+  if (_strictlyGreater != 0)
+    _strictlyGreater->~KDTreeNode();
+}
 
-  IF_DEBUG(_capacityDebug = conf.getLeafSize());
+template<class C>
+KDTreeLeaf<C>::KDTreeLeaf(Arena& arena, const C& conf):
+Node(true, 0)
+#ifdef DEBUG
+,_capacityDebug(conf.getLeafSize())
+,_sortOnInsertDebug(conf.getSortOnInsert())
+#endif
+{
   _begin = arena.allocArrayNoCon<Entry>(conf.getLeafSize()).first;
+  _end = _begin;
+}
+
+template<class C>
+KDTreeLeaf<C>::KDTreeLeaf(Arena& arena, size_t capacity):
+Node(true, 0)
+#ifdef DEBUG
+,_capacityDebug(capacity)
+,_sortOnInsertDebug(false)
+#endif
+{
+  _begin = arena.allocArrayNoCon<Entry>(capacity).first;
   _end = _begin;
 }
 
@@ -211,7 +267,8 @@ void KDTreeLeaf<C>::insert(iterator it, const Entry& entry) {
     return;
   }
   push_back(back());
-  for (iterator moveTo = end() - 1; moveTo != it; --moveTo)
+  iterator moveTo = end();
+  for (--moveTo; moveTo != it; --moveTo)
     *moveTo = *(moveTo - 1);
   *it = entry;
 }
@@ -228,14 +285,81 @@ void KDTreeLeaf<C>::insert(const Entry& entry, const C& conf) {
 }
 
 template<class C>
-bool KDTreeLeaf<C>::removeMultiples(const Monomial& monomial, const C& conf) {
+void KDTreeLeaf<C>::clear() {while (!empty())
+  while (!empty())
+    pop_back();
+}
+
+template<class C>
+class KDTreeNode<C>::SplitEqualOrLess {
+public:
+  typedef typename C::Exponent Exponent;
+  typedef typename C::Entry Entry;
+  SplitEqualOrLess(size_t var, const Exponent& exp, const C& conf):
+  _var(var), _exp(exp), _conf(conf) {}
+  bool operator()(const Entry& entry) const {
+    return !(_exp < _conf.getExponent(entry, _var));
+  }
+private:
+  size_t _var;
+  const Exponent& _exp;
+  const C& _conf;
+};
+
+template<class C>
+template<class Iter>
+std::pair<KDTreeInterior<C>*, Iter> KDTreeNode<C>::preSplit
+(Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf) {
+  ASSERT(begin != end);
+
+  size_t var = (parent != 0 ? parent->getVar() : static_cast<size_t>(-1));
+  while (true) {
+    var = (var + 1) % conf.getVarCount();
+
+    typename C::Exponent min = conf.getExponent(*begin, var);
+    typename C::Exponent max = conf.getExponent(*begin, var);
+    for (Iter it = begin; it != end; ++it) {
+      min = std::min(min, conf.getExponent(*it, var));
+      max = std::max(max, conf.getExponent(*it, var));
+    }
+    // todo: avoid infinite loop if all duplicates
+    if (min == max)
+      continue;
+    // this formula for avg avoids overflow
+    typename C::Exponent exp = min + (max - min) / 2;
+    Interior* interior = new (arena.allocObjectNoCon<Interior>())
+      Interior(parent, var, exp);
+    SplitEqualOrLess cmp(var, exp, conf);
+    Iter middle = std::partition(begin, end, cmp);
+    return std::make_pair(interior, middle);
+  }
+}
+
+template<class C>
+template<class Iter>
+KDTreeLeaf<C>* KDTreeLeaf<C>::makeLeafCopy 
+(Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf) {
+  ASSERT(static_cast<size_t>(distance(begin, end)) <= conf.getLeafSize());
+  KDTreeLeaf<C>* leaf = new (arena.allocObjectNoCon<KDTreeLeaf<C> >())
+    KDTreeLeaf<C>(arena, conf);
+  leaf->_parent = parent;
+  // cannot directly copy as memory is not constructed.
+  for (; begin != end; ++begin)
+    leaf->push_back(*begin);
+  if (conf.getSortOnInsert())
+    std::sort(leaf->begin(), leaf->end(), conf.getComparer());    
+  return leaf;
+}
+
+template<class C>
+size_t KDTreeLeaf<C>::removeMultiples(const Monomial& monomial, const C& conf) {
   iterator it = begin();
   iterator oldEnd = end();
   for (; it != oldEnd; ++it)
 	if (conf.divides(monomial, *it))
 	  break;
   if (it == oldEnd)
-	return false;
+	return 0;
   iterator newEnd = it;
   for (++it; it != oldEnd; ++it) {
 	if (!conf.divides(monomial, *it)) {
@@ -243,13 +367,16 @@ bool KDTreeLeaf<C>::removeMultiples(const Monomial& monomial, const C& conf) {
 	  ++newEnd;
 	}
   }
-  const size_t newSize = newEnd - begin();
+  // cannot just adjust _end as the superfluous
+  // entries at the end need to be destructed.
+  const size_t newSize = std::distance(begin(), newEnd);
+  const size_t removedCount = size() - newSize;
   ASSERT(newSize < size());
   do {
     pop_back();
   } while (newSize < size());
   ASSERT(size() == newSize);
-  return true;
+  return removedCount;
 }
 
 template<class C>
@@ -280,14 +407,14 @@ findAllDivisors(const Monomial& monomial, DO& out, const C& conf) {
 	const iterator stop = end();
 	for (iterator it = begin(); it != stop; ++it)
 	  if (conf.divides(*it, monomial))
-        out.push_back(out);
+        out.push_back(*it);
   } else {
     iterator rangeEnd =
       std::upper_bound(begin(), end(), monomial, conf.getComparer());
     iterator it = begin();
     for (; it != rangeEnd; ++it)
       if (conf.divides(*it, monomial))
-        out.push_back(out);
+        out.push_back(*it);
   }  
 }
 
@@ -327,7 +454,7 @@ NO_PINLINE KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) 
         if (back() == front()) {
           // no good way to split a leaf of all duplicates other than to
           // detect and remove them.
-          while (back() == front())
+          while (back() == front() && size() > 1)
             pop_back();
         }
         continue;

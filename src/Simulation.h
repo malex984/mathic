@@ -5,13 +5,14 @@
 #include <vector>
 #include <iostream>
 #include <cstdlib>
+#include <algorithm>
 
 class Simulation {
  public:
   Simulation(size_t repeats, bool printPartialData):
    _repeats(repeats), _printPartialData(printPartialData), _simType("none") {}
 
-  void makeStandard(size_t varCount, size_t inserts, size_t queries);
+  void makeStandard(size_t varCount, size_t inserts, size_t queries, bool findAll);
 
   template<class DivFinder>
   void run();
@@ -23,6 +24,13 @@ class Simulation {
   void run(const Param1& param1, const Param2& param2, const Param3& param3);
   template<class DivFinder, class P1, class P2, class P3, class P4>
   void run(const P1& p1, const P2& p2, const P3& param3, const P4& param4);
+  template<class DivFinder, class P1, class P2, class P3, class P4, class P5>
+  void run(const P1& p1, const P2& p2, const P3& param3, const P4& param4,
+    const P5& p5);
+  template<class DivFinder, class P1, class P2, class P3, class P4, class P5,
+  class P6>
+  void run(const P1& p1, const P2& p2, const P3& param3, const P4& param4,
+    const P5& p5, const P6& p6);
 
   void printData(std::ostream& out) const;
 
@@ -48,8 +56,15 @@ class Simulation {
   struct Event {
     EventType _type;
 	std::vector<int> _monomial;
+#ifdef DEBUG
+    std::vector<std::vector<int> > _allDivisors;
+#else
+    size_t _divisorCount;
+#endif
   };
+  class DivisorStore;
 
+  bool _findAll;
   std::vector<Event> _events;
   std::vector<SimData> _data;
   size_t _varCount;
@@ -90,15 +105,103 @@ void Simulation::run
   run(finder);
 }
 
+template<class DivFinder, class P1, class P2, class P3, class P4, class P5>
+void Simulation::run
+(const P1& p1, const P2& p2, const P3& p3, const P4& p4, const P5& p5) {
+  DivFinder finder(_varCount, p1, p2, p3, p4, p5);
+  run(finder);
+}
+
+template<class DivFinder, class P1, class P2, class P3, class P4,
+class P5, class P6>
+void Simulation::run
+(const P1& p1, const P2& p2, const P3& p3, const P4& p4, const P5& p5,
+const P6& p6) {
+  DivFinder finder(_varCount, p1, p2, p3, p4, p5, p6);
+  run(finder);
+}
+
+class Simulation::DivisorStore {
+public:
+  DivisorStore() {clear();}
+  void clear() {
+#ifdef DEBUG
+    _divisors.clear();
+#else
+    _divisorCount = 0;
+#endif
+  }
+
+  void push_back(const std::vector<int>& divisor) {
+#ifdef DEBUG
+    _divisors.push_back(&divisor);
+#else
+    ++_divisorCount;
+#endif
+  }
+
+  template<class Finder>
+  void check(Event& e, const Finder& finder ) {
+#ifdef DEBUG
+    for (size_t d = 0; d < _divisors.size(); ++d) {
+      for (size_t var = 0; var < e._monomial.size(); ++var) {
+        ASSERT((*_divisors[d])[var] <= e._monomial[var]);
+      }
+    }
+    MonSort cmp;
+    std::sort(_divisors.begin(), _divisors.end(), cmp);
+#endif
+
+    if (e._type == QueryUnknown) {          
+      bool noDivisors;
+#ifdef DEBUG
+      e._allDivisors.clear();
+      for (size_t i = 0; i < _divisors.size(); ++i)
+        e._allDivisors.push_back(*_divisors[i]);
+      noDivisors = _divisors.empty();
+#else
+      e._divisorCount = _divisorCount;
+      noDivisors = _divisorCount == 0;
+#endif
+      e._type = noDivisors ? QueryNoDivisor : QueryHasDivisor;
+    } else {
+#ifdef DEBUG
+      for (size_t i = 0; i < _divisors.size(); ++i)
+        ASSERT(*_divisors[i] == e._allDivisors[i]);
+#else
+      if (_divisorCount != e._divisorCount) {
+        std::cerr << "Divisor finder \"" << finder.getName() <<
+          "\" found incorrect number of divisors." << std::endl;
+        std::exit(1);
+      }
+#endif
+    }
+  }
+
+private:
+  struct MonSort {
+    bool operator()(const std::vector<int>* a, const std::vector<int>* b) {
+      return *a < *b;
+    }
+  };
+
+#ifdef DEBUG
+  std::vector<const std::vector<int>*> _divisors;
+#else
+  size_t _divisorCount;
+#endif
+};
+
 template<class DivFinder>
 void Simulation::run(DivFinder& finder) {
   Timer timer;
+  std::vector<std::vector<int> > divisors;
   for (size_t step = 0; step < _repeats; ++step) {
 	for (size_t i = 0; i < _events.size(); ++i) {
 	  Event& e = _events[i];
 	  if (e._type == Insertion)
 		finder.insert(e._monomial);
-	  else {
+	  else if (!_findAll) {
 		typename DivFinder::const_iterator it = finder.findDivisor(e._monomial);
 		if (it == finder.end()) {
 		  if (e._type == QueryHasDivisor) {
@@ -120,7 +223,45 @@ void Simulation::run(DivFinder& finder) {
 		  }
 		  e._type = QueryHasDivisor;
 		}
-	  }
+      } else {
+        ASSERT(_findAll);
+        divisors.clear();
+        DivisorStore store;
+        const_cast<const DivFinder&>(finder) // to test const interface
+          .findAllDivisors(e._monomial, store);
+        store.check(e, finder);
+        continue;
+
+
+
+#ifdef DEBUG
+        for (size_t d = 0; d < divisors.size(); ++d) {
+          for (size_t var = 0; var < _varCount; ++var) {
+            ASSERT(divisors[d][var] <= e._monomial[var]);
+          }
+        }
+        std::sort(divisors.begin(), divisors.end());
+#endif
+        
+        if (e._type == QueryUnknown) {          
+#ifdef DEBUG
+          e._allDivisors = divisors;
+#else
+          e._divisorCount = divisors.size();
+#endif
+          e._type = divisors.empty() ? QueryNoDivisor : QueryHasDivisor;
+        } else {
+#ifdef DEBUG
+          ASSERT(divisors == e._allDivisors);
+#else
+          if (divisors.size() != e._divisorCount) {
+            std::cerr << "Divisor finder \"" << finder.getName() <<
+              "\" found incorrect number of divisors." << std::endl;
+            std::exit(1);
+          }
+#endif
+        }
+      }
 	}
   }
 

@@ -69,29 +69,39 @@ class KDTree {
    entry. */
   void insert(const Entry& entry);
 
+  /** Inserts the entries in the range [begin, end) into the data
+   structure. Does NOT remove multiples of entry and entry is inserted
+   even if it is a multiple of another entry. */
+  template<class Iter>
+  void insert(Iter begin, Iter end);
+
   /** Returns the position of a divisor of monomial. Returns end() if no
    entries divide monomial. */
   iterator findDivisor(const Monomial& monomial);
 
-  /** Calls output.push_back(iter) for each entry that divides monomial
-   where iter is an iterator referring to the entry. So a std::vector
-   will work, but any other class with a push_back method accepting
-   an iterator will also work. */
+  /** Calls output.push_back(entry) for each entry that divides monomial
+   So a std::vector will work, but any other class with a push_back method
+   accepting an iterator will also work. */
   template<class DivisorOutput>
-  void findAllDivisors(const Monomial& monomial, DivisorOutput& output);
+  void findAllDivisors(const Monomial& monomial, DivisorOutput& out);
 
-  /** Calls output.push_back(iter) for each entry that divides monomial
-   where iter is a const_iterator referring to the entry. So a std::vector
-   will work, but any other class with a push_back method accepting
-   an iterator will also work. */
+  /** Calls output.push_back(entry) for each entry that divides monomial
+   So a std::vector will work, but any other class with a push_back method
+   accepting an iterator will also work. */
   template<class DivisorOutput>
-  void findAllDivisors(const Monomial& monomial, DivisorOutput& output) const;
+  void findAllDivisors(const Monomial& monomial, DivisorOutput& out) const;
 
   /** Returns the position of a divisor of monomial. Returns end() if no
    entries divide monomial. */
   const_iterator findDivisor(const Monomial& monomial) const {
     return const_cast<KDTree<C>&>(*this).findDivisor(monomial);
   }
+
+  /** Removes all entries. Does not reset the configuration object. */
+  void clear();
+
+  /** Rebuilds the data structure. */
+  void rebuild();
 
   iterator begin() {return iterator::makeBegin(_root);}
   const_iterator begin() const {return const_cast<KDTree<C>&>(*this).begin();}
@@ -102,6 +112,10 @@ class KDTree {
   const_reverse_iterator rbegin() const {return const_reverse_iterator(end());}
   reverse_iterator rend() {return reverse_iterator(begin());}
   const_reverse_iterator rend() const {return const_reverse_iterator(begin());}
+
+  /** Returns whether there are entries. Not O(1) so don't call it in a loop.
+   @todo Make this faster than size(). */
+  bool empty() const {return size() == 0;}
 
   /** Returns the number of entries. Not O(1) so don't call it in a loop. */
   size_t size() const;
@@ -119,21 +133,31 @@ class KDTree {
   KDTree(const KDTree<C>&); // unavailable
   void operator=(const KDTree<C>&); // unavailable
 
+  void resetNumberOfChangesTillRebuild();
+  void reportChanges(size_t changesMadeCount);
+
   /** Encapsulates the common code between iterator and const_iterator. */
   template<class TreeIt>
   class IterHelper;
 
-  /** Transfers push_back from iterator to const_iterator. */
+  /** Transfers push_back from entry to const entry. */
   template<class DO>
   class ConstDivisorOutput {
   public:
     ConstDivisorOutput(DO& out): _out(out) {}
-    void push_back(iterator it) {
-      const_iterator cit = it;
-      _out.push_back(cit);
+    void push_back(Entry& entry) {
+      const Entry& constEntry = entry;
+      _out.push_back(constEntry);
     }
   private:
     DO& _out;
+  };
+
+  template<class Iter>
+  struct InsertTodo {
+    Iter begin;
+    Iter end;
+    Interior* parent;
   };
 
 #ifdef DEBUG
@@ -144,7 +168,8 @@ class KDTree {
   Arena _arena;
   C _conf;
   Node* _root;
-  iterator _divisorCache; // The divisor in the previous query. Can be end().
+  iterator _divisorCache; /// The divisor in the previous query. Can be end().
+  size_t _changesTillRebuild; /// Update using reportChanges().
 };
 
 template<class C>
@@ -212,7 +237,7 @@ class KDTree<C>::IterHelper {
   const LeafIt& getLeafIterator() const {return _leafIt;}
   const Walker& getWalker() const {return _walker;}
 
- private:
+private:
   Walker _walker;
   LeafIt _leafIt;
 };
@@ -296,11 +321,14 @@ public std::iterator<std::bidirectional_iterator_tag, Entry> {
 };
 
 template<class C>
-KDTree<C>::KDTree(const C& configuration): _conf(configuration) {
+KDTree<C>::KDTree(const C& configuration):
+_conf(configuration) {
   ASSERT(_conf.getLeafSize() >= 2);
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
   if (_conf.getUseDivisorCache())
     _divisorCache = end();
+  resetNumberOfChangesTillRebuild();
+  ASSERT(debugIsValid());
 }
 
 template<class C>
@@ -317,8 +345,12 @@ size_t KDTree<C>::size() const {
 template<class C>
 std::string KDTree<C>::getName() const {
   std::stringstream out;
-  out << "KDTree-" << _conf.getLeafSize()
-    << (_conf.getSortOnInsert() ? " sort" : "")
+  out << "KDTree leaf:" << _conf.getLeafSize();
+  if (_conf.getDoAutomaticRebuilds()) {
+    out << " autob:" << _conf.getRebuildRatio()
+      << '/' << _conf.getRebuildMin();
+  }
+  out << (_conf.getSortOnInsert() ? " sort" : "")
     << (_conf.getUseDivisorCache() ? " cache" : "");
   return out.str();
 }
@@ -326,7 +358,7 @@ std::string KDTree<C>::getName() const {
 template<class C>
 NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
   ASSERT(_tmp.empty());
-  bool changed = false;
+  size_t removedCount = 0;
   Node* node = _root;
   while (true) {
     while (node->isInterior()) {
@@ -337,8 +369,7 @@ NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
       node = &interior.getStrictlyGreater();
     }
     ASSERT(node->isLeaf());
-    if (node->asLeaf().removeMultiples(monomial, _conf))
-      changed = true;
+    removedCount += node->asLeaf().removeMultiples(monomial, _conf);
     if (_tmp.empty())
       break;
     node = _tmp.back();
@@ -346,9 +377,10 @@ NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
   }
   ASSERT(debugIsValid());
   ASSERT(_tmp.empty());
-  if (_conf.getUseDivisorCache() && changed)
+  if (_conf.getUseDivisorCache() && removedCount > 0)
     _divisorCache = end();
-  return changed;
+  reportChanges(removedCount);
+  return removedCount > 0;
 }
 
 template<class C>
@@ -371,6 +403,84 @@ NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
   if (_conf.getUseDivisorCache())
     _divisorCache = end();
   ASSERT(debugIsValid());
+  reportChanges(1);
+}
+
+template<class C>
+template<class Iter>
+NO_PINLINE void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
+  if (!empty()) {
+    for (; insertBegin != insertEnd; ++insertBegin)
+      insert(*insertBegin);
+    return;
+  } else if (insertBegin == insertEnd)
+    return;
+
+  // todo: this function is too big and it knows too much about the details
+  // inside nodes. Also, it allocates a std::vector every time.
+
+  _root->~KDTreeNode();
+  _arena.freeAll();
+  _root = 0;
+  if (_conf.getUseDivisorCache())
+    _divisorCache = this->end();
+
+  typedef InsertTodo<Iter> Task;
+  typedef std::vector<Task> TaskCont;
+  TaskCont todo;
+
+  Interior* parent = 0;
+  bool isEqualOrLessChild = false;
+  while (true) {
+    Node* node = 0;
+    const size_t insertCount = std::distance(insertBegin, insertEnd);
+    const bool isLeaf = (insertCount <= _conf.getLeafSize());
+    if (isLeaf)
+      node = Leaf::makeLeafCopy(parent, insertBegin, insertEnd, _arena, _conf);
+    else {
+      std::pair<Interior*, Iter> p =
+        Node::preSplit(parent, insertBegin, insertEnd, _arena, _conf);
+      ASSERT(p.second != insertBegin && p.second != insertEnd);
+      // push strictly-greater on todo
+      Task task;
+      task.begin = p.second;
+      task.end = insertEnd;
+      task.parent = p.first;
+      todo.push_back(task);
+      // set up equal-or-less
+      insertEnd = p.second;
+      node = p.first;
+    }
+
+    if (parent == 0)
+      _root = node;
+    else if (isEqualOrLessChild)
+      parent->setEqualOrLess(node);
+    else
+      parent->setStrictlyGreater(node);
+
+    if (isLeaf) {
+      // grab next item from todo
+      if (todo.empty())
+        break;
+      Task task = todo.back();
+      todo.pop_back();
+      insertBegin = task.begin;
+      insertEnd = task.end;
+      parent = task.parent;
+      // only strictly-greater goes on todo
+      isEqualOrLessChild = false;
+    } else {
+      // continue with equal-or-less as next item
+      parent = &node->asInterior();
+      isEqualOrLessChild = true;
+    }
+  }
+  if (_conf.getUseDivisorCache())
+    _divisorCache = this->end();
+  ASSERT(debugIsValid());
+  // range insert into empty container is equivalent to a rebuild.
+  resetNumberOfChangesTillRebuild();
 }
 
 template<class C>
@@ -436,10 +546,60 @@ void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) const {
   const_cast<KDTree<C>&>(*this).findAllDivisors(monomial, constOutput);
 }
 
+template<class C>
+void KDTree<C>::clear() {
+  _root->~KDTreeNode();
+  _arena.freeAll();
+  _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
+  resetNumberOfChangesTillRebuild();
+  if (_conf.getUseDivisorCache())
+    _divisorCache = end();
+}
+
+template<class C>
+void KDTree<C>::rebuild() {
+  Arena::ScopeGuard guard;
+  const size_t totalSize = size();
+  Leaf tmpCopy(Arena::getArena(), totalSize);
+  for (Walker walker(_root); !walker.atEnd(); walker.next()) {
+    if (walker.atLeaf()) {
+      Leaf& leaf = walker.asLeaf();
+      copy(leaf.begin(), leaf.end(), std::back_inserter<Leaf>(tmpCopy));
+      leaf.clear();
+    }
+  }
+  clear();
+  // range insert into empty container IS a rebuild.
+  insert(tmpCopy.begin(), tmpCopy.end());
+}
+
+template<class C>
+void KDTree<C>::resetNumberOfChangesTillRebuild() {
+  if (!_conf.getDoAutomaticRebuilds())
+    return;
+  ASSERT(_conf.getRebuildRatio() > 0);
+  _changesTillRebuild = std::max
+    (static_cast<size_t>(size() * _conf.getRebuildRatio()),
+    _conf.getRebuildMin());
+}
+
+template<class C>
+void KDTree<C>::reportChanges(size_t changesMadeCount) {
+  // note how negative value/overflow of _changesTillRebuild cannot
+  // happen this way.
+  if (!_conf.getDoAutomaticRebuilds())
+    return;
+  if (_changesTillRebuild > changesMadeCount)
+    _changesTillRebuild -= changesMadeCount;
+  else
+    rebuild();
+}
+
 #ifdef DEBUG
 template<class C>
 bool KDTree<C>::debugIsValid() const {
   ASSERT(_tmp.empty());
+  ASSERT(!_conf.getDoAutomaticRebuilds() || _conf.getRebuildRatio() > 0);
   Walker walker(_root);
   if (walker.atEnd())
     return true;
