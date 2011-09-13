@@ -1,6 +1,7 @@
 #ifndef SIMULATION_GUARD
 #define SIMULATION_GUARD
 
+#include "Monomial.h"
 #include "Timer.h"
 #include <vector>
 #include <iostream>
@@ -57,7 +58,7 @@ class Simulation {
     EventType _type;
 	std::vector<int> _monomial;
 #ifdef DEBUG
-    std::vector<std::vector<int> > _allDivisors;
+    std::vector<Monomial> _allDivisors;
 #else
     size_t _divisorCount;
 #endif
@@ -132,9 +133,9 @@ public:
 #endif
   }
 
-  void push_back(const std::vector<int>& divisor) {
+  void push_back(const Monomial& divisor) {
 #ifdef DEBUG
-    _divisors.push_back(&divisor);
+    _divisors.push_back(divisor);
 #else
     ++_divisorCount;
 #endif
@@ -145,11 +146,10 @@ public:
 #ifdef DEBUG
     for (size_t d = 0; d < _divisors.size(); ++d) {
       for (size_t var = 0; var < e._monomial.size(); ++var) {
-        ASSERT((*_divisors[d])[var] <= e._monomial[var]);
+        ASSERT(_divisors[d][var] <= e._monomial[var]);
       }
     }
-    MonSort cmp;
-    std::sort(_divisors.begin(), _divisors.end(), cmp);
+    std::sort(_divisors.begin(), _divisors.end());
 #endif
 
     if (e._type == QueryUnknown) {          
@@ -157,7 +157,7 @@ public:
 #ifdef DEBUG
       e._allDivisors.clear();
       for (size_t i = 0; i < _divisors.size(); ++i)
-        e._allDivisors.push_back(*_divisors[i]);
+        e._allDivisors.push_back(_divisors[i]);
       noDivisors = _divisors.empty();
 #else
       e._divisorCount = _divisorCount;
@@ -167,7 +167,7 @@ public:
     } else {
 #ifdef DEBUG
       for (size_t i = 0; i < _divisors.size(); ++i)
-        ASSERT(*_divisors[i] == e._allDivisors[i]);
+        ASSERT(_divisors[i] == e._allDivisors[i]);
 #else
       if (_divisorCount != e._divisorCount) {
         std::cerr << "Divisor finder \"" << finder.getName() <<
@@ -179,14 +179,8 @@ public:
   }
 
 private:
-  struct MonSort {
-    bool operator()(const std::vector<int>* a, const std::vector<int>* b) {
-      return *a < *b;
-    }
-  };
-
 #ifdef DEBUG
-  std::vector<const std::vector<int>*> _divisors;
+  std::vector<Monomial> _divisors;
 #else
   size_t _divisorCount;
 #endif
@@ -195,7 +189,7 @@ private:
 template<class DivFinder>
 void Simulation::run(DivFinder& finder) {
   Timer timer;
-  std::vector<std::vector<int> > divisors;
+  std::vector<Monomial> divisors;
   for (size_t step = 0; step < _repeats; ++step) {
 	for (size_t i = 0; i < _events.size(); ++i) {
 	  Event& e = _events[i];

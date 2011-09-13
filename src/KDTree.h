@@ -21,6 +21,13 @@
 
  * size_t getLeafSize() const
   Returns the fixed maximal size of a leaf.
+
+ * size_t getUseAutomaticRebuild() const
+ * double getRebuildRatio() const
+ * size_t getRebuildMin() const
+  If getUseAutomaticRebuild() returns true, the tree will call rebuild
+  on itself after a total of max(size() * getRebuildRatio(), getRebuildMin())
+  entry insertions and removals have occurred.  
 */
 template<class Configuration>
 class KDTree;

@@ -339,7 +339,7 @@ template<class C>
 template<class Iter>
 KDTreeLeaf<C>* KDTreeLeaf<C>::makeLeafCopy 
 (Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf) {
-  ASSERT(static_cast<size_t>(distance(begin, end)) <= conf.getLeafSize());
+  ASSERT(static_cast<size_t>(std::distance(begin, end)) <= conf.getLeafSize());
   KDTreeLeaf<C>* leaf = new (arena.allocObjectNoCon<KDTreeLeaf<C> >())
     KDTreeLeaf<C>(arena, conf);
   leaf->_parent = parent;
@@ -352,7 +352,7 @@ KDTreeLeaf<C>* KDTreeLeaf<C>::makeLeafCopy
 }
 
 template<class C>
-size_t KDTreeLeaf<C>::removeMultiples(const Monomial& monomial, const C& conf) {
+NO_PINLINE size_t KDTreeLeaf<C>::removeMultiples(const Monomial& monomial, const C& conf) {
   iterator it = begin();
   iterator oldEnd = end();
   for (; it != oldEnd; ++it)
@@ -451,12 +451,7 @@ NO_PINLINE KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) 
         max = std::max(max, conf.getExponent(*it, var));
       }
       if (min == max && size() > 1) {
-        if (back() == front()) {
-          // no good way to split a leaf of all duplicates other than to
-          // detect and remove them.
-          while (back() == front() && size() > 1)
-            pop_back();
-        }
+        // todo: avoid infinite loop if all equal
         continue;
       }
       exp = min + (max - min) / 2; // this formula for avg avoids overflow
@@ -484,12 +479,7 @@ NO_PINLINE KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) 
           ++middle;
       }
       if (middle == end() && size() > 1) {
-        if (back() == front()) {
-          // no good way to split a leaf of all duplicates other than to
-          // detect and remove them.
-          while (back() == front())
-            pop_back();
-        }
+        // todoL avoid infinite loop if all equal.
         continue; // bad split, use another variable
       }
       ASSERT(middle != end());

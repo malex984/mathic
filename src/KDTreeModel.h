@@ -1,6 +1,7 @@
 #ifndef K_D_TREE_MODEL_GUARD
 #define K_D_TREE_MODEL_GUARD
 
+#include "Monomial.h"
 #include "KDTree.h"
 #include <string>
 #include <vector>
@@ -9,7 +10,7 @@
 class KDTreeModelConfiguration {
  public:
   typedef int Exponent;
-  typedef std::vector<Exponent> Monomial;
+  typedef ::Monomial Monomial;
   typedef Monomial Entry;
 
   KDTreeModelConfiguration

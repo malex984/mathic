@@ -2,6 +2,7 @@
 #define DIV_ARRAY_MODEL_GUARD
 
 #include "DivList.h"
+#include "Monomial.h"
 #include <string>
 #include <vector>
 
@@ -9,7 +10,7 @@
 class DivListModelConfiguration {
  public:
   typedef int Exponent;
-  typedef std::vector<Exponent> Monomial;
+  typedef ::Monomial Monomial;
   typedef Monomial Entry;
 
   DivListModelConfiguration(size_t varCount, bool sortOnInsert):
