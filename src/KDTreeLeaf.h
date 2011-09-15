@@ -43,8 +43,6 @@ class KDTreeNode {
   friend class KDTreeInterior<C, EE>;
   friend class KDTreeLeaf<C, EE>;
 public:
-  virtual ~KDTreeNode() {}
-
   bool isLeaf() const {return _isLeaf;}
   const Leaf& asLeaf() const {
     ASSERT(isLeaf());
@@ -91,8 +89,7 @@ protected:
 
 private:
   class SplitEqualOrLess;
-
-  const bool _isLeaf; // todo: check performance of virtual replacement
+  const bool _isLeaf;
   Interior* _parent;
 };
 
@@ -128,7 +125,6 @@ public:
    _var(var),
    _exponent(exponent) {
   }
-  ~KDTreeInterior();
   size_t getVar() const {return _var;}
   Exponent getExponent() const {return _exponent;}
 
@@ -173,7 +169,6 @@ class KDTreeLeaf : public KDTreeNode<C, EE> {
 
   KDTreeLeaf(Arena& arena, const C& conf);
   KDTreeLeaf(Arena& arena, size_t capacity);
-  ~KDTreeLeaf();
 
   void clear();
 
@@ -232,14 +227,6 @@ class KDTreeLeaf : public KDTreeNode<C, EE> {
 };
 
 template<class C, class EE>
-KDTreeInterior<C, EE>::~KDTreeInterior() {
-  if (_equalOrLess != 0)
-    _equalOrLess->~KDTreeNode();
-  if (_strictlyGreater != 0)
-    _strictlyGreater->~KDTreeNode();
-}
-
-template<class C, class EE>
 KDTreeLeaf<C, EE>::KDTreeLeaf(Arena& arena, const C& conf):
 Node(true, 0)
 #ifdef DEBUG
@@ -261,12 +248,6 @@ Node(true, 0)
 {
   _begin = arena.allocArrayNoCon<EE>(capacity).first;
   _end = _begin;
-}
-
-template<class C, class EE>
-KDTreeLeaf<C, EE>::~KDTreeLeaf() {
-  while (!empty())
-    pop_back();
 }
 
 template<class C, class EE>

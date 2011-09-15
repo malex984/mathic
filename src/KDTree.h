@@ -75,6 +75,7 @@ public:
    is copied into the object, so a reference to the passed-in object is
    not kept. */
   KDTree(const C& configuration);
+  ~KDTree();
 
   /** Removes all multiples of monomial. A duplicate of monomial counts
    as a multiple. Returns true if any multiples were removed. */
@@ -354,6 +355,11 @@ _divMaskCalculator(configuration) {
 }
 
 template<class C>
+KDTree<C>::~KDTree() {
+  clear();
+}
+
+template<class C>
 size_t KDTree<C>::size() const {
   size_t sum = 0;
   for (Walker walker(_root); !walker.atEnd(); walker.next())
@@ -445,7 +451,6 @@ NO_PINLINE void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
   } else if (insertBegin == insertEnd)
     return;
 
-  _root->~KDTreeNode();
   _arena.freeAll();
   _root = 0;
   _divMaskCalculator.rebuild(insertBegin, insertEnd, _conf);
@@ -580,7 +585,9 @@ void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) const {
 
 template<class C>
 void KDTree<C>::clear() {
-  _root->~KDTreeNode();
+  for (Walker walker(_root); !walker.atEnd(); walker.next())
+    if (walker.atLeaf())
+      walker.asLeaf().clear();
   _arena.freeAll();
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
   resetNumberOfChangesTillRebuild();
@@ -603,7 +610,6 @@ void KDTree<C>::rebuild() {
       leaf.clear();
     }
   }
-  _root->~KDTreeNode();
   _arena.freeAll();
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
   resetNumberOfChangesTillRebuild();
