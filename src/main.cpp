@@ -43,7 +43,7 @@ int main() {
   //*/
 
   //*
-  sim.run<DivListModel<0> >(1, 0, 0);
+  //sim.run<DivListModel<0> >(1, 0, 0);
   for (int mini = 1; mini <= 1; ++mini) {
 	for (int sortOnInsert = 0; sortOnInsert <= 0; ++sortOnInsert) {
   	  for (int useDivisorCache = 0; useDivisorCache <= 0; ++useDivisorCache) {
@@ -52,14 +52,15 @@ int main() {
         
         sim.run<KDTreeModel<0> >(10, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 0, 0);
-        sim.run<KDTreeModel<0> >(8, mini,sortOnInsert,useDivisorCache, 0, 0);
+        sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 3, 2000);
+        /*sim.run<KDTreeModel<0> >(8, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<1> >(8, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<0> >(20, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<1> >(20, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<0> >(40, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<1> >(40, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<0> >(60, mini,sortOnInsert,useDivisorCache, 0, 0);
-        sim.run<KDTreeModel<1> >(60, mini,sortOnInsert,useDivisorCache, 0, 0);
+        sim.run<KDTreeModel<1> >(60, mini,sortOnInsert,useDivisorCache, 0, 0);*/
 
         /*
         sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 0.001, 2000);

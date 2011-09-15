@@ -53,4 +53,5 @@
 #define IF_DEBUG(X)
 #endif
 
+static const size_t BitsPerByte = 8;
 static const size_t MemoryAlignment = sizeof(void*);

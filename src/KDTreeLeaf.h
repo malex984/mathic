@@ -1,6 +1,7 @@
 #ifndef K_D_TREE_LEAF_GUARD
 #define K_D_TREE_LEAF_GUARD
 
+#include "DivMask.h"
 #include "Arena.h"
 #include <algorithm>
 
@@ -142,7 +143,7 @@ public:
   }
 
   Node& getChildFor(const EE& entry, const C& conf) {
-    if (getExponent() < conf.getExponent(entry, getVar()))
+    if (getExponent() < conf.getExponent(entry.get(), getVar()))
       return getStrictlyGreater();
     else
       return getEqualOrLess();
@@ -176,10 +177,13 @@ class KDTreeLeaf : public KDTreeNode<C, EE> {
 
   void clear();
 
+  typedef DivMask::Calculator<C> DivMaskCalculator;
+
   /** Copies [begin, end) into the new leaf. */
   template<class Iter>
   static Leaf* makeLeafCopy
-    (Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf);
+    (Interior* parent, Iter begin, Iter end, Arena& arena,
+    const DivMaskCalculator& calc, const C& conf);
 
   iterator begin() {return _begin;}
   const_iterator begin() const {return _begin;}
@@ -359,13 +363,14 @@ std::pair<KDTreeInterior<C, EE>*, Iter> KDTreeNode<C, EE>::preSplit
 template<class C, class EE>
 template<class Iter>
 KDTreeLeaf<C, EE>* KDTreeLeaf<C, EE>::makeLeafCopy 
-(Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf) {
+(Interior* parent, Iter begin, Iter end,
+Arena& arena, const DivMaskCalculator& calc, const C& conf) {
   ASSERT(static_cast<size_t>(std::distance(begin, end)) <= conf.getLeafSize());
   Leaf* leaf = new (arena.allocObjectNoCon<Leaf>()) Leaf(arena, conf);
   leaf->_parent = parent;
   // cannot directly copy as memory is not constructed.
   for (; begin != end; ++begin)
-    leaf->push_back(*begin);
+    leaf->push_back(EE(*begin, calc, conf));
   if (conf.getSortOnInsert())
     std::sort(leaf->begin(), leaf->end(), KDTreeHelpers::Comparer<C>(conf));
   return leaf;
@@ -430,7 +435,7 @@ findAllDivisors(const EM& extMonomial, DO& out, const C& conf) {
 	const iterator stop = end();
 	for (iterator it = begin(); it != stop; ++it)
 	  if (it->divides(extMonomial, conf))
-        out.push_back(it->getEntry());
+        out.push_back(it->get());
   } else {
     iterator rangeEnd =
       std::upper_bound(begin(), end(), extMonomial,
@@ -438,7 +443,7 @@ findAllDivisors(const EM& extMonomial, DO& out, const C& conf) {
     iterator it = begin();
     for (; it != rangeEnd; ++it)
 	  if (it->divides(extMonomial, conf))
-        out.push_back(it->getEntry());
+        out.push_back(it->get());
   }  
 }
 
@@ -447,7 +452,7 @@ struct ExpOrder {
   typedef typename C::Entry Entry;
   ExpOrder(size_t var, const C& conf): _var(var), _conf(conf) {}
   bool operator()(const EE& a, const EE& b) const {
-    return _conf.getExponent(a, _var) < _conf.getExponent(b, _var);
+    return _conf.getExponent(a.get(), _var) < _conf.getExponent(b.get(), _var);
   }
 private:
   const size_t _var;
@@ -469,11 +474,11 @@ KDTreeLeaf<C, EE>::split(Arena& arena, const C& conf) {
     var = (var + 1) % conf.getVarCount();
     
     if (1) {
-      typename C::Exponent min = conf.getExponent(front(), var);
-      typename C::Exponent max = conf.getExponent(front(), var);
+      typename C::Exponent min = conf.getExponent(front().get(), var);
+      typename C::Exponent max = conf.getExponent(front().get(), var);
       for (iterator it = begin(); it != end(); ++it) {
-        min = std::min(min, conf.getExponent(*it, var));
-        max = std::max(max, conf.getExponent(*it, var));
+        min = std::min(min, conf.getExponent(it->get(), var));
+        max = std::max(max, conf.getExponent(it->get(), var));
       }
       if (min == max && size() > 1) {
         // todo: avoid infinite loop if all equal
@@ -483,7 +488,7 @@ KDTreeLeaf<C, EE>::split(Arena& arena, const C& conf) {
 
       iterator newEnd = begin();
       for (iterator it = begin(); it != end(); ++it) {
-        if (exp < conf.getExponent(*it, var))
+        if (exp < conf.getExponent(it->get(), var))
           other.push_back(*it);
         else {
           if (it != newEnd)
@@ -499,8 +504,8 @@ KDTreeLeaf<C, EE>::split(Arena& arena, const C& conf) {
 
       std::nth_element(begin(), middle, end(), order);
       if (middle != end()) {
-        exp = conf.getExponent(*middle, var);
-        while (middle != end() && conf.getExponent(*middle, var) == exp)
+        exp = conf.getExponent(middle->get(), var);
+        while (middle != end() && conf.getExponent(middle->get(), var) == exp)
           ++middle;
       }
       if (middle == end() && size() > 1) {
@@ -508,21 +513,21 @@ KDTreeLeaf<C, EE>::split(Arena& arena, const C& conf) {
         continue; // bad split, use another variable
       }
       ASSERT(middle != end());
-      ASSERT(exp != conf.getExponent(*middle, var));
+      ASSERT(exp != conf.getExponent(middle->get(), var));
 
 #ifdef DEBUG
       for (iterator it = begin(); it != middle; ++it) {
-        ASSERT(!(exp < conf.getExponent(*it, var)));
+        ASSERT(!(exp < conf.getExponent(it->get(), var)));
       }
       for (iterator it = middle; it != end(); ++it) {
-        ASSERT(!(conf.getExponent(*it, var) < exp));
+        ASSERT(!(conf.getExponent(it->get(), var) < exp));
       }
 #endif
       // nth_element does not guarantee where equal elements go,
       // so we cannot just copy [middle, end()).
       iterator newEnd = begin();
       for (iterator it = begin(); it != end(); ++it) {
-        if (exp < conf.getExponent(*it, var))
+        if (exp < conf.getExponent(it->get(), var))
           other.push_back(*it);
         else {
           if (it != newEnd)
