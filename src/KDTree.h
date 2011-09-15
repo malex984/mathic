@@ -17,39 +17,175 @@
  Extra fields for Configuration:
 
  * bool getSortOnInsert() const
-  Keep the monomials in leaves sorted to speed up queries.
+  Return true to keep the monomials in leaves sorted to speed up queries.
 
  * size_t getLeafSize() const
-  Returns the fixed maximal size of a leaf.
+  Return the fixed maximal size of a leaf.
+
+ * static const bool useDivMask
+  Set to true to use div masks to speed up queries. This must be a
+  static const data member - not a function.
 
  * size_t getUseAutomaticRebuild() const
  * double getRebuildRatio() const
  * size_t getRebuildMin() const
   If getUseAutomaticRebuild() returns true, the tree will call rebuild
   on itself after a total of max(size() * getRebuildRatio(), getRebuildMin())
-  entry insertions and removals have occurred.  
+  entry insertions and removals have occurred.
 */
 template<class Configuration>
 class KDTree;
 
+namespace KDTreeHelpers {
+  typedef unsigned long DivMask;
+
+  template<class T, class C>
+  NO_PINLINE DivMask computeDivMask(const T& t, const C& conf) {
+    const size_t varCount = conf.getVarCount();
+    DivMask mask = 0;
+    for (size_t var = 0; var < varCount; ++var) {
+      mask = (mask << 1) | (conf.getExponent(t, var) >= 4);
+      mask = (mask << 1) | (conf.getExponent(t, var) >= 9);
+      mask = (mask << 1) | (conf.getExponent(t, var) >= 14);
+    }
+    return mask;
+  }
+
+  /** A Monomial *reference* extended with extra information. */
+  template<class Monomial>
+  class ExtendedMonomialRef {
+  public:
+    template<class C>
+    ExtendedMonomialRef(const Monomial& mono, const C& conf):
+        _mono(mono), _divMask(computeDivMask(mono, conf)) {}
+    const Monomial& getMonomial() const {return _mono;}
+    const Monomial& get() const {return _mono;}
+    DivMask getDivMask() const {return _divMask;}
+
+    template<class T, class C>
+    NO_PINLINE bool divides(const T& ext, const C& conf) const {
+      ASSERT(getDivMask() == computeDivMask(get(), conf));
+      ASSERT(ext.getDivMask() == computeDivMask(ext.get(), conf));
+      if ((getDivMask() & ~ext.getDivMask()) != 0) {
+        ASSERT(!conf.divides(get(), ext.get()));
+        return false;
+      } else
+        return conf.divides(get(), ext.get());
+    }
+
+  private:
+    const Monomial& _mono;
+    DivMask _divMask;
+  };
+
+  /** A Monomial *reference* without any extra information. */
+  template<class Monomial>
+  class BaseMonomialRef {
+  public:
+    template<class C>
+    BaseMonomialRef(const Monomial& mono, const C& conf): _mono(mono) {}
+    const Monomial& getMonomial() const {return _mono;}
+    const Monomial& get() const {return _mono;}
+
+    template<class T, class C>
+    NO_PINLINE bool divides(const T& ext, const C& conf) const {
+      return conf.divides(get(), ext.get());
+    }
+
+  private:
+    const Monomial& _mono;
+  };
+
+  /** An Entry extended with extra information. */
+  template<class Entry>
+  class ExtendedEntry {
+  public:
+    template<class C>
+    ExtendedEntry(const Entry& entry, const C& conf):
+      _entry(entry), _divMask(computeDivMask(entry, conf)) {}
+    Entry& getEntry() {return _entry;}
+    const Entry& getEntry() const {return _entry;}
+    const Entry& get() const {return _entry;}
+    operator const Entry&() const {return _entry;}
+    DivMask getDivMask() const {return _divMask;}
+
+    template<class T, class C>
+    NO_PINLINE bool divides(const T& ext, const C& conf) const {
+      ASSERT(getDivMask() == computeDivMask(get(), conf));
+      ASSERT(ext.getDivMask() == computeDivMask(ext.get(), conf));
+      if ((getDivMask() & ~ext.getDivMask()) != 0) {
+        ASSERT(!conf.divides(get(), ext.get()));
+        return false;
+      } else
+        return conf.divides(get(), ext.get());
+    }
+
+  private:
+    Entry _entry;
+    DivMask _divMask;
+  };
+
+  /** An Entry without any extra information. */
+  template<class Entry>
+  class BaseEntry {
+  public:
+    template<class C>
+    BaseEntry(const Entry& entry, const C& conf): _entry(entry) {}
+    Entry& getEntry() {return _entry;}
+    const Entry& getEntry() const {return _entry;}
+    const Entry& get() const {return _entry;}
+    operator const Entry&() const {return _entry;}
+
+    template<class T, class C>
+    bool divides(const T& t, const C& conf) const {
+      return conf.divides(get(), t.get());
+    }
+
+  private:
+    Entry _entry;
+  };
+
+  /** For selecting the type of ExtEntry in KDTree. */
+  template<class Entry, class Monomial, bool ExtendEntry>
+  struct SelectEntry;
+  template<class Entry, class Monomial>
+  struct SelectEntry<Entry, Monomial, true> {
+    typedef ExtendedEntry<Entry> ExtEntry;
+    typedef ExtendedMonomialRef<Monomial> ExtMonoRef;
+  };
+  template<class Entry, class Monomial>
+  struct SelectEntry<Entry, Monomial, false> {
+    typedef BaseEntry<Entry> ExtEntry;
+    typedef BaseMonomialRef<Monomial> ExtMonoRef;
+  };
+  int getEntry(int);
+}
+
 template<class C>
 class KDTree {
- private:
-  typedef KDTreeNode<C> Node;
-  typedef KDTreeInterior<C> Interior;
-  typedef KDTreeLeaf<C> Leaf;
-  typedef KDTreeWalker<C> Walker;
-
-  typedef typename Leaf::iterator LeafIt;
-  typedef std::list<Leaf> Tree;
-  typedef typename Tree::iterator TreeIt;
-  typedef typename Tree::const_iterator CTreeIt;
-
- public:
+public:
+  static const bool UseDivMask = C::UseDivMask;
   typedef typename C::Monomial Monomial;
   typedef typename C::Entry Entry;
   typedef typename C::Exponent Exponent;
 
+private:
+  /** An extended entry (ExtEntry) is an entry extended with
+   extra data for internal use inside the data structure.
+   An ExtEntry can store a divmask or not depending on C::UseDivMask. */
+  typedef typename
+    KDTreeHelpers::SelectEntry<Entry, Monomial, UseDivMask> Selector;
+  typedef typename Selector::ExtEntry ExtEntry;
+  typedef typename Selector::ExtMonoRef ExtMonoRef;
+
+  typedef KDTreeNode<C, ExtEntry> Node;
+  typedef KDTreeInterior<C, ExtEntry> Interior;
+  typedef KDTreeLeaf<C, ExtEntry> Leaf;
+  typedef KDTreeWalker<C, ExtEntry> Walker;
+
+  typedef typename Leaf::iterator LeafIt;
+
+public:
   /** Iterator for enumerating all entries. */
   class iterator;
 
@@ -183,8 +319,8 @@ template<class C>
 template<class LeafIt>
 class KDTree<C>::IterHelper {
   typedef IterHelper<C> Helper;
-  typedef KDTreeWalker<C> Walker;
-  typedef KDTreeNode<C> Node;
+  typedef KDTreeWalker<C, ExtEntry> Walker;
+  typedef KDTreeNode<C, ExtEntry> Node;
  public:
   IterHelper() {} // singular iterator
   IterHelper(const IterHelper<C>& it):
@@ -269,8 +405,8 @@ public std::iterator<std::bidirectional_iterator_tag, Entry> {
   bool operator!=(const iterator& it) const {return !(*this == it);}
   bool operator==(const const_iterator& it) const {return _it.equals(it._it);}
   bool operator!=(const const_iterator& it) const {return !(*this == it);}
-  Entry& operator*() const {return *_it.get();}
-  Entry* operator->() const {return &*_it.get();}
+  Entry& operator*() const {return _it.get()->getEntry();}
+  Entry* operator->() const {return &_it.get()->getEntry();}
 
  protected:
   iterator(Leaf& leaf, LeafIt it): _it(leaf, it) {}
@@ -309,8 +445,8 @@ public std::iterator<std::bidirectional_iterator_tag, Entry> {
   bool operator!=(const iterator& it) const {return !(*this == it);}
   bool operator==(const const_iterator& it) const {return _it.equals(it._it);}
   bool operator!=(const const_iterator& it) const {return !(*this == it);}
-  Entry& operator*() const {return *_it.get();}
-  Entry* operator->() const {return &*_it.get();}
+  Entry& operator*() const {return _it.get()->getEntry();}
+  Entry* operator->() const {return &_it.get()->getEntry();}
 
  protected:
   const_iterator(Leaf& leaf, LeafIt it): _it(leaf, it) {}
@@ -357,13 +493,16 @@ std::string KDTree<C>::getName() const {
     out << " autob:" << _conf.getRebuildRatio()
       << '/' << _conf.getRebuildMin();
   }
-  out << (_conf.getSortOnInsert() ? " sort" : "")
+  out << (C::UseDivMask ? " dmask" : "")
+    << (_conf.getSortOnInsert() ? " sort" : "")
     << (_conf.getUseDivisorCache() ? " cache" : "");
   return out.str();
 }
 
 template<class C>
 NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
+  ExtMonoRef extMonomial(monomial, _conf);
+
   ASSERT(_tmp.empty());
   size_t removedCount = 0;
   Node* node = _root;
@@ -376,7 +515,7 @@ NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
       node = &interior.getStrictlyGreater();
     }
     ASSERT(node->isLeaf());
-    removedCount += node->asLeaf().removeMultiples(monomial, _conf);
+    removedCount += node->asLeaf().removeMultiples(extMonomial, _conf);
     if (_tmp.empty())
       break;
     node = _tmp.back();
@@ -392,9 +531,11 @@ NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
 
 template<class C>
 NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
+  ExtEntry extEntry(entry, _conf);
+
   Node* node = _root;
   while (node->isInterior())
-    node = &node->asInterior().getChildFor(entry, _conf);
+    node = &node->asInterior().getChildFor(extEntry, _conf);
   Leaf* leaf = &node->asLeaf();
 
   ASSERT(leaf->size() <= _conf.getLeafSize());
@@ -402,10 +543,10 @@ NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
     Interior& interior = leaf->split(_arena, _conf);
     if (leaf == _root)
       _root = &interior;
-    leaf = &interior.getChildFor(entry, _conf).asLeaf();
+    leaf = &interior.getChildFor(extEntry, _conf).asLeaf();
   }
   ASSERT(leaf->size() < _conf.getLeafSize());
-  leaf->insert(entry, _conf);
+  leaf->insert(extEntry, _conf);
 
   if (_conf.getUseDivisorCache())
     _divisorCache = end();
@@ -496,6 +637,8 @@ NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& m
     _divisorCache != end() && _conf.divides(*_divisorCache, monomial))
     return _divisorCache;
 
+  ExtMonoRef extMonomial(monomial, _conf);
+
   ASSERT(_tmp.empty());
   Node* node = _root;
   while (true) {
@@ -508,7 +651,7 @@ NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& m
     }
     ASSERT(node->isLeaf());
     Leaf& leaf = node->asLeaf();
-    LeafIt leafIt = leaf.findDivisor(monomial, _conf);
+    LeafIt leafIt = leaf.findDivisor(extMonomial, _conf);
     if (leafIt != leaf.end()) {
       _tmp.clear();
       return _divisorCache = iterator(leaf, leafIt);
@@ -525,6 +668,8 @@ NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& m
 template<class C>
 template<class DO>
 void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) {
+  ExtMonoRef extMonomial(monomial, _conf);
+
   ASSERT(_tmp.empty());
   Node* node = _root;
   while (true) {
@@ -537,7 +682,7 @@ void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) {
     }
     ASSERT(node->isLeaf());
     Leaf& leaf = node->asLeaf();
-    leaf.findAllDivisors(monomial, output, _conf);
+    leaf.findAllDivisors(extMonomial, output, _conf);
     if (_tmp.empty())
       break;
     node = _tmp.back();
@@ -626,14 +771,14 @@ bool KDTree<C>::debugIsValid() const {
           typename Leaf::const_iterator it = leaf.begin();
           for (; it != leaf.end(); ++it) {
             ASSERT(!(interior.getExponent() <
-              _conf.getExponent(*it, interior.getVar())));
+              _conf.getExponent(it->getEntry(), interior.getVar())));
           }
         } else {
           ASSERT(child == &ancestor.getStrictlyGreater());
           typename Leaf::const_iterator it = leaf.begin();
           for (; it != leaf.end(); ++it) {
             ASSERT(interior.getExponent() <
-              _conf.getExponent(*it, interior.getVar()));
+              _conf.getExponent(it->getEntry(), interior.getVar()));
           }
         }
       }

@@ -6,7 +6,11 @@
 #include <string>
 #include <vector>
 
+template<bool UseDivMask>
+class KDTreeModelConfiguration;
+
 /** Helper class for KDTreeModel. */
+template<bool UDM>
 class KDTreeModelConfiguration {
  public:
   typedef int Exponent;
@@ -40,7 +44,7 @@ class KDTreeModelConfiguration {
     return monomial[var];
   }
 
-  bool divides(const Monomial& a, const Monomial& b) const {
+  NO_PINLINE bool divides(const Monomial& a, const Monomial& b) const {
     for (size_t var = 0; var < getVarCount(); ++var)
       if (getExponent(b, var) < getExponent(a, var))
         return false;
@@ -62,6 +66,8 @@ class KDTreeModelConfiguration {
   bool getDoAutomaticRebuilds() const {return _useAutomaticRebuild;}
   double getRebuildRatio() const {return _rebuildRatio;}
   size_t getRebuildMin() const {return _minRebuild;}
+
+  static const bool UseDivMask = UDM;
 
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
@@ -88,15 +94,16 @@ class KDTreeModelConfiguration {
 };
 
 /** An instantiation of the capabilities of KDTree. */
+template<bool UseDivMask = true>
 class KDTreeModel {
  private:
-  typedef KDTreeModelConfiguration C;
+  typedef KDTreeModelConfiguration<UseDivMask> C;
   typedef KDTree<C> Finder;
  public:
-  typedef Finder::iterator iterator;
-  typedef Finder::const_iterator const_iterator;
-  typedef Finder::Monomial Monomial;
-  typedef Finder::Entry Entry;
+  typedef typename Finder::iterator iterator;
+  typedef typename Finder::const_iterator const_iterator;
+  typedef typename Finder::Monomial Monomial;
+  typedef typename Finder::Entry Entry;
 
  KDTreeModel(size_t varCount,
 			 size_t leafSize,
@@ -143,7 +150,8 @@ class KDTreeModel {
   bool _minimizeOnInsert;
 };
 
-inline void KDTreeModel::insert(const Entry& entry) {
+template<bool UDM>
+inline void KDTreeModel<UDM>::insert(const Entry& entry) {
   if (!_minimizeOnInsert) {
     _finder.insert(entry);
     return;
@@ -154,7 +162,8 @@ inline void KDTreeModel::insert(const Entry& entry) {
   _finder.insert(entry);
 }
 
-inline std::string KDTreeModel::getName() const {
+template<bool UDM>
+inline std::string KDTreeModel<UDM>::getName() const {
   return _finder.getName() +
     (_minimizeOnInsert ? " remin" : " nomin");
 }

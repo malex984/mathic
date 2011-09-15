@@ -4,26 +4,43 @@
 #include "Arena.h"
 #include <algorithm>
 
-/** A helper class for KDTree. A node in the tree. */
-template<class Configuration>
+/** A helper class for KDTree. A node in the tree. The ExtEntry
+ comes from the KdTree. */
+template<class Configuration, class ExtEntry>
 class KDTreeNode;
 
-/** A helper class for KDTree. An interior node in the tree. */
-template<class Configuration>
+/** A helper class for KDTree. An interior node in the tree. The ExtEntry
+ comes from the KdTree. @todo: rename to KDTreeInternal. */
+template<class Configuration, class ExtEntry>
 class KDTreeInterior;
 
 /** A helper class for KDTree. Represents a leaf in the tree. Leaves
- hold the monomials. The Configuration is as for KdTree. */
-template<class Configuration>
+ hold the monomials. The Configuration is as for KdTree. The ExtEntry
+ comes from the KdTree. */
+template<class Configuration, class ExtEntry>
 class KDTreeLeaf;
 
-template<class C>
+namespace KDTreeHelpers {
+  template<class C>
+  class Comparer {
+  public:
+  Comparer(const C& conf): _conf(conf) {}
+    template<class A, class B>
+	bool operator()(const A& a, const B& b) const {
+	  return _conf.isLessThan(a.get(), b.get());
+	}
+  private:
+	const C& _conf;
+  };
+}
+
+template<class C, class EE>
 class KDTreeNode {
-  typedef KDTreeNode<C> Node;
-  typedef KDTreeLeaf<C> Leaf;
-  typedef KDTreeInterior<C> Interior;
-  friend class KDTreeInterior<C>;
-  friend class KDTreeLeaf<C>;
+  typedef KDTreeNode<C, EE> Node;
+  typedef KDTreeLeaf<C, EE> Leaf;
+  typedef KDTreeInterior<C, EE> Interior;
+  friend class KDTreeInterior<C, EE>;
+  friend class KDTreeLeaf<C, EE>;
 public:
   virtual ~KDTreeNode() {}
 
@@ -78,13 +95,13 @@ private:
   Interior* _parent;
 };
 
-template<class C>
-class KDTreeInterior : public KDTreeNode<C> {
+template<class C, class EE>
+class KDTreeInterior : public KDTreeNode<C, EE> {
 public:
   typedef typename C::Exponent Exponent;
-  typedef KDTreeInterior<C> Interior;
-  typedef KDTreeLeaf<C> Leaf;
-  typedef KDTreeNode<C> Node;
+  typedef KDTreeInterior<C, EE> Interior;
+  typedef KDTreeLeaf<C, EE> Leaf;
+  typedef KDTreeNode<C, EE> Node;
 
   using Node::getParent;
 
@@ -124,7 +141,7 @@ public:
     _strictlyGreater = strictlyGreater;
   }
 
-  Node& getChildFor(const typename C::Entry& entry, const C& conf) {
+  Node& getChildFor(const EE& entry, const C& conf) {
     if (getExponent() < conf.getExponent(entry, getVar()))
       return getStrictlyGreater();
     else
@@ -135,25 +152,23 @@ private:
   KDTreeInterior(const Interior&); // unavailable
   void operator=(const Interior&); // unavailable
 
-  KDTreeNode<C>* _equalOrLess;
-  KDTreeNode<C>* _strictlyGreater;
+  Node* _equalOrLess;
+  Node* _strictlyGreater;
   size_t _var;
   Exponent _exponent;
 };
 
-template<class C>
-class KDTreeLeaf : public KDTreeNode<C> {
-  typedef std::vector<typename C::Entry> List;
-  typedef KDTreeInterior<C> Interior;
-  typedef KDTreeLeaf<C> Leaf;
-  typedef KDTreeNode<C> Node;
+template<class C, class EE>
+class KDTreeLeaf : public KDTreeNode<C, EE> {
+  typedef KDTreeInterior<C, EE> Interior;
+  typedef KDTreeLeaf<C, EE> Leaf;
+  typedef KDTreeNode<C, EE> Node;
  public:
   typedef typename C::Monomial Monomial;
-  typedef typename C::Entry Entry;
-  typedef Entry* iterator;
-  typedef const Entry* const_iterator;
-  typedef const Entry& const_reference;
-  typedef Entry value_type;
+  typedef EE* iterator;
+  typedef const EE* const_iterator;
+  typedef const EE& const_reference;
+  typedef EE value_type;
 
   KDTreeLeaf(Arena& arena, const C& conf);
   KDTreeLeaf(Arena& arena, size_t capacity);
@@ -173,27 +188,30 @@ class KDTreeLeaf : public KDTreeNode<C> {
 
   bool empty() const {return _begin == _end;}
   size_t size() const {return std::distance(_begin, _end);}
-  Entry& front() {ASSERT(!empty()); return *_begin;}
-  const Entry& front() const {ASSERT(!empty()); return *_begin;}
-  Entry& back() {ASSERT(!empty()); return *(_end - 1);}
-  const Entry& back() const {ASSERT(!empty()); return *(_end - 1);}
+  EE& front() {ASSERT(!empty()); return *_begin;}
+  const EE& front() const {ASSERT(!empty()); return *_begin;}
+  EE& back() {ASSERT(!empty()); return *(_end - 1);}
+  const EE& back() const {ASSERT(!empty()); return *(_end - 1);}
 
-  void push_back(const Entry& entry);
+  void push_back(const EE& entry);
   void pop_back();
-  void insert(iterator it, const Entry& entry);
+  void insert(iterator it, const EE& entry);
 
-  void insert(const Entry& entry, const C& conf);
+  void insert(const EE& entry, const C& conf);
 
   /** Returns how many were removed. */
-  size_t removeMultiples(const Monomial& monomial, const C& conf);
+  template<class EM>
+  size_t removeMultiples(const EM& monomial, const C& conf);
 
-  iterator findDivisor(const Monomial& monomial, const C& conf);
-  const_iterator findDivisor(const Monomial& monomial, const C& conf) const {
-    return const_cast<KDTreeLeaf<C>&>(*this).findDivisor(monomial, conf);
+  template<class EM>
+  iterator findDivisor(const EM& extMonomial, const C& conf);
+  template<class EM>
+  const_iterator findDivisor(const EM& extMonomial, const C& conf) const {
+    return const_cast<Leaf&>(*this).findDivisor(extMonomial, conf);
   }
 
-  template<class DO>
-  void findAllDivisors(const Monomial& monomial, DO& out, const C& conf);
+  template<class EM, class DO>
+  void findAllDivisors(const EM& extMonomial, DO& out, const C& conf);
 
   Interior& split(Arena& arena, const C& conf);
 
@@ -203,64 +221,66 @@ class KDTreeLeaf : public KDTreeNode<C> {
 
   iterator _begin;
   iterator _end;
-  IF_DEBUG(const size_t _capacityDebug;)
-  IF_DEBUG(const bool _sortOnInsertDebug;)
+#ifdef DEBUG
+  const size_t _capacityDebug;
+  const bool _sortOnInsertDebug;
+#endif
 };
 
-template<class C>
-KDTreeInterior<C>::~KDTreeInterior() {
+template<class C, class EE>
+KDTreeInterior<C, EE>::~KDTreeInterior() {
   if (_equalOrLess != 0)
     _equalOrLess->~KDTreeNode();
   if (_strictlyGreater != 0)
     _strictlyGreater->~KDTreeNode();
 }
 
-template<class C>
-KDTreeLeaf<C>::KDTreeLeaf(Arena& arena, const C& conf):
+template<class C, class EE>
+KDTreeLeaf<C, EE>::KDTreeLeaf(Arena& arena, const C& conf):
 Node(true, 0)
 #ifdef DEBUG
 ,_capacityDebug(conf.getLeafSize())
 ,_sortOnInsertDebug(conf.getSortOnInsert())
 #endif
 {
-  _begin = arena.allocArrayNoCon<Entry>(conf.getLeafSize()).first;
+  _begin = arena.allocArrayNoCon<EE>(conf.getLeafSize()).first;
   _end = _begin;
 }
 
-template<class C>
-KDTreeLeaf<C>::KDTreeLeaf(Arena& arena, size_t capacity):
+template<class C, class EE>
+KDTreeLeaf<C,EE>::KDTreeLeaf(Arena& arena, size_t capacity):
 Node(true, 0)
 #ifdef DEBUG
 ,_capacityDebug(capacity)
 ,_sortOnInsertDebug(false)
 #endif
 {
-  _begin = arena.allocArrayNoCon<Entry>(capacity).first;
+  _begin = arena.allocArrayNoCon<EE>(capacity).first;
   _end = _begin;
 }
 
-template<class C>
-KDTreeLeaf<C>::~KDTreeLeaf() {
+template<class C, class EE>
+KDTreeLeaf<C, EE>::~KDTreeLeaf() {
   while (!empty())
     pop_back();
 }
 
-template<class C>
-void KDTreeLeaf<C>::push_back(const Entry& entry) {
+template<class C, class EE>
+void KDTreeLeaf<C, EE>::push_back(const EE& entry) {
   ASSERT(size() < _capacityDebug);
-  new (_end) Entry(entry);
+  new (_end) EE(entry);
   ++_end;
 }
 
-template<class C>
-void KDTreeLeaf<C>::pop_back() {
+template<class C, class EE>
+void KDTreeLeaf<C, EE>::pop_back() {
   ASSERT(!empty());
   --_end;
-  _end->~Entry();
+  _end->~EE();
 }
 
-template<class C>
-void KDTreeLeaf<C>::insert(iterator it, const Entry& entry) {
+template<class C, class EE>
+void KDTreeLeaf<C, EE>::insert(iterator it, const EE& entry) {
   ASSERT(size() < _capacityDebug);
   if (it == end()) {
     push_back(entry);
@@ -273,25 +293,26 @@ void KDTreeLeaf<C>::insert(iterator it, const Entry& entry) {
   *it = entry;
 }
 
-template<class C>
-void KDTreeLeaf<C>::insert(const Entry& entry, const C& conf) {
+template<class C, class EE>
+void KDTreeLeaf<C, EE>::insert(const EE& entry, const C& conf) {
   ASSERT(size() < _capacityDebug);
   if (!conf.getSortOnInsert())
     push_back(entry);
   else {
-    iterator it = std::upper_bound(begin(), end(), entry, conf.getComparer());
+    iterator it = std::upper_bound(begin(), end(), entry,
+      KDTreeHelpers::Comparer<C>(conf));
 	insert(it, entry);
   }
 }
 
-template<class C>
-void KDTreeLeaf<C>::clear() {while (!empty())
+template<class C, class EE>
+void KDTreeLeaf<C, EE>::clear() {while (!empty())
   while (!empty())
     pop_back();
 }
 
-template<class C>
-class KDTreeNode<C>::SplitEqualOrLess {
+template<class C, class EE>
+class KDTreeNode<C, EE>::SplitEqualOrLess {
 public:
   typedef typename C::Exponent Exponent;
   typedef typename C::Entry Entry;
@@ -306,9 +327,9 @@ private:
   const C& _conf;
 };
 
-template<class C>
+template<class C, class EE>
 template<class Iter>
-std::pair<KDTreeInterior<C>*, Iter> KDTreeNode<C>::preSplit
+std::pair<KDTreeInterior<C, EE>*, Iter> KDTreeNode<C, EE>::preSplit
 (Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf) {
   ASSERT(begin != end);
 
@@ -335,34 +356,34 @@ std::pair<KDTreeInterior<C>*, Iter> KDTreeNode<C>::preSplit
   }
 }
 
-template<class C>
+template<class C, class EE>
 template<class Iter>
-KDTreeLeaf<C>* KDTreeLeaf<C>::makeLeafCopy 
+KDTreeLeaf<C, EE>* KDTreeLeaf<C, EE>::makeLeafCopy 
 (Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf) {
   ASSERT(static_cast<size_t>(std::distance(begin, end)) <= conf.getLeafSize());
-  KDTreeLeaf<C>* leaf = new (arena.allocObjectNoCon<KDTreeLeaf<C> >())
-    KDTreeLeaf<C>(arena, conf);
+  Leaf* leaf = new (arena.allocObjectNoCon<Leaf>()) Leaf(arena, conf);
   leaf->_parent = parent;
   // cannot directly copy as memory is not constructed.
   for (; begin != end; ++begin)
     leaf->push_back(*begin);
   if (conf.getSortOnInsert())
-    std::sort(leaf->begin(), leaf->end(), conf.getComparer());    
+    std::sort(leaf->begin(), leaf->end(), KDTreeHelpers::Comparer<C>(conf));
   return leaf;
 }
 
-template<class C>
-NO_PINLINE size_t KDTreeLeaf<C>::removeMultiples(const Monomial& monomial, const C& conf) {
+template<class C, class EE>
+template<class EM>
+NO_PINLINE size_t KDTreeLeaf<C, EE>::removeMultiples(const EM& monomial, const C& conf) {
   iterator it = begin();
   iterator oldEnd = end();
   for (; it != oldEnd; ++it)
-	if (conf.divides(monomial, *it))
+	if (monomial.divides(*it, conf))
 	  break;
   if (it == oldEnd)
 	return 0;
   iterator newEnd = it;
   for (++it; it != oldEnd; ++it) {
-	if (!conf.divides(monomial, *it)) {
+	if (!monomial.divides(*it, conf)) {
 	  *newEnd = *it;
 	  ++newEnd;
 	}
@@ -379,50 +400,53 @@ NO_PINLINE size_t KDTreeLeaf<C>::removeMultiples(const Monomial& monomial, const
   return removedCount;
 }
 
-template<class C>
-NO_PINLINE typename KDTreeLeaf<C>::iterator
-KDTreeLeaf<C>::findDivisor(const Monomial& monomial, const C& conf) {
+template<class C, class EE>
+template<class EM>
+NO_PINLINE typename KDTreeLeaf<C, EE>::iterator
+KDTreeLeaf<C, EE>::findDivisor(const EM& extMonomial, const C& conf) {
   if (!conf.getSortOnInsert()) {
 	const iterator stop = end();
 	for (iterator it = begin(); it != stop; ++it)
-	  if (conf.divides(*it, monomial))
+	  if (it->divides(extMonomial, conf))
 		return it;
 	return stop;
   } else {
     iterator rangeEnd =
-      std::upper_bound(begin(), end(), monomial, conf.getComparer());
+      std::upper_bound(begin(), end(), extMonomial,
+      KDTreeHelpers::Comparer<C>(conf));
     iterator it = begin();
     for (; it != rangeEnd; ++it)
-      if (conf.divides(*it, monomial))
+	  if (it->divides(extMonomial, conf))
 	    return it;
 	return end();
   }
 }
 
-template<class C>
-template<class DO>
-NO_PINLINE void KDTreeLeaf<C>::
-findAllDivisors(const Monomial& monomial, DO& out, const C& conf) {
+template<class C, class EE>
+template<class EM, class DO>
+NO_PINLINE void KDTreeLeaf<C, EE>::
+findAllDivisors(const EM& extMonomial, DO& out, const C& conf) {
   if (!conf.getSortOnInsert()) {
 	const iterator stop = end();
 	for (iterator it = begin(); it != stop; ++it)
-	  if (conf.divides(*it, monomial))
-        out.push_back(*it);
+	  if (it->divides(extMonomial, conf))
+        out.push_back(it->getEntry());
   } else {
     iterator rangeEnd =
-      std::upper_bound(begin(), end(), monomial, conf.getComparer());
+      std::upper_bound(begin(), end(), extMonomial,
+      KDTreeHelpers::Comparer<C>(conf));
     iterator it = begin();
     for (; it != rangeEnd; ++it)
-      if (conf.divides(*it, monomial))
-        out.push_back(*it);
+	  if (it->divides(extMonomial, conf))
+        out.push_back(it->getEntry());
   }  
 }
 
-template<class C>
+template<class C, class EE>
 struct ExpOrder {
   typedef typename C::Entry Entry;
   ExpOrder(size_t var, const C& conf): _var(var), _conf(conf) {}
-  bool operator()(const Entry& a, const Entry& b) const {
+  bool operator()(const EE& a, const EE& b) const {
     return _conf.getExponent(a, _var) < _conf.getExponent(b, _var);
   }
 private:
@@ -430,8 +454,9 @@ private:
   const C& _conf;
 };
 
-template<class C>
-NO_PINLINE KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) {
+template<class C, class EE>
+NO_PINLINE KDTreeInterior<C, EE>&
+KDTreeLeaf<C, EE>::split(Arena& arena, const C& conf) {
   ASSERT(conf.getVarCount() > 0);
   ASSERT(size() >= 2);
   // ASSERT not all equal
@@ -470,7 +495,7 @@ NO_PINLINE KDTreeInterior<C>& KDTreeLeaf<C>::split(Arena& arena, const C& conf) 
         pop_back();
     } else {
       iterator middle = begin() + size() / 2;
-      ExpOrder<C> order(var, conf);
+      ExpOrder<C, EE> order(var, conf);
 
       std::nth_element(begin(), middle, end(), order);
       if (middle != end()) {

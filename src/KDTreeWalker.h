@@ -3,17 +3,18 @@
 
 #include "KDTreeLeaf.h"
 
-/** A helper class for KDTree. Encapsulates navigation in the tree. */
-template<class Configuration>
+/** A helper class for KDTree. Encapsulates navigation in the tree.
+ ExtEntry is from the kd tree. */
+template<class Configuration, class ExtEntry>
 class KDTreeWalker;
 
-template<class C>
+template<class C, class EE>
 class KDTreeWalker {
 public:
-  typedef KDTreeNode<C> Node;
-  typedef KDTreeLeaf<C> Leaf;
-  typedef KDTreeInterior<C> Interior;
-  typedef KDTreeWalker<C> Walker;
+  typedef KDTreeNode<C, EE> Node;
+  typedef KDTreeLeaf<C, EE> Leaf;
+  typedef KDTreeInterior<C, EE> Interior;
+  typedef KDTreeWalker<C, EE> Walker;
 
   KDTreeWalker(Node* root = 0): _node(root), _prev(0) {}
 
