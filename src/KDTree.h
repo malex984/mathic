@@ -378,7 +378,8 @@ std::string KDTree<C>::getName() const {
     out << " autob:" << _conf.getRebuildRatio()
       << '/' << _conf.getRebuildMin();
   }
-  out << (C::UseDivMask ? " dmask" : "")
+  out << (C::UseDivMask && !C::UseTreeDivMask ? " dmask" : "")
+    << (C::UseTreeDivMask ? " tree-dmask" : "")
     << (_conf.getSortOnInsert() ? " sort" : "")
     << (_conf.getUseDivisorCache() ? " cache" : "");
   return out.str();
@@ -419,13 +420,16 @@ NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
   ExtEntry extEntry(entry, _divMaskCalculator, _conf);
 
   Node* node = _root;
-  while (node->isInterior())
+  while (node->isInterior()) {
+    node->updateMask(extEntry);
     node = &node->asInterior().getChildFor(extEntry, _conf);
+  }
   Leaf* leaf = &node->asLeaf();
 
   ASSERT(leaf->size() <= _conf.getLeafSize());
   if (leaf->size() == _conf.getLeafSize()) {
     Interior& interior = leaf->split(_arena, _conf);
+    interior.updateMask(extEntry);
     if (leaf == _root)
       _root = &interior;
     leaf = &interior.getChildFor(extEntry, _conf).asLeaf();
@@ -511,6 +515,16 @@ NO_PINLINE void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
   }
   if (_conf.getUseDivisorCache())
     _divisorCache = this->end();
+
+  // set div masks
+  if (C::UseTreeDivMask) {
+    for (Walker walker(_root); !walker.atEnd(); walker.next())
+      if (walker.atInterior()) {
+        walker.getNode()->updateMask(walker.asInterior().getEqualOrLess());
+        walker.getNode()->updateMask(walker.asInterior().getStrictlyGreater());
+      }
+  }
+
   ASSERT(debugIsValid());
   // range insert into empty container is equivalent to a rebuild.
   resetNumberOfChangesTillRebuild();
@@ -524,23 +538,33 @@ NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& m
 
   ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
 
+  ASSERT(debugIsValid());
   ASSERT(_tmp.empty());
   Node* node = _root;
   while (true) {
     while (node->isInterior()) {
+      if (C::UseTreeDivMask &&
+        !node->getDivMask().canDivide(extMonomial.getDivMask()))
+        goto next;
+
       Interior& interior = node->asInterior();
       if (interior.getExponent() <
         _conf.getExponent(monomial, interior.getVar()))
         _tmp.push_back(&interior.getStrictlyGreater());
       node = &interior.getEqualOrLess();
     }
-    ASSERT(node->isLeaf());
-    Leaf& leaf = node->asLeaf();
-    LeafIt leafIt = leaf.findDivisor(extMonomial, _conf);
-    if (leafIt != leaf.end()) {
-      _tmp.clear();
-      return _divisorCache = iterator(leaf, leafIt);
+
+    {
+      ASSERT(node->isLeaf());
+      Leaf& leaf = node->asLeaf();
+      LeafIt leafIt = leaf.findDivisor(extMonomial, _conf);
+      if (leafIt != leaf.end()) {
+        ASSERT(_conf.divides(leafIt->get(), extMonomial.get()));
+        _tmp.clear();
+        return _divisorCache = iterator(leaf, leafIt);
+      }
     }
+  next:
     if (_tmp.empty())
       break;
     node = _tmp.back();
@@ -651,9 +675,16 @@ bool KDTree<C>::debugIsValid() const {
   for (; !walker.atEnd(); walker.next()) {
     if (walker.atLeaf()) {
       Leaf& leaf = walker.asLeaf();
+      typedef typename Leaf::const_iterator LeafCIter;
+      if (C::UseTreeDivMask) {
+        for (LeafCIter it = leaf.begin(); it != leaf.end(); ++it) {
+          ASSERT(leaf.getDivMask().canDivide(it->getDivMask()));
+        }
+      }
+
       Walker ancestor(walker);
       // Check all interior nodes above leaf have each monomial in the
-      // leaf in the correct child.
+      // leaf in the correct child. Also check div masks.
       while (!ancestor.atRoot()) {
         Node* child = ancestor.getNode();
         ancestor.toParent();
@@ -664,6 +695,9 @@ bool KDTree<C>::debugIsValid() const {
           for (; it != leaf.end(); ++it) {
             ASSERT(!(interior.getExponent() <
               _conf.getExponent(it->get(), interior.getVar())));
+            if (C::UseTreeDivMask) {
+              ASSERT(interior.getDivMask().canDivide(it->getDivMask()));
+            }
           }
         } else {
           ASSERT(child == &ancestor.getStrictlyGreater());
@@ -671,6 +705,9 @@ bool KDTree<C>::debugIsValid() const {
           for (; it != leaf.end(); ++it) {
             ASSERT(interior.getExponent() <
               _conf.getExponent(it->get(), interior.getVar()));
+            if (C::UseTreeDivMask) {
+              ASSERT(interior.getDivMask().canDivide(it->getDivMask()));
+            }
           }
         }
       }

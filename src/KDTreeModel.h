@@ -6,11 +6,11 @@
 #include <string>
 #include <vector>
 
-template<bool UseDivMask>
+template<bool UseDivMask, bool UseTreeDivMask>
 class KDTreeModelConfiguration;
 
 /** Helper class for KDTreeModel. */
-template<bool UDM>
+template<bool UDM, bool UTDM>
 class KDTreeModelConfiguration {
  public:
   typedef int Exponent;
@@ -68,6 +68,7 @@ class KDTreeModelConfiguration {
   size_t getRebuildMin() const {return _minRebuild;}
 
   static const bool UseDivMask = UDM;
+  static const bool UseTreeDivMask = UTDM;
 
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
@@ -94,10 +95,10 @@ class KDTreeModelConfiguration {
 };
 
 /** An instantiation of the capabilities of KDTree. */
-template<bool UseDivMask = true>
+template<bool UseDivMask, bool UseTreeDivMask>
 class KDTreeModel {
  private:
-  typedef KDTreeModelConfiguration<UseDivMask> C;
+  typedef KDTreeModelConfiguration<UseDivMask, UseTreeDivMask> C;
   typedef KDTree<C> Finder;
  public:
   typedef typename Finder::iterator iterator;
@@ -113,7 +114,10 @@ class KDTreeModel {
              double rebuildRatio,
              size_t minRebuild):
   _finder(C(varCount, leafSize, sortOnInsert, useDivisorCache, rebuildRatio, minRebuild)),
-  _minimizeOnInsert(minimizeOnInsert) {}
+  _minimizeOnInsert(minimizeOnInsert) {
+    ASSERT(!UseTreeDivMask || UseDivMask);
+  }
+
 
   void insert(const Entry& entry);
   iterator findDivisor(const Monomial& monomial) {
@@ -150,8 +154,8 @@ class KDTreeModel {
   bool _minimizeOnInsert;
 };
 
-template<bool UDM>
-inline void KDTreeModel<UDM>::insert(const Entry& entry) {
+template<bool UDM, bool UTDM>
+inline void KDTreeModel<UDM, UTDM>::insert(const Entry& entry) {
   if (!_minimizeOnInsert) {
     _finder.insert(entry);
     return;
@@ -162,8 +166,8 @@ inline void KDTreeModel<UDM>::insert(const Entry& entry) {
   _finder.insert(entry);
 }
 
-template<bool UDM>
-inline std::string KDTreeModel<UDM>::getName() const {
+template<bool UDM, bool UTDM>
+inline std::string KDTreeModel<UDM, UTDM>::getName() const {
   return _finder.getName() +
     (_minimizeOnInsert ? " remin" : " nomin");
 }

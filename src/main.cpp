@@ -16,7 +16,7 @@ int main() {
 #ifdef DEBUG
   sim.makeStandard(10, 200, 1000, false);
 #else
-  sim.makeStandard(10, 1000000, 0, false);
+  sim.makeStandard(10, 10000, 100000, false);
 #endif
   
   /*
@@ -32,7 +32,7 @@ int main() {
   }
   //*/
 
-  IF_DEBUG(sim.run<DivListModel<0> >(1, 0, 0));
+  //IF_DEBUG(sim.run<DivListModel<0> >(1, 0, 0));
   /*
   sim.run<DivListModel<0> >(1, 0, 0)
   sim.run<DivListModel<0> >(1, 1, 0);
@@ -43,16 +43,17 @@ int main() {
   //*/
 
   //*
-  //sim.run<DivListModel<0> >(1, 0, 0);
+  sim.run<DivListModel<0,0> >(1, 0, 0);
+  sim.run<DivListModel<0,0> >(1, 0, 1);
+  sim.run<DivListModel<0,0> >(1, 1, 0);
   for (int mini = 1; mini <= 1; ++mini) {
 	for (int sortOnInsert = 0; sortOnInsert <= 0; ++sortOnInsert) {
   	  for (int useDivisorCache = 0; useDivisorCache <= 0; ++useDivisorCache) {
         //IF_DEBUG(sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 0.01, 1));
-        sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 3, 100);
+        sim.run<KDTreeModel<1,1> >(10, mini,sortOnInsert,useDivisorCache, 1, 100);
+        sim.run<KDTreeModel<1,0> >(10, mini,sortOnInsert,useDivisorCache, 1, 100);
+        sim.run<KDTreeModel<0,0> >(10, mini,sortOnInsert,useDivisorCache, 1, 100);
         
-        sim.run<KDTreeModel<0> >(10, mini,sortOnInsert,useDivisorCache, 0, 0);
-        sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 0, 0);
-        sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 3, 2000);
         /*sim.run<KDTreeModel<0> >(8, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<1> >(8, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<0> >(20, mini,sortOnInsert,useDivisorCache, 0, 0);

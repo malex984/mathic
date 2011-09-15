@@ -1,6 +1,7 @@
 #ifndef DIV_ARRAY_GUARD
 #define DIV_ARRAY_GUARD
 
+#include "DivMask.h"
 #include <vector>
 #include <string>
 #include <list>
@@ -11,10 +12,16 @@
 
  Extra fields for Configuration:
 
+ * static const bool UseLinkedList
+  Use a linked list if true, otherwise use an array.
+
+ * static const bool UseDivMask
+  Use div masks if true.
+
  * bool getSortOnInsert() const
   Keep the monomials sorted to speed up queries.
 */
-template<class Configuration, bool UseLinkedList = false>
+template<class Configuration>
 class DivList;
 
 namespace DivListHelper {
@@ -33,20 +40,23 @@ namespace DivListHelper {
   };
 }
 
-template<class C, bool ULL>
+template<class C>
 class DivList {
-  typedef typename DivListHelper::ListImpl<ULL, typename C::Entry>::Impl
+  typedef typename DivListHelper::ListImpl<C::UseLinkedList, typename C::Entry>::Impl
     List;
+  typedef typename List::iterator ListIter;
+  typedef typename List::const_iterator CListIter;
 
  public:
-  static const bool UseLinkedList = ULL;
+  static const bool UseLinkedList = C::UseLinkedList;
+  static const bool UseDivMask = C::UseDivMask;
 
   typedef typename C::Monomial Monomial;
   typedef typename C::Entry Entry;
   typedef typename C::Exponent Exponent;
 
-  typedef typename List::const_iterator const_iterator;
-  typedef typename List::iterator iterator;
+  class iterator;
+  class const_iterator;
 
   DivList(const C& configuration): _conf(configuration) {}
 
@@ -88,6 +98,50 @@ class DivList {
 
   List _list;
   C _conf;
+};
+
+template<class C>
+class DivList<C>::const_iterator {
+public:
+  const_iterator(CListIter it): _it(it) {}
+  bool operator==(const_iterator it) {return _it == it._it;}
+  bool operator!=(const_iterator it) {return _it != it._it;}
+  bool operator==(iterator it) {return *this == const_iterator(it);}
+  bool operator!=(iterator it) {return *this != const_iterator(it);}
+
+  const Entry& operator*() const {return *_it;}
+  const Entry* operator->() const {return _it.operator->();}
+
+  const_iterator& operator++() {++_it; return *this;}
+  const_iterator operator++(int) {iterator tmp = *this; operator++(); return tmp;}
+  const_iterator& operator--() {--_it; return *this;}
+  const_iterator operator--(int) {iterator tmp = *this; operator--(); return tmp;}
+
+private:
+  CListIter _it;
+};
+
+template<class C>
+class DivList<C>::iterator {
+public:
+  iterator(ListIter it): _it(it) {}
+  operator const_iterator() const {return const_iterator(_it);}
+
+  bool operator==(iterator it) {return _it == it._it;}
+  bool operator!=(iterator it) {return _it != it._it;}
+  bool operator==(const_iterator it) {return it == const_iterator(*this);}
+  bool operator!=(const_iterator it) {return it != const_iterator(*this);}
+
+  iterator& operator++() {++_it; return *this;}
+  iterator operator++(int) {iterator tmp = *this; operator++(); return tmp;}
+  iterator& operator--() {--_it; return *this;}
+  iterator operator--(int) {iterator tmp = *this; operator--(); return tmp;}
+
+  Entry& operator*() const {return *_it;}
+  Entry* operator->() const {return _it.operator->();}
+
+private:
+  ListIter _it;
 };
 
 namespace DivListHelper {
@@ -234,22 +288,22 @@ namespace DivListHelper {
   }
 }
 
-template<class C, bool ULL>
-void DivList<C, ULL>::insert(const Entry& entry) {
+template<class C>
+void DivList<C>::insert(const Entry& entry) {
   if (!_conf.getSortOnInsert())
     _list.push_back(entry);
   else
 	DivListHelper::insertSort(_conf, _list, entry);
 }
 
-template<class C, bool ULL>
-bool DivList<C, ULL>::removeMultiples(const Monomial& monomial) {
+template<class C>
+bool DivList<C>::removeMultiples(const Monomial& monomial) {
   return DivListHelper::removeMultiples(_conf, _list, monomial);
 }
 
-template<class C, bool ULL>
-typename DivList<C, ULL>::iterator
-DivList<C, ULL>::findDivisor(const Monomial& monomial) {
+template<class C>
+typename DivList<C>::iterator
+DivList<C>::findDivisor(const Monomial& monomial) {
   if (!_conf.getSortOnInsert()) {
 	const iterator stop = end();
 	for (iterator it = begin(); it != stop; ++it)
@@ -260,15 +314,15 @@ DivList<C, ULL>::findDivisor(const Monomial& monomial) {
 	return DivListHelper::findDivisorSorted(_conf, _list, monomial);
 }
 
-template<class C, bool ULL>
-typename DivList<C, ULL>::const_iterator
-DivList<C, ULL>::findDivisor(const Monomial& monomial) const {
+template<class C>
+typename DivList<C>::const_iterator
+DivList<C>::findDivisor(const Monomial& monomial) const {
   return const_cast<DivList<C>&>(*this).findDivisor(monomial);
 }
 
-template<class C, bool ULL>
+template<class C>
 template<class DO>
-void DivList<C, ULL>::
+void DivList<C>::
 findAllDivisors(const Monomial& monomial, DO& out) {
   if (!_conf.getSortOnInsert()) {
 	const iterator stop = end();
@@ -279,22 +333,23 @@ findAllDivisors(const Monomial& monomial, DO& out) {
     DivListHelper::findAllDivisorsSorted(_conf, _list, monomial, out);
 }
 
-template<class C, bool ULL>
+template<class C>
 template<class DO>
-void DivList<C, ULL>::findAllDivisors(const Monomial& monomial, DO& output) const {
+void DivList<C>::findAllDivisors(const Monomial& monomial, DO& output) const {
   ConstDivisorOutput<DO> constOutput(output);
-  const_cast<DivList<C, ULL>&>(*this).findAllDivisors(monomial, constOutput);
+  const_cast<DivList<C>&>(*this).findAllDivisors(monomial, constOutput);
 }
 
-template<class C, bool ULL>
-std::string DivList<C, ULL>::getName() const {
+template<class C>
+std::string DivList<C>::getName() const {
   return std::string("DivList") +
 	(_conf.getSortOnInsert() ? " sort" : "") +
-    (ULL ? " linked" : " array");
+    (UseLinkedList ? " linked" : " array") +
+    (UseDivMask ? " dmask" : "");
 }
 
-template<class C, bool ULL>
-void DivList<C, ULL>::moveToFront(iterator pos) {
+template<class C>
+void DivList<C>::moveToFront(iterator pos) {
   DivListHelper::moveToFront(_list, pos);
 }
 

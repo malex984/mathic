@@ -7,8 +7,12 @@
 #include <vector>
 
 /** Helper class for DivListModel. */
+template<bool UseLinkedList, bool UseDivMask>
+class DivListModelConfiguration;
+
+template<bool ULL, bool UDM>
 class DivListModelConfiguration {
- public:
+public:
   typedef int Exponent;
   typedef ::Monomial Monomial;
   typedef Monomial Entry;
@@ -31,6 +35,9 @@ class DivListModelConfiguration {
         return false;
     return true;
   }
+
+  static const bool UseLinkedList = ULL;
+  static const bool UseDivMask = UDM;
 
   bool isLessThan(const Monomial& a, const Monomial& b) const {
     for (size_t var = 0; var < getVarCount(); ++var) {
@@ -61,15 +68,15 @@ class DivListModelConfiguration {
   mutable unsigned long long _expQueryCount;
 };
 
-template<bool UseLinkedList>
+template<bool UseLinkedList, bool UseDivMask>
 class DivListModel;
 
 /** An instantiation of the capabilities of DivList. */
-template<bool ULL>
+template<bool ULL, bool UDM>
 class DivListModel {
  private:
-  typedef DivListModelConfiguration C;
-  typedef DivList<C, ULL> Finder;
+  typedef DivListModelConfiguration<UDM, ULL> C;
+  typedef DivList<C> Finder;
  public:
   typedef typename Finder::iterator iterator;
   typedef typename Finder::const_iterator const_iterator;
@@ -126,8 +133,8 @@ class DivListModel {
   bool _moveDivisorToFront;
 };
 
-template<bool ULL>
-inline void DivListModel<ULL>::insert(const Entry& entry) {
+template<bool ULL, bool UDM>
+inline void DivListModel<ULL, UDM>::insert(const Entry& entry) {
   if (!_minimizeOnInsert) {
     _finder.insert(entry);
     return;
@@ -142,8 +149,8 @@ inline void DivListModel<ULL>::insert(const Entry& entry) {
   }
 } 
 
-template<bool ULL>
-inline std::string DivListModel<ULL>::getName() const {
+template<bool ULL, bool UDM>
+inline std::string DivListModel<ULL, UDM>::getName() const {
   return _finder.getName() +
     (_minimizeOnInsert ? " remin" : " nomin") +
     (_moveDivisorToFront ? " toFront" : "");
