@@ -20,7 +20,7 @@ namespace {
 
   void makeRandom(std::vector<int>& monomial) {
 	for (size_t var = 0; var < monomial.size(); ++var)
-	  monomial[var] = rand() % 20;
+	  monomial[var] = rand() % 1000;
   }
 }
 

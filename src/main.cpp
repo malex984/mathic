@@ -47,8 +47,8 @@ int main() {
   for (int mini = 1; mini <= 1; ++mini) {
 	for (int sortOnInsert = 0; sortOnInsert <= 0; ++sortOnInsert) {
   	  for (int useDivisorCache = 0; useDivisorCache <= 0; ++useDivisorCache) {
-        IF_DEBUG(sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 0.01, 1));
-        
+        //IF_DEBUG(sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 0.01, 1));
+        sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 3, 100);
         
         sim.run<KDTreeModel<0> >(10, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 0, 0);

@@ -87,7 +87,11 @@ public:
 
   /** Inserts the entries in the range [begin, end) into the data
    structure. Does NOT remove multiples of entry and entry is inserted
-   even if it is a multiple of another entry. */
+   even if it is a multiple of another entry.
+   
+   The elements in the range [begin, end) may be rearranged by this
+   function, so the range must be mutable. If that is not acceptable,
+   call the one element insert method for each element. */
   template<class Iter>
   void insert(Iter begin, Iter end);
 
@@ -429,6 +433,8 @@ NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
   reportChanges(1);
 }
 
+/// @todo: this function is too big and it knows too much about the details
+/// inside nodes. Also, it allocates a std::vector every time.
 template<class C>
 template<class Iter>
 NO_PINLINE void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
@@ -439,12 +445,10 @@ NO_PINLINE void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
   } else if (insertBegin == insertEnd)
     return;
 
-  // todo: this function is too big and it knows too much about the details
-  // inside nodes. Also, it allocates a std::vector every time.
-
   _root->~KDTreeNode();
   _arena.freeAll();
   _root = 0;
+  _divMaskCalculator.rebuild(insertBegin, insertEnd, _conf);
   if (_conf.getUseDivisorCache())
     _divisorCache = this->end();
 
@@ -580,6 +584,7 @@ void KDTree<C>::clear() {
   _arena.freeAll();
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
   resetNumberOfChangesTillRebuild();
+  _divMaskCalculator.rebuildDefault(_conf);
   if (_conf.getUseDivisorCache())
     _divisorCache = end();
 }
@@ -598,7 +603,10 @@ void KDTree<C>::rebuild() {
       leaf.clear();
     }
   }
-  clear();
+  _root->~KDTreeNode();
+  _arena.freeAll();
+  _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
+  resetNumberOfChangesTillRebuild();
   // range insert into empty container IS a rebuild.
   insert(tmpCopy.begin(), tmpCopy.end());
 }
