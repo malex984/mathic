@@ -23,17 +23,6 @@
 
  * size_t getLeafSize() const
   Return the fixed maximal size of a leaf.
-
- * static const bool UseDivMask
-  Set to true to use div masks to speed up queries. This must be a
-  static const data member - not a function.
-
- * size_t getUseAutomaticRebuild() const
- * double getRebuildRatio() const
- * size_t getRebuildMin() const
-  If getUseAutomaticRebuild() returns true, the tree will call rebuild
-  on itself after a total of max(size() * getRebuildRatio(), getRebuildMin())
-  entry insertions and removals have occurred.
 */
 template<class Configuration>
 class KDTree;
@@ -74,13 +63,19 @@ public:
 
   /** Constructs an object with the given configuration. The configuration
    is copied into the object, so a reference to the passed-in object is
-   not kept. */
+   not kept. The configuration is not copied other than the initial copy. */
   KDTree(const C& configuration);
   ~KDTree();
 
-  /** Removes all multiples of monomial. A duplicate of monomial counts
+  /** Removes all multiples of monomial. A duplicate counts
    as a multiple. Returns true if any multiples were removed. */
   bool removeMultiples(const Monomial& monomial);
+
+  /** Removes all multiples of monomial. A duplicate counts
+   as a multiple. Returns true if any multiples were removed.
+   Calls out.push_back(entry) for each entry that is removed. */
+  template<class MultipleOutput>
+  bool removeMultiples(const Monomial& monomial, MultipleOutput& out);
 
   /** Inserts entry into the data structure. Does NOT remove multiples
    of entry and entry is inserted even if it is a multiple of another
@@ -101,15 +96,15 @@ public:
    entries divide monomial. */
   iterator findDivisor(const Monomial& monomial);
 
-  /** Calls output.push_back(entry) for each entry that divides monomial
-   So a std::vector will work, but any other class with a push_back method
-   accepting an iterator will also work. */
+  /** Calls out.proceed(entry) for each entry that divides monomial.
+   The method returns if proceed returns false, otherwise the
+   search for divisors proceeds. */
   template<class DivisorOutput>
   void findAllDivisors(const Monomial& monomial, DivisorOutput& out);
 
-  /** Calls output.push_back(entry) for each entry that divides monomial
-   So a std::vector will work, but any other class with a push_back method
-   accepting an iterator will also work. */
+  /** Calls out.proceed(entry) for each entry that divides monomial.
+   The method returns if proceed returns false, otherwise the
+   search for divisors proceeds. */
   template<class DivisorOutput>
   void findAllDivisors(const Monomial& monomial, DivisorOutput& out) const;
 
@@ -135,11 +130,10 @@ public:
   reverse_iterator rend() {return reverse_iterator(begin());}
   const_reverse_iterator rend() const {return const_reverse_iterator(begin());}
 
-  /** Returns whether there are entries. Not O(1) so don't call it in a loop.
-   @todo Make this faster than size(). */
+  /** Returns whether there are entries. */
   bool empty() const {return size() == 0;}
 
-  /** Returns the number of entries. Not O(1) so don't call it in a loop. */
+  /** Returns the number of entries. */
   size_t size() const;
 
   /** Returns a string that describes the data structure. */
@@ -156,7 +150,7 @@ public:
   void operator=(const KDTree<C>&); // unavailable
 
   void resetNumberOfChangesTillRebuild();
-  void reportChanges(size_t changesMadeCount);
+  void reportChanges(size_t additions, size_t removals);
 
   /** Encapsulates common code between iterator and const_iterator. */
   template<class TreeIt>
@@ -167,12 +161,15 @@ public:
   class ConstDivisorOutput {
   public:
     ConstDivisorOutput(DO& out): _out(out) {}
-    void push_back(Entry& entry) {
-      const Entry& constEntry = entry;
-      _out.push_back(constEntry);
-    }
+    bool proceed(const Entry& entry) {return _out.proceed(entry);}
   private:
     DO& _out;
+  };
+
+  /** Ignores everything passed to it. */
+  class DummyMultipleOutput {
+  public:
+    void push_back(Entry& e) {}
   };
 
   template<class Iter>
@@ -190,6 +187,7 @@ public:
   Arena _arena;
   C _conf;
   Node* _root;
+  size_t _size;
   iterator _divisorCache; /// The divisor in the previous query. Can be end().
   size_t _changesTillRebuild; /// Update using reportChanges().
   DivMaskCalculator _divMaskCalculator;
@@ -346,6 +344,7 @@ public std::iterator<std::bidirectional_iterator_tag, const Entry> {
 template<class C>
 KDTree<C>::KDTree(const C& configuration):
 _conf(configuration),
+_size(0),
 _divMaskCalculator(configuration) {
   ASSERT(_conf.getLeafSize() >= 2);
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
@@ -362,13 +361,9 @@ KDTree<C>::~KDTree() {
 
 template<class C>
 size_t KDTree<C>::size() const {
-  size_t sum = 0;
-  for (Walker walker(_root); !walker.atEnd(); walker.next())
-    if (walker.atLeaf())
-      sum += walker.asLeaf().size();
-  ASSERT(sum == static_cast<size_t>(std::distance(begin(), end())));
-  ASSERT(sum == static_cast<size_t>(std::distance(rbegin(), rend())));
-  return sum;
+  ASSERT(_size == static_cast<size_t>(std::distance(begin(), end())));
+  ASSERT(_size == static_cast<size_t>(std::distance(rbegin(), rend())));
+  return _size;
 }
 
 template<class C>
@@ -386,9 +381,9 @@ std::string KDTree<C>::getName() const {
   return out.str();
 }
 
-/// @todo: return number instead of bool
 template<class C>
-NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
+template<class MO>
+bool KDTree<C>::removeMultiples(const Monomial& monomial, MO& out) {
   ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
 
   ASSERT(_tmp.empty());
@@ -403,7 +398,7 @@ NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
       node = &interior.getStrictlyGreater();
     }
     ASSERT(node->isLeaf());
-    removedCount += node->asLeaf().removeMultiples(extMonomial, _conf);
+    removedCount += node->asLeaf().removeMultiples(extMonomial, out, _conf);
     if (_tmp.empty())
       break;
     node = _tmp.back();
@@ -413,8 +408,14 @@ NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
   ASSERT(_tmp.empty());
   if (_conf.getUseDivisorCache() && removedCount > 0)
     _divisorCache = end();
-  reportChanges(removedCount);
+  reportChanges(0, removedCount);
   return removedCount > 0;
+}
+
+template<class C>
+NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
+  DummyMultipleOutput out;
+  return removeMultiples(monomial, out);
 }
 
 template<class C>
@@ -442,7 +443,7 @@ NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
   if (_conf.getUseDivisorCache())
     _divisorCache = end();
   ASSERT(debugIsValid());
-  reportChanges(1);
+  reportChanges(1, 0);
 }
 
 /// @todo: this function is too big and it knows too much about the details
@@ -459,6 +460,7 @@ NO_PINLINE void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
 
   _arena.freeAll();
   _root = 0;
+  _size = std::distance(insertBegin, insertEnd);
   _divMaskCalculator.rebuild(insertBegin, insertEnd, _conf);
   if (_conf.getUseDivisorCache())
     _divisorCache = this->end();
@@ -593,7 +595,8 @@ void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) {
     }
     ASSERT(node->isLeaf());
     Leaf& leaf = node->asLeaf();
-    leaf.findAllDivisors(extMonomial, output, _conf);
+    if (!leaf.findAllDivisors(extMonomial, output, _conf))
+      break;
     if (_tmp.empty())
       break;
     node = _tmp.back();
@@ -615,6 +618,7 @@ void KDTree<C>::clear() {
     if (walker.atLeaf())
       walker.asLeaf().clear();
   _arena.freeAll();
+  _size = 0;
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
   resetNumberOfChangesTillRebuild();
   _divMaskCalculator.rebuildDefault(_conf);
@@ -654,11 +658,14 @@ void KDTree<C>::resetNumberOfChangesTillRebuild() {
 }
 
 template<class C>
-void KDTree<C>::reportChanges(size_t changesMadeCount) {
+void KDTree<C>::reportChanges(size_t additions, size_t removals) {
   // note how negative value/overflow of _changesTillRebuild cannot
   // happen this way.
+  ASSERT(removals <= _size + additions);
+  _size = (_size + additions) - removals;
   if (!_conf.getDoAutomaticRebuilds())
     return;
+  const size_t changesMadeCount = additions + removals;
   if (_changesTillRebuild > changesMadeCount)
     _changesTillRebuild -= changesMadeCount;
   else

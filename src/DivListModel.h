@@ -65,17 +65,6 @@ public:
 
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
-  class Comparer {
-  public:
-  Comparer(const DivListModelConfiguration& conf): _conf(conf) {}
-	bool operator()(const Entry& a, const Entry& b) const {
-	  return _conf.isLessThan(a, b);
-	}
-  private:
-	const DivListModelConfiguration& _conf;
-  };
-  Comparer getComparer() const {return *this;}
-
  private:
   const size_t _varCount;
   const bool _sortOnInsert;
@@ -113,6 +102,9 @@ class DivListModel {
   }
 
   void insert(const Entry& entry);
+  template<class MultipleOutput>
+  void insert(const Entry& entry, MultipleOutput& removed);
+
   iterator findDivisor(const Monomial& monomial) {
     iterator it = _finder.findDivisor(monomial);
     if (_moveDivisorToFront && it != _finder.end()) {
@@ -161,6 +153,23 @@ inline void DivListModel<ULL, UDM>::insert(const Entry& entry) {
   if (findDivisor(entry) != _finder.end())
     return;
   bool hasMultiples = _finder.removeMultiples(entry);
+  _finder.insert(entry);
+  if (_moveDivisorToFront && hasMultiples) {
+    iterator it = _finder.end();
+    _finder.moveToFront(--it);
+  }
+} 
+
+template<bool ULL, bool UDM>
+template<class MO>
+inline void DivListModel<ULL, UDM>::insert(const Entry& entry, MO& out) {
+  if (!_minimizeOnInsert) {
+    _finder.insert(entry);
+    return;
+  }
+  if (findDivisor(entry) != _finder.end())
+    return;
+  bool hasMultiples = _finder.removeMultiples(entry, out);
   _finder.insert(entry);
   if (_moveDivisorToFront && hasMultiples) {
     iterator it = _finder.end();

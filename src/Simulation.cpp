@@ -39,7 +39,7 @@ void Simulation::makeStandard
     Event event;
     event._monomial.resize(varCount);
     makeRandom(event._monomial);
-	event._type = (i <= inserts ? Insertion : QueryUnknown);
+	event._type = (i <= inserts ? InsertUnknown : QueryUnknown);
     _events.push_back(event);
   }
 }

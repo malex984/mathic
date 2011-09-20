@@ -3,6 +3,7 @@
 
 #include "DivMask.h"
 #include "Arena.h"
+#include "Comparer.h"
 #include <algorithm>
 
 /** A helper class for KDTree. A node in the tree. The ExtEntry
@@ -20,20 +21,6 @@ class KDTreeInterior;
  comes from the KdTree. */
 template<class Configuration, class ExtEntry>
 class KDTreeLeaf;
-
-namespace KDTreeHelpers {
-  template<class C> /// @todo: move to own file
-  class Comparer {
-  public:
-  Comparer(const C& conf): _conf(conf) {}
-    template<class A, class B>
-	bool operator()(const A& a, const B& b) const {
-	  return _conf.isLessThan(a.get(), b.get());
-	}
-  private:
-	const C& _conf;
-  };
-}
 
 template<class C, class EE>
 class KDTreeNode : public DivMask::HasDivMask<C::UseTreeDivMask> {
@@ -199,18 +186,17 @@ class KDTreeLeaf : public KDTreeNode<C, EE> {
   void insert(const EE& entry, const C& conf);
 
   /** Returns how many were removed. */
-  template<class EM>
-  size_t removeMultiples(const EM& monomial, const C& conf);
+  template<class EM, class MO>
+  size_t removeMultiples(const EM& monomial, MO& out, const C& conf);
 
   template<class EM>
   iterator findDivisor(const EM& extMonomial, const C& conf);
-  template<class EM>
-  const_iterator findDivisor(const EM& extMonomial, const C& conf) const {
-    return const_cast<Leaf&>(*this).findDivisor(extMonomial, conf);
-  }
 
+  /** Calls out.proceed(entry) for each entry that divides extMonomial.
+   Stops and returns false if out.proceed(entry) returns false. Returns
+   true if all calls out.proceed(entry) returned true. */
   template<class EM, class DO>
-  void findAllDivisors(const EM& extMonomial, DO& out, const C& conf);
+  bool findAllDivisors(const EM& extMonomial, DO& out, const C& conf);
 
   Interior& split(Arena& arena, const C& conf);
 
@@ -285,8 +271,7 @@ void KDTreeLeaf<C, EE>::insert(const EE& entry, const C& conf) {
   if (!conf.getSortOnInsert())
     push_back(entry);
   else {
-    iterator it = std::upper_bound(begin(), end(), entry,
-      KDTreeHelpers::Comparer<C>(conf));
+    iterator it = std::upper_bound(begin(), end(), entry, Comparer<C>(conf));
 	insert(it, entry);
   }
 }
@@ -354,18 +339,22 @@ Arena& arena, const DivMaskCalculator& calc, const C& conf) {
   for (; begin != end; ++begin)
     leaf->push_back(EE(*begin, calc, conf));
   if (conf.getSortOnInsert())
-    std::sort(leaf->begin(), leaf->end(), KDTreeHelpers::Comparer<C>(conf));
+    std::sort(leaf->begin(), leaf->end(), Comparer<C>(conf));
   return leaf;
 }
 
 template<class C, class EE>
-template<class EM>
-NO_PINLINE size_t KDTreeLeaf<C, EE>::removeMultiples(const EM& monomial, const C& conf) {
+template<class EM, class MO>
+NO_PINLINE size_t KDTreeLeaf<C, EE>::removeMultiples
+(const EM& monomial, MO& out, const C& conf) {
   iterator it = begin();
   iterator oldEnd = end();
-  for (; it != oldEnd; ++it)
-	if (monomial.divides(*it, conf))
+  for (; it != oldEnd; ++it) {
+	if (monomial.divides(*it, conf)) {
+      out.push_back(it->get());
 	  break;
+    }
+  }
   if (it == oldEnd)
 	return 0;
   iterator newEnd = it;
@@ -373,7 +362,8 @@ NO_PINLINE size_t KDTreeLeaf<C, EE>::removeMultiples(const EM& monomial, const C
 	if (!monomial.divides(*it, conf)) {
 	  *newEnd = *it;
 	  ++newEnd;
-	}
+	} else
+      out.push_back(it->get());
   }
   // cannot just adjust _end as the superfluous
   // entries at the end need to be destructed.
@@ -399,8 +389,7 @@ KDTreeLeaf<C, EE>::findDivisor(const EM& extMonomial, const C& conf) {
 	return stop;
   } else {
     iterator rangeEnd =
-      std::upper_bound(begin(), end(), extMonomial,
-      KDTreeHelpers::Comparer<C>(conf));
+      std::upper_bound(begin(), end(), extMonomial, Comparer<C>(conf));
     iterator it = begin();
     for (; it != rangeEnd; ++it)
 	  if (it->divides(extMonomial, conf))
@@ -411,22 +400,24 @@ KDTreeLeaf<C, EE>::findDivisor(const EM& extMonomial, const C& conf) {
 
 template<class C, class EE>
 template<class EM, class DO>
-NO_PINLINE void KDTreeLeaf<C, EE>::
+NO_PINLINE bool KDTreeLeaf<C, EE>::
 findAllDivisors(const EM& extMonomial, DO& out, const C& conf) {
   if (!conf.getSortOnInsert()) {
 	const iterator stop = end();
 	for (iterator it = begin(); it != stop; ++it)
 	  if (it->divides(extMonomial, conf))
-        out.push_back(it->get());
+        if (!out.proceed(it->get()))
+          return false;
   } else {
     iterator rangeEnd =
-      std::upper_bound(begin(), end(), extMonomial,
-      KDTreeHelpers::Comparer<C>(conf));
+      std::upper_bound(begin(), end(), extMonomial, Comparer<C>(conf));
     iterator it = begin();
     for (; it != rangeEnd; ++it)
 	  if (it->divides(extMonomial, conf))
-        out.push_back(it->get());
-  }  
+        if (!out.proceed(it->get()))
+          return false;
+  }
+  return true;
 }
 
 template<class C, class EE>

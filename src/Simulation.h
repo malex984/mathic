@@ -49,7 +49,8 @@ class Simulation {
   void run(DivFinder& finder);
 
   enum EventType {
-    Insertion,
+    InsertUnknown,
+    InsertKnown,
     QueryNoDivisor,
     QueryHasDivisor,
     QueryUnknown,
@@ -61,12 +62,12 @@ class Simulation {
 	std::vector<int> _monomial;
     std::vector<const Monomial::Exponent*> _state;
 #ifdef DEBUG
-    std::vector<Monomial> _allDivisors;
+    std::vector<Monomial> _allMonomials;
 #else
     size_t _divisorCount;
 #endif
   };
-  class DivisorStore;
+  class MonomialStore;
 
   bool _findAll;
   std::vector<Event> _events;
@@ -125,56 +126,88 @@ const P6& p6) {
   run(finder);
 }
 
-class Simulation::DivisorStore {
+class Simulation::MonomialStore {
 public:
-  DivisorStore() {clear();}
+  MonomialStore() {clear();}
   void clear() {
 #ifdef DEBUG
-    _divisors.clear();
+    _monomials.clear();
 #else
-    _divisorCount = 0;
+    _monomialCount = 0;
 #endif
   }
 
-  void push_back(const Monomial& divisor) {
+  void push_back(const Monomial& monomial) {
+    proceed(monomial);
+  }
+  bool proceed(const Monomial& monomial) {
 #ifdef DEBUG
-    _divisors.push_back(divisor);
+    _monomials.push_back(monomial);
 #else
-    ++_divisorCount;
+    ++_monomialCount;
 #endif
+    return true;
   }
 
   template<class Finder>
-  void check(Event& e, const Finder& finder ) {
+  void checkInsert(Event& e, const Finder& finder) {
 #ifdef DEBUG
-    for (size_t d = 0; d < _divisors.size(); ++d) {
+    std::sort(_monomials.begin(), _monomials.end());
+#endif
+
+    if (e._type == InsertUnknown) {
+#ifdef DEBUG
+      e._allMonomials.clear();
+      for (size_t i = 0; i < _monomials.size(); ++i)
+        e._allMonomials.push_back(_monomials[i]);
+#else
+      e._monomialCount = _monomialCount;
+#endif
+      e._type = InsertKnown;
+    } else {
+#ifdef DEBUG
+      ASSERT(_monomials == e._allMonomials);
+#else
+      if (_monomialCount != e._monomialCount) {
+        std::cerr << "Finder \"" << finder.getName() <<
+          "\" found incorrect number of monomials." << std::endl;
+        std::exit(1);
+      }
+#endif
+    }
+  }
+
+  template<class Finder>
+  void checkQuery(Event& e, const Finder& finder) {
+#ifdef DEBUG
+    for (size_t d = 0; d < _monomials.size(); ++d) {
       for (size_t var = 0; var < e._monomial.size(); ++var) {
-        ASSERT(_divisors[d][var] <= e._monomial[var]);
+        ASSERT(_monomials[d][var] <= e._monomial[var]);
       }
     }
-    std::sort(_divisors.begin(), _divisors.end());
+    std::sort(_monomials.begin(), _monomials.end());
 #endif
 
     if (e._type == QueryUnknown) {          
-      bool noDivisors;
+      bool noMonomials;
 #ifdef DEBUG
-      e._allDivisors.clear();
-      for (size_t i = 0; i < _divisors.size(); ++i)
-        e._allDivisors.push_back(_divisors[i]);
-      noDivisors = _divisors.empty();
+      e._allMonomials.clear();
+      for (size_t i = 0; i < _monomials.size(); ++i)
+        e._allMonomials.push_back(_monomials[i]);
+      noMonomials = _monomials.empty();
 #else
-      e._divisorCount = _divisorCount;
-      noDivisors = _divisorCount == 0;
+      e._monomialCount = _monomialCount;
+      noMonomials = _monomialCount == 0;
 #endif
-      e._type = noDivisors ? QueryNoDivisor : QueryHasDivisor;
+      e._type = noMonomials ? QueryNoDivisor : QueryHasDivisor;
     } else {
 #ifdef DEBUG
-      for (size_t i = 0; i < _divisors.size(); ++i)
-        ASSERT(_divisors[i] == e._allDivisors[i]);
+      for (size_t i = 0; i < _monomials.size(); ++i)
+        ASSERT(_monomials[i] == e._allMonomials[i]);
 #else
-      if (_divisorCount != e._divisorCount) {
-        std::cerr << "Divisor finder \"" << finder.getName() <<
-          "\" found incorrect number of divisors." << std::endl;
+      if (_monomialCount != e._monomialCount) {
+        std::cerr << "Finder \"" << finder.getName() <<
+          "\" found incorrect number of monomials." << std::endl;
         std::exit(1);
       }
 #endif
@@ -183,9 +216,9 @@ public:
 
 private:
 #ifdef DEBUG
-  std::vector<Monomial> _divisors;
+  std::vector<Monomial> _monomials;
 #else
-  size_t _divisorCount;
+  size_t _monomialCount;
 #endif
 };
 
@@ -197,9 +230,16 @@ void Simulation::run(DivFinder& finder) {
   for (size_t step = 0; step < _repeats; ++step) {
 	for (size_t i = 0; i < _events.size(); ++i) {
 	  Event& e = _events[i];
-	  if (e._type == Insertion)
-		finder.insert(e._monomial);
-      else if (e._type == StateUnknown || e._type == StateKnown) {
+	  if (e._type == InsertKnown || e._type == InsertUnknown) {
+        divisors.clear();
+        MonomialStore store;
+        if (0) {
+          // here to make sure it compiles, also easy to switch to checking this instead.
+          finder.insert(e._monomial);
+        } else
+          finder.insert(e._monomial, store);
+        store.checkInsert(e, finder);
+      } else if (e._type == StateUnknown || e._type == StateKnown) {
         tmp.clear();
         for (typename DivFinder::const_iterator it = finder.begin();
           it != finder.end(); ++it) {
@@ -239,39 +279,10 @@ void Simulation::run(DivFinder& finder) {
       } else {
         ASSERT(_findAll);
         divisors.clear();
-        DivisorStore store;
+        MonomialStore store;
         const_cast<const DivFinder&>(finder) // to test const interface
           .findAllDivisors(e._monomial, store);
-        store.check(e, finder);
-        continue;
-        
-#ifdef DEBUG
-        for (size_t d = 0; d < divisors.size(); ++d) {
-          for (size_t var = 0; var < _varCount; ++var) {
-            ASSERT(divisors[d][var] <= e._monomial[var]);
-          }
-        }
-        std::sort(divisors.begin(), divisors.end());
-#endif
-        
-        if (e._type == QueryUnknown) {          
-#ifdef DEBUG
-          e._allDivisors = divisors;
-#else
-          e._divisorCount = divisors.size();
-#endif
-          e._type = divisors.empty() ? QueryNoDivisor : QueryHasDivisor;
-        } else {
-#ifdef DEBUG
-          ASSERT(divisors == e._allDivisors);
-#else
-          if (divisors.size() != e._divisorCount) {
-            std::cerr << "Divisor finder \"" << finder.getName() <<
-              "\" found incorrect number of divisors." << std::endl;
-            std::exit(1);
-          }
-#endif
-        }
+        store.checkQuery(e, finder);
       }
 	}
   }

@@ -3,6 +3,7 @@
 
 #include "DivMask.h"
 #include "ArenaVector.h"
+#include "Comparer.h"
 #include <vector>
 #include <string>
 #include <list>
@@ -72,7 +73,12 @@ public:
   template<class Iter>
   NO_PINLINE void insert(Iter begin, Iter end);
   NO_PINLINE void insert(const Entry& entry);
+
   NO_PINLINE bool removeMultiples(const Monomial& monomial);
+  template<class MultipleOutput>
+  NO_PINLINE bool removeMultiples
+    (const Monomial& monomial, MultipleOutput& out);
+
   NO_PINLINE iterator findDivisor(const Monomial& monomial);
   const_iterator findDivisor(const Monomial& monomial) const;
 
@@ -109,12 +115,13 @@ public:
   class ConstDivisorOutput {
   public:
     ConstDivisorOutput(DO& out): _out(out) {}
-    void push_back(Entry& entry) {
-      const Entry& constEntry = entry;
-      _out.push_back(constEntry);
-    }
+    bool proceed(const Entry& entry) {return _out.proceed(entry);}
   private:
     DO& _out;
+  };
+  class DummyMultipleOutput {
+  public:
+    void push_back(Entry& e) {}
   };
 
   List _list;
@@ -178,26 +185,18 @@ private:
 };
 
 namespace DivListHelper {
-  template<class C> /// @todo: move to own file
-  class Comparer {
-  public:
-  Comparer(const C& conf): _conf(conf) {}
-    template<class A, class B>
-	bool operator()(const A& a, const B& b) const {
-	  return _conf.isLessThan(a.get(), b.get());
-	}
-  private:
-	const C& _conf;
-  };
-
-  template<class C, class E, class M>
-  size_t removeMultiples(C& conf, std::vector<E>& list, const M& monomial) {
+  template<class C, class E, class M, class MO>
+  size_t removeMultiples
+  (C& conf, std::vector<E>& list, const M& monomial, MO& out) {
     typedef typename std::vector<E>::iterator iterator;
 	iterator it = list.begin();
 	iterator oldEnd = list.end();
-	for (; it != oldEnd; ++it)
-	  if (monomial.divides(*it, conf))
+	for (; it != oldEnd; ++it) {
+	  if (monomial.divides(*it, conf)) {
+        out.push_back(it->get());
 		break;
+      }
+    }
 	if (it == oldEnd)
 	  return 0;
 	iterator newEnd = it;
@@ -205,7 +204,8 @@ namespace DivListHelper {
 	  if (!monomial.divides(*it, conf)) {
 		*newEnd = *it;
 		++newEnd;
-	  }
+	  } else
+        out.push_back(it->get());
 	}
     const size_t origSize = list.size();
 	const size_t newSize = std::distance(list.begin(), newEnd);
@@ -214,8 +214,8 @@ namespace DivListHelper {
     return origSize - newSize;
   }
 
-  template<class C, class E, class M>
-  size_t removeMultiples(C& conf, std::list<E>& list, const M& monomial) {
+  template<class C, class E, class M, class MO>
+  size_t removeMultiples(C& conf, std::list<E>& list, const M& monomial, MO& out) {
 #ifdef DEBUG
     const size_t origSize = list.size();
 #endif
@@ -224,7 +224,8 @@ namespace DivListHelper {
 	iterator oldEnd = list.end();
     size_t removedCount = 0;
     while (it != oldEnd) {
-	  if (monomial.divides(*it, conf)) {
+      if (monomial.divides(*it, conf)) {
+        out.push_back(it->get());
 		++removedCount;
 		it = list.erase(it);
 	  } else
@@ -324,7 +325,8 @@ namespace DivListHelper {
     iterator it = list.begin();
     for (; it != rangeEnd; ++it)
       if (it->divides(monomial, conf))
-        out.push_back(it->get());
+        if (!out.proceed(it->get()))
+          break;
   }
 
   template<class C, class E, class M, class O>
@@ -342,7 +344,8 @@ namespace DivListHelper {
 		  break;
 	  }
       if (it->divides(monomial, conf))
-        out.push_back(it->get());
+        if (!out.proceed(it->get()))
+          break;
     }
   }
 }
@@ -384,18 +387,24 @@ void DivList<C>::insert(Iter rangeBegin, Iter rangeEnd) {
   resetNumberOfChangesTillRebuild();
 }
 
-/// @todo: return number instead of bool
 template<class C>
-bool DivList<C>::removeMultiples(const Monomial& monomial) {
+template<class MO>
+bool DivList<C>::removeMultiples(const Monomial& monomial, MO& out) {
   ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
 #ifdef DEBUG
   const size_t origSize = size();
 #endif
   const size_t removedCount =
-    DivListHelper::removeMultiples(_conf, _list, extMonomial);
+    DivListHelper::removeMultiples(_conf, _list, extMonomial, out);
   ASSERT(size() + removedCount == origSize);
   reportChanges(removedCount);
   return removedCount > 0;
+}
+
+template<class C>
+bool DivList<C>::removeMultiples(const Monomial& monomial) {
+  DummyMultipleOutput out;
+  return removeMultiples(monomial, out);
 }
 
 template<class C>
@@ -430,7 +439,8 @@ findAllDivisors(const Monomial& monomial, DO& out) {
 	const ListIter listEnd = _list.end();
 	for (ListIter it = _list.begin(); it != listEnd; ++it)
 	  if (it->divides(extMonomial, _conf))
-        out.push_back(it->get());
+        if (!out.proceed(it->get()))
+          break;
   } else
     DivListHelper::findAllDivisorsSorted(_conf, _list, extMonomial, out);
 }

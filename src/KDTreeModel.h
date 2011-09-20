@@ -72,17 +72,6 @@ class KDTreeModelConfiguration {
 
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
-  class Comparer {
-  public:
-  Comparer(const KDTreeModelConfiguration& conf): _conf(conf) {}
-	bool operator()(const Entry& a, const Entry& b) const {
-	  return _conf.isLessThan(a, b);
-	}
-  private:
-	const KDTreeModelConfiguration& _conf;
-  };
-  Comparer getComparer() const {return *this;}
-
  private:
   const size_t _varCount;
   const size_t _leafSize;
@@ -120,6 +109,9 @@ class KDTreeModel {
 
 
   void insert(const Entry& entry);
+  template<class MultipleOutput>
+  void insert(const Entry& entry, MultipleOutput& removed);
+
   iterator findDivisor(const Monomial& monomial) {
     return _finder.findDivisor(monomial);
   }
@@ -163,6 +155,20 @@ inline void KDTreeModel<UDM, UTDM>::insert(const Entry& entry) {
   if (findDivisor(entry) != _finder.end())
     return;
   _finder.removeMultiples(entry);
+  _finder.insert(entry);
+}
+
+template<bool UDM, bool UTDM>
+template<class MultipleOutput>
+inline void KDTreeModel<UDM, UTDM>::
+insert(const Entry& entry, MultipleOutput& removed) {
+  if (!_minimizeOnInsert) {
+    _finder.insert(entry);
+    return;
+  }
+  if (findDivisor(entry) != _finder.end())
+    return;
+  _finder.removeMultiples(entry, removed);
   _finder.insert(entry);
 }
 

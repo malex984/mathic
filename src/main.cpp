@@ -14,9 +14,9 @@ int main() {
   timer.print(std::cout);
   std::cout << std::endl;
 #ifdef DEBUG
-  sim.makeStandard(10, 400, 100, false);
+  sim.makeStandard(10, 400, 100, true);
 #else
-  sim.makeStandard(10, 50000, 1000000, false);
+  sim.makeStandard(10, 50000, 1000000, true);
 #endif
   
   /*
@@ -47,7 +47,6 @@ int main() {
   for (int mini = 1; mini <= 1; ++mini) {
 	for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
   	  for (int useDivisorCache = 0; useDivisorCache <= 0; ++useDivisorCache) {
-        //IF_DEBUG(sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 0.01, 1));
  /*
         for (size_t leafSize = 5; leafSize <= 15; leafSize += 5)
           for (size_t start = 0; start <= 0; start += 200)
@@ -92,13 +91,21 @@ int main() {
     }
   }
   //*/
-
-  sim.run<DivListModel<1, 0> >(1, 0, 1, 0.0, 0); // best linked, no mask
-  sim.run<DivListModel<0, 0> >(1, 0, 1, 0.0, 0); // best array, no mask
-  sim.run<DivListModel<0, 1> >(1, 1, 0, 0.5, 500); // best array, mask
-  sim.run<DivListModel<1, 1> >(1, 1, 0, 0.5, 500); // should be best linked, mask
+  
+  sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000);
+  //* best for single query from best to worst
   sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000); // best tree, mask
   sim.run<KDTreeModel<0,0> >(15, 1, 0, 0, 0.0, 0); // best tree, no mask
+  sim.run<DivListModel<0, 1> >(1, 1, 0, 0.5, 500); // best array, mask
+  sim.run<DivListModel<1, 1> >(1, 1, 0, 0.5, 500); // should be best linked, mask
+  sim.run<DivListModel<0, 0> >(1, 0, 1, 0.0, 0); // best array, no mask
+  sim.run<DivListModel<1, 0> >(1, 0, 1, 0.0, 0); // best linked, no mask
+  //*/
+
+  /* base div lists
+  sim.run<DivListModel<0, 0> >(1, 0, 0, 0.0, 0); // base array
+  sim.run<DivListModel<1, 0> >(1, 0, 0, 0.0, 0); // base linked
+  //*/
 
   std::cout << "\n\n";
   sim.printData(std::cout);

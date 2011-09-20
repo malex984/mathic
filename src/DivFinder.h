@@ -38,18 +38,24 @@
   Returns the number of variables. Variables are indexed from 0 to
   getVarCount() - 1. Must be a positive number.
 
- DivFinder's that make use of sorting additionally require these fields:
+ * static const bool UseDivMask
+  Set to true to use div masks to speed up queries. This must be a
+  static const data member.
 
- * A type Comparer with a function bool operator()(Entry a, Monomial b) const
- * A type Comparer with a function bool operator()(Monomial a, Entry b) const
- * A type Comparer with a function bool operator()(Entry a, Entry b) const
-  Comparer must define a total order < on monomials. a and b can be const
-  references. If Entry and Monomial are the same type then only
+ * size_t getUseAutomaticRebuild() const
+ * double getRebuildRatio() const
+ * size_t getRebuildMin() const
+  If getUseAutomaticRebuild() returns true, the tree will call rebuild
+  after a total of max(size() * getRebuildRatio(), getRebuildMin())
+  entry insertions and removals have occurred. A rebuild ratio of 0.5
+  and a minimum of 500 has worked well for random vectors.
+
+ * A method bool isLessThan(Entry a, Monomial b) const
+ * A method bool isLessThan(Monomial a, Entry b) const
+ * A method bool isLessThan(Entry a, Entry b) const
+  isLessThan must define a total order < on entries/monomials. a and b can
+  be const references. If Entry and Monomial are the same type then only
   one function is needed.
-
- * A function Comparer getComparer() const
-  Returns a Comparer object. All Comparer objects must define the same
-  ordering.
 
  It is possible to obtain non-const Entries from a DivFinder. It is allowed
  to change these, but the monomial they represent must not change. When the
