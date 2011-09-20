@@ -41,6 +41,7 @@ class KDTree;
 template<class C>
 class KDTree {
 public:
+  typedef C Configuration;
   static const bool UseDivMask = C::UseDivMask;
   typedef typename C::Monomial Monomial;
   typedef typename C::Entry Entry;
@@ -157,7 +158,7 @@ public:
   void resetNumberOfChangesTillRebuild();
   void reportChanges(size_t changesMadeCount);
 
-  /** Encapsulates the common code between iterator and const_iterator. */
+  /** Encapsulates common code between iterator and const_iterator. */
   template<class TreeIt>
   class IterHelper;
 
@@ -304,7 +305,7 @@ public std::iterator<std::bidirectional_iterator_tag, Entry> {
 
 template<class C>
 class KDTree<C>::const_iterator :
-public std::iterator<std::bidirectional_iterator_tag, Entry> {
+public std::iterator<std::bidirectional_iterator_tag, const Entry> {
   friend class KDTree;
   typedef typename Leaf::const_iterator LeafIt;
   typedef IterHelper<LeafIt> Helper;
@@ -374,7 +375,7 @@ template<class C>
 std::string KDTree<C>::getName() const {
   std::stringstream out;
   out << "KDTree leaf:" << _conf.getLeafSize();
-  if (_conf.getDoAutomaticRebuilds()) {
+  if (UseDivMask && _conf.getDoAutomaticRebuilds()) {
     out << " autob:" << _conf.getRebuildRatio()
       << '/' << _conf.getRebuildMin();
   }
@@ -385,6 +386,7 @@ std::string KDTree<C>::getName() const {
   return out.str();
 }
 
+/// @todo: return number instead of bool
 template<class C>
 NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
   ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
@@ -421,7 +423,7 @@ NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
 
   Node* node = _root;
   while (node->isInterior()) {
-    node->updateMask(extEntry);
+    node->updateToLowerBound(extEntry);
     node = &node->asInterior().getChildFor(extEntry, _conf);
   }
   Leaf* leaf = &node->asLeaf();
@@ -429,7 +431,7 @@ NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
   ASSERT(leaf->size() <= _conf.getLeafSize());
   if (leaf->size() == _conf.getLeafSize()) {
     Interior& interior = leaf->split(_arena, _conf);
-    interior.updateMask(extEntry);
+    interior.updateToLowerBound(extEntry);
     if (leaf == _root)
       _root = &interior;
     leaf = &interior.getChildFor(extEntry, _conf).asLeaf();
@@ -520,8 +522,8 @@ NO_PINLINE void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
   if (C::UseTreeDivMask) {
     for (Walker walker(_root); !walker.atEnd(); walker.next())
       if (walker.atInterior()) {
-        walker.getNode()->updateMask(walker.asInterior().getEqualOrLess());
-        walker.getNode()->updateMask(walker.asInterior().getStrictlyGreater());
+        walker.getNode()->updateToLowerBound(walker.asInterior().getEqualOrLess());
+        walker.getNode()->updateToLowerBound(walker.asInterior().getStrictlyGreater());
       }
   }
 

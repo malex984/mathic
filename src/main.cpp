@@ -14,9 +14,9 @@ int main() {
   timer.print(std::cout);
   std::cout << std::endl;
 #ifdef DEBUG
-  sim.makeStandard(10, 200, 1000, false);
+  sim.makeStandard(10, 400, 100, false);
 #else
-  sim.makeStandard(10, 10000, 100000, false);
+  sim.makeStandard(10, 50000, 1000000, false);
 #endif
   
   /*
@@ -32,7 +32,6 @@ int main() {
   }
   //*/
 
-  //IF_DEBUG(sim.run<DivListModel<0> >(1, 0, 0));
   /*
   sim.run<DivListModel<0> >(1, 0, 0)
   sim.run<DivListModel<0> >(1, 1, 0);
@@ -42,18 +41,20 @@ int main() {
   sim.run<DivListModel<1> >(1, 0, 1);
   //*/
 
-  //*
-  sim.run<DivListModel<0,0> >(1, 0, 0);
-  sim.run<DivListModel<0,0> >(1, 0, 1);
-  sim.run<DivListModel<0,0> >(1, 1, 0);
+    //sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000); // best tree, mask
+
+  
   for (int mini = 1; mini <= 1; ++mini) {
-	for (int sortOnInsert = 0; sortOnInsert <= 0; ++sortOnInsert) {
+	for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
   	  for (int useDivisorCache = 0; useDivisorCache <= 0; ++useDivisorCache) {
         //IF_DEBUG(sim.run<KDTreeModel<1> >(10, mini,sortOnInsert,useDivisorCache, 0.01, 1));
-        sim.run<KDTreeModel<1,1> >(10, mini,sortOnInsert,useDivisorCache, 1, 100);
-        sim.run<KDTreeModel<1,0> >(10, mini,sortOnInsert,useDivisorCache, 1, 100);
-        sim.run<KDTreeModel<0,0> >(10, mini,sortOnInsert,useDivisorCache, 1, 100);
-        
+ /*
+        for (size_t leafSize = 5; leafSize <= 15; leafSize += 5)
+          for (size_t start = 0; start <= 0; start += 200)
+            for (double ratio = 0; ratio < 0.1; ratio += 0.2)
+              sim.run<KDTreeModel<0,0> >(leafSize, mini,sortOnInsert,useDivisorCache, ratio, start);
+
+              //*/
         /*sim.run<KDTreeModel<0> >(8, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<1> >(8, mini,sortOnInsert,useDivisorCache, 0, 0);
         sim.run<KDTreeModel<0> >(20, mini,sortOnInsert,useDivisorCache, 0, 0);
@@ -79,6 +80,25 @@ int main() {
 	}
   }
   //*/
+  /*
+  for (int mini = 1; mini <= 1; ++mini) {
+	for (int noneFrontSort = 0; noneFrontSort <= 2; ++noneFrontSort) {
+      bool tof = (noneFrontSort == 1);
+      bool sort = (noneFrontSort == 2);
+
+      for (double ratio = 0.5; ratio < 0.51; ratio += 0.1)
+        for (size_t start = 500; start <= 500; start += 100)
+          sim.run<DivListModel<1, 1> >(mini, tof, sort, ratio, start);
+    }
+  }
+  //*/
+
+  sim.run<DivListModel<1, 0> >(1, 0, 1, 0.0, 0); // best linked, no mask
+  sim.run<DivListModel<0, 0> >(1, 0, 1, 0.0, 0); // best array, no mask
+  sim.run<DivListModel<0, 1> >(1, 1, 0, 0.5, 500); // best array, mask
+  sim.run<DivListModel<1, 1> >(1, 1, 0, 0.5, 500); // should be best linked, mask
+  sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000); // best tree, mask
+  sim.run<KDTreeModel<0,0> >(15, 1, 0, 0, 0.0, 0); // best tree, no mask
 
   std::cout << "\n\n";
   sim.printData(std::cout);

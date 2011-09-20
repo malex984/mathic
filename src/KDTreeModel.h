@@ -28,7 +28,7 @@ class KDTreeModelConfiguration {
    _leafSize(leafSize),
    _sortOnInsert(sortOnInsert),
    _useDivisorCache(useDivisorCache),
-   _useAutomaticRebuild(rebuildRatio > 0.0),
+   _useAutomaticRebuild((rebuildRatio > 0.0 || minRebuild > 0) && UDM),
    _rebuildRatio(rebuildRatio),
    _minRebuild(minRebuild),
    _expQueryCount(0) {

@@ -22,7 +22,7 @@ template<class Configuration, class ExtEntry>
 class KDTreeLeaf;
 
 namespace KDTreeHelpers {
-  template<class C>
+  template<class C> /// @todo: move to own file
   class Comparer {
   public:
   Comparer(const C& conf): _conf(conf) {}
@@ -35,30 +35,8 @@ namespace KDTreeHelpers {
   };
 }
 
-template<class EE, bool UseMask>
-class Masked {
-public:
-  void resetDivMask() {ASSERT(false);}
-  DivMask getDivMask() const {ASSERT(false); return DivMask();}
-  template<class T>
-  void updateMask(const T& entry) {}
-};
-template<class EE>
-class Masked<EE, true> {
-public:
-  Masked() {resetDivMask();}
-  void resetDivMask() {_mask = DivMask::getMaxMask();}
-  DivMask& getDivMask() {return _mask;}
-  const DivMask& getDivMask() const {return _mask;}
-  template<class T>
-  void updateMask(const T& t) {_mask.combineAnd(t.getDivMask());}
-
-private:
-  DivMask _mask;
-};
-
 template<class C, class EE>
-class KDTreeNode : public Masked<EE, C::UseTreeDivMask> {
+class KDTreeNode : public DivMask::HasDivMask<C::UseTreeDivMask> {
   typedef KDTreeNode<C, EE> Node;
   typedef KDTreeLeaf<C, EE> Leaf;
   typedef KDTreeInterior<C, EE> Interior;
@@ -276,7 +254,7 @@ template<class C, class EE>
 void KDTreeLeaf<C, EE>::push_back(const EE& entry) {
   ASSERT(size() < _capacityDebug);
   new (_end) EE(entry);
-  updateMask(entry);
+  updateToLowerBound(entry);
   ++_end;
 }
 
@@ -564,9 +542,9 @@ KDTreeLeaf<C, EE>::split(Arena& arena, const C& conf) {
   if (C::UseTreeDivMask) {
     KDTreeNode<C,EE>::resetDivMask();
     for (const_iterator it = begin(); it != end(); ++it)
-      updateMask(*it);
-    interior.updateMask(*this);
-    interior.updateMask(other);
+      updateToLowerBound(*it);
+    interior.updateToLowerBound(*this);
+    interior.updateToLowerBound(other);
   }
 
   return interior;

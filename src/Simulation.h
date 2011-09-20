@@ -52,11 +52,14 @@ class Simulation {
     Insertion,
     QueryNoDivisor,
     QueryHasDivisor,
-    QueryUnknown
+    QueryUnknown,
+    StateUnknown,
+    StateKnown
   };
   struct Event {
     EventType _type;
 	std::vector<int> _monomial;
+    std::vector<const Monomial::Exponent*> _state;
 #ifdef DEBUG
     std::vector<Monomial> _allDivisors;
 #else
@@ -190,12 +193,28 @@ template<class DivFinder>
 void Simulation::run(DivFinder& finder) {
   Timer timer;
   std::vector<Monomial> divisors;
+  std::vector<const Monomial::Exponent*> tmp;
   for (size_t step = 0; step < _repeats; ++step) {
 	for (size_t i = 0; i < _events.size(); ++i) {
 	  Event& e = _events[i];
 	  if (e._type == Insertion)
 		finder.insert(e._monomial);
-	  else if (!_findAll) {
+      else if (e._type == StateUnknown || e._type == StateKnown) {
+        tmp.clear();
+        for (typename DivFinder::const_iterator it = finder.begin();
+          it != finder.end(); ++it) {
+          tmp.push_back(it->getPointer());
+        }
+        if (e._type == StateUnknown) {
+          e._type = StateKnown;
+          e._state.swap(tmp);
+        } else {
+          if (e._state != tmp) {
+			std::cerr << "states differ." << std::endl;
+			std::exit(1);
+          }
+        }
+      } else if (!_findAll) {
 		typename DivFinder::const_iterator it = finder.findDivisor(e._monomial);
 		if (it == finder.end()) {
 		  if (e._type == QueryHasDivisor) {
@@ -225,9 +244,7 @@ void Simulation::run(DivFinder& finder) {
           .findAllDivisors(e._monomial, store);
         store.check(e, finder);
         continue;
-
-
-
+        
 #ifdef DEBUG
         for (size_t d = 0; d < divisors.size(); ++d) {
           for (size_t var = 0; var < _varCount; ++var) {

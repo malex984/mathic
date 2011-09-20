@@ -17,13 +17,30 @@ public:
   typedef ::Monomial Monomial;
   typedef Monomial Entry;
 
-  DivListModelConfiguration(size_t varCount, bool sortOnInsert):
-  _varCount(varCount), _sortOnInsert(sortOnInsert), _expQueryCount(0) {}
+  DivListModelConfiguration
+    (size_t varCount,
+    bool sortOnInsert,
+     double rebuildRatio,
+     size_t minRebuild):
+  _varCount(varCount),
+  _sortOnInsert(sortOnInsert),
+  _useAutomaticRebuild((rebuildRatio > 0.0 || minRebuild > 0) && UDM),
+  _rebuildRatio(rebuildRatio),
+  _minRebuild(minRebuild),
+  _expQueryCount(0) {}
 
-  size_t getVarCount() const {return _varCount;}
+  static const bool UseLinkedList = ULL;
+  static const bool UseDivMask = UDM;
+
+  bool getDoAutomaticRebuilds() const {return _useAutomaticRebuild;}
+  double getRebuildRatio() const {return _rebuildRatio;}
+  size_t getRebuildMin() const {return _minRebuild;}
   bool getSortOnInsert() const {return _sortOnInsert;}
 
-  Exponent getExponent(const Monomial& monomial, size_t var) const {
+
+  size_t getVarCount() const {return _varCount;}
+
+  NO_PINLINE Exponent getExponent(const Monomial& monomial, size_t var) const {
     ++_expQueryCount;
     ASSERT(var < monomial.size());
     return monomial[var];
@@ -35,9 +52,6 @@ public:
         return false;
     return true;
   }
-
-  static const bool UseLinkedList = ULL;
-  static const bool UseDivMask = UDM;
 
   bool isLessThan(const Monomial& a, const Monomial& b) const {
     for (size_t var = 0; var < getVarCount(); ++var) {
@@ -65,6 +79,9 @@ public:
  private:
   const size_t _varCount;
   const bool _sortOnInsert;
+  const bool _useAutomaticRebuild;
+  const double _rebuildRatio;
+  const size_t _minRebuild;
   mutable unsigned long long _expQueryCount;
 };
 
@@ -75,7 +92,7 @@ class DivListModel;
 template<bool ULL, bool UDM>
 class DivListModel {
  private:
-  typedef DivListModelConfiguration<UDM, ULL> C;
+  typedef DivListModelConfiguration<ULL, UDM> C;
   typedef DivList<C> Finder;
  public:
   typedef typename Finder::iterator iterator;
@@ -83,11 +100,13 @@ class DivListModel {
   typedef typename Finder::Monomial Monomial;
   typedef typename Finder::Entry Entry;
 
- DivListModel(size_t varCount,
+  DivListModel(size_t varCount,
 			  bool minimizeOnInsert,
 			  bool moveDivisorToFront,
-			  bool sortOnInsert):
-  _finder(C(varCount, sortOnInsert)),
+			  bool sortOnInsert,
+              double rebuildRatio,
+              size_t minRebuild):
+  _finder(C(varCount, sortOnInsert, rebuildRatio, minRebuild)),
   _minimizeOnInsert(minimizeOnInsert),
   _moveDivisorToFront(moveDivisorToFront) {
     ASSERT(!sortOnInsert || !moveDivisorToFront);
@@ -103,7 +122,7 @@ class DivListModel {
     return it;
   }
   const_iterator findDivisor(const Monomial& monomial) const {
-    return const_cast<DivListModel<ULL>&>(*this).findDivisor(monomial);
+    return const_cast<DivListModel<ULL, UDM>&>(*this).findDivisor(monomial);
   }
 
   template<class DO>
@@ -129,8 +148,8 @@ class DivListModel {
 
  private:
   Finder _finder;
-  bool _minimizeOnInsert;
-  bool _moveDivisorToFront;
+  const bool _minimizeOnInsert;
+  const bool _moveDivisorToFront;
 };
 
 template<bool ULL, bool UDM>

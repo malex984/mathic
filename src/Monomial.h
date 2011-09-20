@@ -23,6 +23,9 @@ public:
     ASSERT(index < _size);
     return _exponents[index];
   }
+
+  const Exponent* getPointer() const {return _exponents;}
+
 #ifdef DEBUG
   size_t size() const {return _size;}
   bool operator==(const Monomial& m) const {return _exponents == m._exponents;}

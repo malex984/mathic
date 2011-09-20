@@ -31,12 +31,16 @@ void Simulation::makeStandard
   _findAll = findAll;
   _varCount = varCount;
   _events.clear();
-  _events.resize(inserts + queries);
-  for (size_t i = 0; i < _events.size(); ++i) {
-    Event& event = _events[i];
+  for (size_t i = 0; i < inserts + queries; ++i) {
+    /*Event event2;
+	event2._type = StateUnknown;
+    _events.push_back(event2);*/
+
+    Event event;
     event._monomial.resize(varCount);
     makeRandom(event._monomial);
 	event._type = (i <= inserts ? Insertion : QueryUnknown);
+    _events.push_back(event);
   }
 }
 
