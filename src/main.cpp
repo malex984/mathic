@@ -18,7 +18,7 @@ int main() {
 #else
   sim.makeStandard(10, 50000, 1000000, true);
 #endif
-  
+
   /*
   for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
 	for (int order = 0; order <= 2; ++order) {
@@ -43,7 +43,7 @@ int main() {
 
     //sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000); // best tree, mask
 
-  
+
   for (int mini = 1; mini <= 1; ++mini) {
 	for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
   	  for (int useDivisorCache = 0; useDivisorCache <= 0; ++useDivisorCache) {
@@ -91,7 +91,7 @@ int main() {
     }
   }
   //*/
-  
+
   sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000);
   //* best for single query from best to worst
   sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000); // best tree, mask

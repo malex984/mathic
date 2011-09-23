@@ -3,6 +3,7 @@
 
 #include <sstream>
 #include <vector>
+#include <cstdio>
 
 class ColumnPrinter {
  public:

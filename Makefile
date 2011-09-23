@@ -229,7 +229,7 @@ tidy:
 
 # Fixes various white space related issues.
 fixspace:
-	find src/ doc/ -type f|xargs ./fixspace;
+	find src/ -type f|xargs ./fixspace;
 
 commit: test
 	echo

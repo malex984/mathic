@@ -158,7 +158,7 @@ inline void DivListModel<ULL, UDM>::insert(const Entry& entry) {
     iterator it = _finder.end();
     _finder.moveToFront(--it);
   }
-} 
+}
 
 template<bool ULL, bool UDM>
 template<class MO>
@@ -175,7 +175,7 @@ inline void DivListModel<ULL, UDM>::insert(const Entry& entry, MO& out) {
     iterator it = _finder.end();
     _finder.moveToFront(--it);
   }
-} 
+}
 
 template<bool ULL, bool UDM>
 inline std::string DivListModel<ULL, UDM>::getName() const {

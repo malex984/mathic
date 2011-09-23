@@ -88,10 +88,10 @@ public:
   void findAllDivisors(const Monomial& monomial, DO& out) const;
 
   iterator begin() {return iterator(_list.begin());}
-  const_iterator begin() const {return iterator(_list.begin());}
+  const_iterator begin() const {return const_iterator(_list.begin());}
   iterator end() {return iterator(_list.end());}
-  const_iterator end() const {return iterator(_list.end());}
-  
+  const_iterator end() const {return const_iterator(_list.end());}
+
   bool empty() const {return _list.empty();}
   size_t size() const {return _list.size();}
 
@@ -284,7 +284,7 @@ namespace DivListHelper {
   }
 
   template<class C, class E, class M>
-  typename std::vector<E>::iterator  
+  typename std::vector<E>::iterator
   findDivisorSorted(C& conf, std::vector<E>& list, const M& monomial) {
     typedef typename std::vector<E>::iterator iterator;
     iterator rangeEnd =
@@ -297,7 +297,7 @@ namespace DivListHelper {
   }
 
   template<class C, class E, class M>
-  typename std::list<E>::iterator  
+  typename std::list<E>::iterator
   findDivisorSorted(C& conf, std::list<E>& list, const M& monomial) {
     typedef typename std::list<E>::iterator iterator;
     iterator end = list.end();

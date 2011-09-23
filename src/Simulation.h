@@ -188,7 +188,7 @@ public:
     std::sort(_monomials.begin(), _monomials.end());
 #endif
 
-    if (e._type == QueryUnknown) {          
+    if (e._type == QueryUnknown) {
       bool noMonomials;
 #ifdef DEBUG
       e._allMonomials.clear();

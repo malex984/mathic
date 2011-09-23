@@ -329,7 +329,7 @@ std::pair<KDTreeInterior<C, EE>*, Iter> KDTreeNode<C, EE>::preSplit
 
 template<class C, class EE>
 template<class Iter>
-KDTreeLeaf<C, EE>* KDTreeLeaf<C, EE>::makeLeafCopy 
+KDTreeLeaf<C, EE>* KDTreeLeaf<C, EE>::makeLeafCopy
 (Interior* parent, Iter begin, Iter end,
 Arena& arena, const DivMaskCalculator& calc, const C& conf) {
   ASSERT(static_cast<size_t>(std::distance(begin, end)) <= conf.getLeafSize());
@@ -445,7 +445,7 @@ KDTreeLeaf<C, EE>::split(Arena& arena, const C& conf) {
     Node::getParent()->getVar() : static_cast<size_t>(-1);
   while (true) {
     var = (var + 1) % conf.getVarCount();
-    
+
     if (1) {
       typename C::Exponent min = conf.getExponent(front().get(), var);
       typename C::Exponent max = conf.getExponent(front().get(), var);
