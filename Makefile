@@ -1,6 +1,7 @@
 # ***** Variables
 
-rawSources := main.cpp Timer.cpp Simulation.cpp ColumnPrinter.cpp Arena.cpp
+rawSources := main.cpp Timer.cpp Simulation.cpp ColumnPrinter.cpp	\
+  Arena.cpp
 
 ifndef ldflags
   ldflags = $(LDFLAGS)
