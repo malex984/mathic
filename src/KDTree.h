@@ -595,8 +595,10 @@ void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) {
     }
     ASSERT(node->isLeaf());
     Leaf& leaf = node->asLeaf();
-    if (!leaf.findAllDivisors(extMonomial, output, _conf))
+    if (!leaf.findAllDivisors(extMonomial, output, _conf)) {
+	  _tmp.clear();
       break;
+	}
     if (_tmp.empty())
       break;
     node = _tmp.back();
@@ -641,6 +643,7 @@ void KDTree<C>::rebuild() {
     }
   }
   _arena.freeAll();
+  _size = 0;
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
   resetNumberOfChangesTillRebuild();
   // range insert into empty container IS a rebuild.
