@@ -8,7 +8,7 @@
  object.
 
  DivFinder stores configurable Entry objects that represent a monomial
- together with any required additional information. 
+ together with any required additional information.
 
  The class is parameterized on a Configuration. The Configuration class
  must have the following members.

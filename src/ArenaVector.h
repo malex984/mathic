@@ -9,7 +9,7 @@
  Only frees its memory on destruction if FreeMemory
  is true. In that case that memory must be the top allocation
  on the Arena.
- 
+
  Always calls the destructors of contained entries even
  when FreeMemory is false. */
 template<class T, bool FreeMemory>

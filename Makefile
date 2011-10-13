@@ -1,6 +1,7 @@
 # ***** Variables
 
-rawSources := main.cpp Timer.cpp Simulation.cpp ColumnPrinter.cpp Arena.cpp
+rawSources := main.cpp Timer.cpp Simulation.cpp ColumnPrinter.cpp	\
+  Arena.cpp
 
 ifndef ldflags
   ldflags = $(LDFLAGS)
@@ -229,7 +230,7 @@ tidy:
 
 # Fixes various white space related issues.
 fixspace:
-	find src/ doc/ -type f|xargs ./fixspace;
+	find src/ -type f|xargs ./fixspace;
 
 commit: test
 	echo

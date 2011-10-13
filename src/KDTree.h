@@ -85,7 +85,7 @@ public:
   /** Inserts the entries in the range [begin, end) into the data
    structure. Does NOT remove multiples of entry and entry is inserted
    even if it is a multiple of another entry.
-   
+
    The elements in the range [begin, end) may be rearranged by this
    function, so the range must be mutable. If that is not acceptable,
    call the one element insert method for each element. */
