@@ -64,7 +64,7 @@ class Simulation {
 #ifdef DEBUG
     std::vector<Monomial> _allMonomials;
 #else
-    size_t _divisorCount;
+    size_t _monomialCount;
 #endif
   };
   class MonomialStore;

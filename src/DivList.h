@@ -284,11 +284,7 @@ namespace DivListHelper {
   }
 
   template<class C, class E, class M>
-<<<<<<< local
-  typename std::vector<E>::iterator  
-=======
   typename std::vector<E>::iterator
->>>>>>> other
   findDivisorSorted(C& conf, std::vector<E>& list, const M& monomial) {
     typedef typename std::vector<E>::iterator iterator;
     iterator rangeEnd =
@@ -301,11 +297,7 @@ namespace DivListHelper {
   }
 
   template<class C, class E, class M>
-<<<<<<< local
-  typename std::list<E>::iterator  
-=======
   typename std::list<E>::iterator
->>>>>>> other
   findDivisorSorted(C& conf, std::list<E>& list, const M& monomial) {
     typedef typename std::list<E>::iterator iterator;
     iterator end = list.end();
