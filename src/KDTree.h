@@ -458,7 +458,7 @@ NO_PINLINE void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
   } else if (insertBegin == insertEnd)
     return;
 
-  _arena.freeAll();
+  _arena.freeAllAllocs();
   _root = 0;
   _size = std::distance(insertBegin, insertEnd);
   _divMaskCalculator.rebuild(insertBegin, insertEnd, _conf);
@@ -619,7 +619,7 @@ void KDTree<C>::clear() {
   for (Walker walker(_root); !walker.atEnd(); walker.next())
     if (walker.atLeaf())
       walker.asLeaf().clear();
-  _arena.freeAll();
+  _arena.freeAllAllocs();
   _size = 0;
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
   resetNumberOfChangesTillRebuild();
@@ -642,7 +642,7 @@ void KDTree<C>::rebuild() {
       leaf.clear();
     }
   }
-  _arena.freeAll();
+  _arena.freeAllAllocs();
   _size = 0;
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
   resetNumberOfChangesTillRebuild();
