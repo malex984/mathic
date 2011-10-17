@@ -5,3 +5,4 @@ syntax: glob
 core
 *.orig
 bin/
+libs/

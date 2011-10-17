@@ -1,7 +1,7 @@
 # ***** Variables
 
 rawSources := main.cpp Timer.cpp Simulation.cpp ColumnPrinter.cpp	\
-  Arena.cpp MemoryBlocks.cpp
+  libs/specalloc.cpp
 
 ifndef ldflags
   ldflags = $(LDFLAGS)
@@ -16,7 +16,7 @@ ifndef BIN_INSTALL_DIR
 endif
 
 cflags = $(CFLAGS) $(CPPFLAGS) -Wall -ansi -I $(GMP_INC_DIR)	\
-         -Wno-uninitialized -Wno-unused-parameter
+         -Wno-uninitialized -Wno-unused-parameter -Ilibs/specalloc/src/
 program = mm
 
 ifndef MODE
