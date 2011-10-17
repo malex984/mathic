@@ -16,7 +16,7 @@ int main() {
 #ifdef DEBUG
   sim.makeStandard(10, 400, 100, true);
 #else
-  sim.makeStandard(10, 50000, 1000000, true);
+  sim.makeStandard(10, 5000, 100000, true);
 #endif
 
   /*
@@ -92,7 +92,6 @@ int main() {
   }
   //*/
 
-  sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000);
   //* best for single query from best to worst
   sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000); // best tree, mask
   sim.run<KDTreeModel<0,0> >(15, 1, 0, 0, 0.0, 0); // best tree, no mask

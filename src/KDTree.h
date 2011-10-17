@@ -458,7 +458,7 @@ NO_PINLINE void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
   } else if (insertBegin == insertEnd)
     return;
 
-  _arena.freeAll();
+  _arena.freeAllAllocs();
   _root = 0;
   _size = std::distance(insertBegin, insertEnd);
   _divMaskCalculator.rebuild(insertBegin, insertEnd, _conf);
@@ -595,8 +595,10 @@ void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) {
     }
     ASSERT(node->isLeaf());
     Leaf& leaf = node->asLeaf();
-    if (!leaf.findAllDivisors(extMonomial, output, _conf))
+    if (!leaf.findAllDivisors(extMonomial, output, _conf)) {
+	  _tmp.clear();
       break;
+	}
     if (_tmp.empty())
       break;
     node = _tmp.back();
@@ -617,7 +619,7 @@ void KDTree<C>::clear() {
   for (Walker walker(_root); !walker.atEnd(); walker.next())
     if (walker.atLeaf())
       walker.asLeaf().clear();
-  _arena.freeAll();
+  _arena.freeAllAllocs();
   _size = 0;
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
   resetNumberOfChangesTillRebuild();
@@ -640,7 +642,8 @@ void KDTree<C>::rebuild() {
       leaf.clear();
     }
   }
-  _arena.freeAll();
+  _arena.freeAllAllocs();
+  _size = 0;
   _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
   resetNumberOfChangesTillRebuild();
   // range insert into empty container IS a rebuild.
