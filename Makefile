@@ -1,7 +1,7 @@
 # ***** Variables
 
-rawSources := main.cpp Timer.cpp Simulation.cpp ColumnPrinter.cpp	\
-  libs/specalloc.cpp
+rawSources := sim/main.cpp sim/Timer.cpp sim/Simulation.cpp	\
+  sim/ColumnPrinter.cpp libs/specalloc.cpp
 
 ifndef ldflags
   ldflags = $(LDFLAGS)
@@ -15,7 +15,7 @@ ifndef BIN_INSTALL_DIR
   BIN_INSTALL_DIR = "/usr/local/bin/"
 endif
 
-cflags = $(CFLAGS) $(CPPFLAGS) -Wall -ansi -I $(GMP_INC_DIR)	\
+cflags = $(CFLAGS) $(CPPFLAGS) -Wall -ansi -Isrc/ \
          -Wno-uninitialized -Wno-unused-parameter -Ilibs/specalloc/src/
 program = mm
 
