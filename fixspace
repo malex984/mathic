@@ -4,7 +4,7 @@
 #  - Remove trailing space from lines
 #  - Remove trailing blank lines
 #  - Remove/convert DOS-style line breaks
-#  - Expand tabs to spaces with a tabspace of 4
+#  - Expand tabs to spaces with a tabspace of 8
 
 # I once had an error where the conversion had an error (the computer
 # didn't have dos2unix), resulting in the converted files being empty.
@@ -15,8 +15,11 @@
 
 for f in $*; do echo $f;
 
-   tr -d '\r' < $f > __spaceTmp1;
+  tr -d '\r' < $f > __spaceTmp0;
   if [ $? != 0 ]; then echo "There was an error removing DOS-style line breaks."; exit 1; fi;
+
+  expand -8 < __spaceTmp0 > __spaceTmp1;
+  if [ $? != 0 ]; then echo "There was an error expanding tabs."; exit 1; fi;
 
   sed 's/[[:blank:]]*$//g' < __spaceTmp1 > __spaceTmp2;
   if [ $? != 0 ]; then echo "There was an error eliminating trailing space from lines."; exit 1; fi;
@@ -43,6 +46,6 @@ for f in $*; do echo $f;
     echo "Fixed space issue for $f."
   fi
 
-  rm -f __spaceTmp1 __spaceTmp2 __spaceTmp3;
+  rm -f __spaceTmp0 __spaceTmp1 __spaceTmp2 __spaceTmp3;
   if [ $? != 0 ]; then echo "There was an error removing temporary files."; exit 1; fi;
 done;
