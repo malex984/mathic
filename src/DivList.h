@@ -71,19 +71,19 @@ public:
   DivList(const C& configuration);
 
   template<class Iter>
-  NO_PINLINE void insert(Iter begin, Iter end);
-  NO_PINLINE void insert(const Entry& entry);
+  void insert(Iter begin, Iter end);
+  void insert(const Entry& entry);
 
-  NO_PINLINE bool removeMultiples(const Monomial& monomial);
+  bool removeMultiples(const Monomial& monomial);
   template<class MultipleOutput>
-  NO_PINLINE bool removeMultiples
+  bool removeMultiples
     (const Monomial& monomial, MultipleOutput& out);
 
-  NO_PINLINE iterator findDivisor(const Monomial& monomial);
+  iterator findDivisor(const Monomial& monomial);
   const_iterator findDivisor(const Monomial& monomial) const;
 
   template<class DO>
-  NO_PINLINE void findAllDivisors(const Monomial& monomial, DO& out);
+  void findAllDivisors(const Monomial& monomial, DO& out);
   template<class DO>
   void findAllDivisors(const Monomial& monomial, DO& out) const;
 
@@ -100,9 +100,9 @@ public:
   C& getConfiguration() {return _conf;}
   const C& getConfiguration() const {return _conf;}
 
-  NO_PINLINE void moveToFront(iterator pos);
+  void moveToFront(iterator pos);
 
-  NO_PINLINE void rebuild();
+  void rebuild();
 
  private:
   DivList(const DivList<C>&); // unavailable

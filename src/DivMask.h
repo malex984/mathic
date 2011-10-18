@@ -72,15 +72,15 @@ public:
    after this. Mixing div masks computed before a call to
    rebuild() with ones after has unpredictable results. */
   template<class Iter>
-  NO_PINLINE void rebuild(Iter begin, Iter end, const C& conf);
+  void rebuild(Iter begin, Iter end, const C& conf);
 
   /** Rebuilds without the benefit of knowing a range of entries
    that the div masks are supposed to work well for. */
-  NO_PINLINE void rebuildDefault(const C& conf);
+  void rebuildDefault(const C& conf);
 
   /** Computes a div mask for t. */
   template<class T>
-  NO_PINLINE DivMask::MaskType compute(const T& t, const C& conf) const;
+  DivMask::MaskType compute(const T& t, const C& conf) const;
 
 private:
   typedef typename C::Exponent Exponent;
