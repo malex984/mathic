@@ -1,5 +1,5 @@
-#ifndef DIV_FINDER_GUARD
-#define DIV_FINDER_GUARD
+#ifndef MATHIC_DIV_FINDER_GUARD
+#define MATHIC_DIV_FINDER_GUARD
 
 /** An object that supports queries for divisors of a monomial.
 

@@ -1,5 +1,5 @@
-#ifndef DIV_ARRAY_GUARD
-#define DIV_ARRAY_GUARD
+#ifndef MATHIC_DIV_ARRAY_GUARD
+#define MATHIC_DIV_ARRAY_GUARD
 
 #include "stdinc.h"
 #include "DivMask.h"
@@ -404,7 +404,7 @@ namespace mathic {
 	template<class MO>
 	bool DivList<C>::removeMultiples(const Monomial& monomial, MO& out) {
 	ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
-#ifdef DEBUG
+#ifdef MATHIC_DEBUG
 	const size_t origSize = size();
 #endif
 	const size_t removedCount =

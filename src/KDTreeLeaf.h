@@ -1,5 +1,5 @@
-#ifndef K_D_TREE_LEAF_GUARD
-#define K_D_TREE_LEAF_GUARD
+#ifndef MATHIC_K_D_TREE_LEAF_GUARD
+#define MATHIC_K_D_TREE_LEAF_GUARD
 
 #include "DivMask.h"
 #include "Comparer.h"

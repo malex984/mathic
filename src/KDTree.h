@@ -1,5 +1,5 @@
-#ifndef K_D_TREE_GUARD
-#define K_D_TREE_GUARD
+#ifndef MATHIC_K_D_TREE_GUARD
+#define MATHIC_K_D_TREE_GUARD
 
 #include "stdinc.h"
 #include "KDTreeWalker.h"

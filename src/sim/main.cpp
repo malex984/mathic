@@ -9,7 +9,7 @@
 int main() {
   const size_t repeats = IF_DEBUG(true ? 1 :) 1;
   Simulation sim(repeats, true);
-  Timer timer;
+  mic::Timer timer;
   std::cout << "Generating simulation. ";
   timer.print(std::cout);
   std::cout << std::endl;

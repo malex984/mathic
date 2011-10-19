@@ -224,7 +224,7 @@ private:
 
 template<class DivFinder>
 void Simulation::run(DivFinder& finder) {
-  Timer timer;
+  mic::Timer timer;
   std::vector<Monomial> divisors;
   std::vector<const Monomial::Exponent*> tmp;
   for (size_t step = 0; step < _repeats; ++step) {

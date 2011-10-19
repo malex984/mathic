@@ -1,5 +1,5 @@
-#ifndef BIT_MASK_GUARD
-#define BIT_MASK_GUARD
+#ifndef MATHIC_BIT_MASK_GUARD
+#define MATHIC_BIT_MASK_GUARD
 
 #include <vector>
 #include <utility>

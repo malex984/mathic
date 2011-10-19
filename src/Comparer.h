@@ -1,5 +1,5 @@
-#ifndef COMPARER_GUARD
-#define COMPARER_GUARD
+#ifndef MATHIC_COMPARER_GUARD
+#define MATHIC_COMPARER_GUARD
 
 namespace mathic {
   template<class C>

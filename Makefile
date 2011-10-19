@@ -1,7 +1,8 @@
 # ***** Variables
 
-rawSources := sim/main.cpp sim/Timer.cpp sim/Simulation.cpp	\
-  sim/ColumnPrinter.cpp libs/memtailor.cpp
+rawSources := Timer.cpp \
+  sim/main.cpp sim/Simulation.cpp sim/ColumnPrinter.cpp \
+  libs/memtailor.cpp
 
 ifndef ldflags
   ldflags = $(LDFLAGS)

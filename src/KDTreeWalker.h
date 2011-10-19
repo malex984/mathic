@@ -1,5 +1,5 @@
-#ifndef K_D_TREE_WALKER_GUARD
-#define K_D_TREE_WALKER_GUARD
+#ifndef MATHIC_K_D_TREE_WALKER_GUARD
+#define MATHIC_K_D_TREE_WALKER_GUARD
 
 #include "KDTreeLeaf.h"
 
