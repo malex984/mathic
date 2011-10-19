@@ -19,8 +19,8 @@ namespace {
   }
 
   void makeRandom(std::vector<int>& monomial) {
-	for (size_t var = 0; var < monomial.size(); ++var)
-	  monomial[var] = rand() % 1000;
+    for (size_t var = 0; var < monomial.size(); ++var)
+      monomial[var] = rand() % 1000;
   }
 }
 
@@ -33,13 +33,13 @@ void Simulation::makeStandard
   _events.clear();
   for (size_t i = 0; i < inserts + queries; ++i) {
     /*Event event2;
-	event2._type = StateUnknown;
+    event2._type = StateUnknown;
     _events.push_back(event2);*/
 
     Event event;
     event._monomial.resize(varCount);
     makeRandom(event._monomial);
-	event._type = (i <= inserts ? InsertUnknown : QueryUnknown);
+    event._type = (i <= inserts ? InsertUnknown : QueryUnknown);
     _events.push_back(event);
   }
 }
@@ -48,7 +48,7 @@ void Simulation::printData(std::ostream& out) const {
   std::vector<SimData> sorted(_data);
   std::sort(sorted.begin(), sorted.end());
   out << "*** Simulation outcome for "
-	  << _repeats << " repeats ***" << std::endl;
+      << _repeats << " repeats ***" << std::endl;
   ColumnPrinter pr;
   pr.addColumn(true);
   pr.addColumn(false, " ", "ms");

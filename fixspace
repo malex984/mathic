@@ -18,7 +18,7 @@ for f in $*; do echo $f;
   tr -d '\r' < $f > __spaceTmp0;
   if [ $? != 0 ]; then echo "There was an error removing DOS-style line breaks."; exit 1; fi;
 
-  expand -8 < __spaceTmp0 > __spaceTmp1;
+  expand -4 < __spaceTmp0 > __spaceTmp1;
   if [ $? != 0 ]; then echo "There was an error expanding tabs."; exit 1; fi;
 
   sed 's/[[:blank:]]*$//g' < __spaceTmp1 > __spaceTmp2;

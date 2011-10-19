@@ -21,14 +21,14 @@ int main() {
 
   /*
   for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
-	for (int order = 0; order <= 2; ++order) {
+    for (int order = 0; order <= 2; ++order) {
       bool moveDivisorToFront = (order == 1);
       bool sortOnInsert = (order == 2);
       sim.run<DivListModel<1> >
-		(minimizeOnInsert, moveDivisorToFront, sortOnInsert);
+        (minimizeOnInsert, moveDivisorToFront, sortOnInsert);
       sim.run<DivListModel<0> >
-		(minimizeOnInsert, moveDivisorToFront, sortOnInsert);
-	}
+        (minimizeOnInsert, moveDivisorToFront, sortOnInsert);
+    }
   }
   //*/
 
@@ -45,8 +45,8 @@ int main() {
 
 
   for (int mini = 1; mini <= 1; ++mini) {
-	for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
-  	  for (int useDivisorCache = 0; useDivisorCache <= 0; ++useDivisorCache) {
+    for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
+      for (int useDivisorCache = 0; useDivisorCache <= 0; ++useDivisorCache) {
  /*
         for (size_t leafSize = 5; leafSize <= 15; leafSize += 5)
           for (size_t start = 0; start <= 0; start += 200)
@@ -76,12 +76,12 @@ int main() {
         //sim.run<KDTreeModel>(20, mini,sortOnInsert,useDivisorCache, 0.75, 2000);
         //sim.run<KDTreeModel>(8, mini,sortOnInsert,useDivisorCache, 0.75, 2000);
       }
-	}
+    }
   }
   //*/
   /*
   for (int mini = 1; mini <= 1; ++mini) {
-	for (int noneFrontSort = 0; noneFrontSort <= 2; ++noneFrontSort) {
+    for (int noneFrontSort = 0; noneFrontSort <= 2; ++noneFrontSort) {
       bool tof = (noneFrontSort == 1);
       bool sort = (noneFrontSort == 2);
 

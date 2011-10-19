@@ -59,7 +59,7 @@ public:
         return true;
       if (getExponent(b, var) < getExponent(a, var))
         return false;
-	}
+    }
     return false;
   }
 
@@ -90,9 +90,9 @@ class DivListModel {
   typedef typename Finder::Entry Entry;
 
   DivListModel(size_t varCount,
-			  bool minimizeOnInsert,
-			  bool moveDivisorToFront,
-			  bool sortOnInsert,
+              bool minimizeOnInsert,
+              bool moveDivisorToFront,
+              bool sortOnInsert,
               double rebuildRatio,
               size_t minRebuild):
   _finder(C(varCount, sortOnInsert, rebuildRatio, minRebuild)),
@@ -109,8 +109,8 @@ class DivListModel {
     iterator it = _finder.findDivisor(monomial);
     if (_moveDivisorToFront && it != _finder.end()) {
       _finder.moveToFront(it);
-	  it = _finder.begin();
-	}
+      it = _finder.begin();
+    }
     return it;
   }
   const_iterator findDivisor(const Monomial& monomial) const {

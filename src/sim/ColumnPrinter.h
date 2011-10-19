@@ -12,7 +12,7 @@ class ColumnPrinter {
 
   void setPrefix(const std::string& prefix);
   void addColumn(bool flushLeft = true,
-				 const std::string& prefix = "  ",
+                 const std::string& prefix = "  ",
                  const std::string& suffix = "");
   size_t getColumnCount() const;
 
@@ -22,10 +22,10 @@ class ColumnPrinter {
 
  private:
   struct Col {
-	std::string prefix;
-	std::stringstream text;
-	std::string suffix;
-	bool flushLeft;
+    std::string prefix;
+    std::stringstream text;
+    std::string suffix;
+    bool flushLeft;
   };
   std::vector<Col*> _cols;
   std::string _prefix;

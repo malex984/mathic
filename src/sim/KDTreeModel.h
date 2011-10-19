@@ -57,7 +57,7 @@ class KDTreeModelConfiguration {
         return true;
       if (getExponent(b, var) < getExponent(a, var))
         return false;
-	}
+    }
     return false;
   }
 
@@ -96,9 +96,9 @@ class KDTreeModel {
   typedef typename Finder::Entry Entry;
 
  KDTreeModel(size_t varCount,
-			 size_t leafSize,
-			 bool minimizeOnInsert,
-			 bool sortOnInsert,
+             size_t leafSize,
+             bool minimizeOnInsert,
+             bool sortOnInsert,
              bool useDivisorCache,
              double rebuildRatio,
              size_t minRebuild):

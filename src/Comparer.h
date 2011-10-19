@@ -3,7 +3,7 @@
 
 namespace mathic {
   template<class C>
-	class Comparer {
+    class Comparer {
   public:
   Comparer(const C& conf): _conf(conf) {}
   template<class A, class B>
@@ -11,7 +11,7 @@ namespace mathic {
     return _conf.isLessThan(a.get(), b.get());
   }
   private:
-	const C& _conf;
+    const C& _conf;
   };
 }
 

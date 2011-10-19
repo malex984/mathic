@@ -59,7 +59,7 @@ class Simulation {
   };
   struct Event {
     EventType _type;
-	std::vector<int> _monomial;
+    std::vector<int> _monomial;
     std::vector<const Monomial::Exponent*> _state;
 #ifdef DEBUG
     std::vector<Monomial> _allMonomials;
@@ -228,9 +228,9 @@ void Simulation::run(DivFinder& finder) {
   std::vector<Monomial> divisors;
   std::vector<const Monomial::Exponent*> tmp;
   for (size_t step = 0; step < _repeats; ++step) {
-	for (size_t i = 0; i < _events.size(); ++i) {
-	  Event& e = _events[i];
-	  if (e._type == InsertKnown || e._type == InsertUnknown) {
+    for (size_t i = 0; i < _events.size(); ++i) {
+      Event& e = _events[i];
+      if (e._type == InsertKnown || e._type == InsertUnknown) {
         divisors.clear();
         MonomialStore store;
         if (0) {
@@ -250,32 +250,32 @@ void Simulation::run(DivFinder& finder) {
           e._state.swap(tmp);
         } else {
           if (e._state != tmp) {
-			std::cerr << "states differ." << std::endl;
-			std::exit(1);
+            std::cerr << "states differ." << std::endl;
+            std::exit(1);
           }
         }
       } else if (!_findAll) {
-		typename DivFinder::const_iterator it = finder.findDivisor(e._monomial);
-		if (it == finder.end()) {
-		  if (e._type == QueryHasDivisor) {
-			std::cerr << "Divisor finder \"" << finder.getName()
-					  << "\" failed to find divisor." << std::endl;
-			std::exit(1);
-		  }
-		  e._type = QueryNoDivisor;
-		} else {
+        typename DivFinder::const_iterator it = finder.findDivisor(e._monomial);
+        if (it == finder.end()) {
+          if (e._type == QueryHasDivisor) {
+            std::cerr << "Divisor finder \"" << finder.getName()
+                      << "\" failed to find divisor." << std::endl;
+            std::exit(1);
+          }
+          e._type = QueryNoDivisor;
+        } else {
 #ifdef DEBUG
-		  for (size_t var = 0; var < _varCount; ++var) {
-			ASSERT((*it)[var] <= e._monomial[var]);
-		  }
+          for (size_t var = 0; var < _varCount; ++var) {
+            ASSERT((*it)[var] <= e._monomial[var]);
+          }
 #endif
-		  if (e._type == QueryNoDivisor) {
-			std::cerr << "Divisor finder \"" << finder.getName() <<
-			  "\" found incorrect divisor." << std::endl;
-			std::exit(1);
-		  }
-		  e._type = QueryHasDivisor;
-		}
+          if (e._type == QueryNoDivisor) {
+            std::cerr << "Divisor finder \"" << finder.getName() <<
+              "\" found incorrect divisor." << std::endl;
+            std::exit(1);
+          }
+          e._type = QueryHasDivisor;
+        }
       } else {
         ASSERT(_findAll);
         divisors.clear();
@@ -284,7 +284,7 @@ void Simulation::run(DivFinder& finder) {
           .findAllDivisors(e._monomial, store);
         store.checkQuery(e, finder);
       }
-	}
+    }
   }
 
   SimData data;
@@ -293,7 +293,7 @@ void Simulation::run(DivFinder& finder) {
   data._expQueryCount = finder.getExpQueryCount();
   _data.push_back(data);
   if (_printPartialData)
-	data.print(std::cerr);
+    data.print(std::cerr);
   std::cout << finder.size() << std::endl;
 }
 
