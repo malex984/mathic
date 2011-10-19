@@ -88,7 +88,7 @@ template<bool UseDivMask, bool UseTreeDivMask>
 class KDTreeModel {
  private:
   typedef KDTreeModelConfiguration<UseDivMask, UseTreeDivMask> C;
-  typedef KDTree<C> Finder;
+  typedef mathic::KDTree<C> Finder;
  public:
   typedef typename Finder::iterator iterator;
   typedef typename Finder::const_iterator const_iterator;

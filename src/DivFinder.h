@@ -63,8 +63,12 @@
  not in return cause a method to be called on the DivFinder until the method
  X has returned. This is because the DivFinder may not be in a valid state
  at the time it is calling X.
+
+ @todo: put these docs somewhere else.
 */
-template<class Configuration>
-class DivFinder; // no implementation
+namespace {
+  template<class Configuration>
+  class DivFinder; // no implementation
+}
 
 #endif

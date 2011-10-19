@@ -40,7 +40,7 @@ public:
 
   size_t getVarCount() const {return _varCount;}
 
-  NO_PINLINE Exponent getExponent(const Monomial& monomial, size_t var) const {
+  Exponent getExponent(const Monomial& monomial, size_t var) const {
     ++_expQueryCount;
     ASSERT(var < monomial.size());
     return monomial[var];
@@ -82,7 +82,7 @@ template<bool ULL, bool UDM>
 class DivListModel {
  private:
   typedef DivListModelConfiguration<ULL, UDM> C;
-  typedef DivList<C> Finder;
+  typedef mathic::DivList<C> Finder;
  public:
   typedef typename Finder::iterator iterator;
   typedef typename Finder::const_iterator const_iterator;
