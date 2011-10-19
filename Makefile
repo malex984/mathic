@@ -1,7 +1,8 @@
 # ***** Variables
 
 rawSources := Timer.cpp \
-  sim/main.cpp sim/Simulation.cpp sim/ColumnPrinter.cpp \
+  sim/Simulation.cpp sim/ColumnPrinter.cpp \
+  pqsim/Item.cpp pqsim/Model.cpp pqsim/Simulator.cpp pqsim/main.cpp \
   libs/memtailor.cpp
 
 ifndef ldflags
