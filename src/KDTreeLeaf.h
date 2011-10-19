@@ -33,21 +33,21 @@ namespace mathic {
   public:
 	bool isLeaf() const {return _isLeaf;}
 	const Leaf& asLeaf() const {
-	  ASSERT(isLeaf());
+	  MATHIC_ASSERT(isLeaf());
 	  return static_cast<const Leaf&>(*this);
 	}
 	Leaf& asLeaf() {
-	  ASSERT(isLeaf());
+	  MATHIC_ASSERT(isLeaf());
 	  return static_cast<Leaf&>(*this);
 	}
 
 	bool isInterior() const {return !isLeaf();}
 	const Interior& asInterior() const {
-	  ASSERT(isInterior());
+	  MATHIC_ASSERT(isInterior());
 	  return static_cast<Interior&>(*this);
 	}
 	Interior& asInterior() {
-	  ASSERT(isInterior());
+	  MATHIC_ASSERT(isInterior());
 	  return static_cast<Interior&>(*this);
 	}
 
@@ -175,10 +175,10 @@ namespace mathic {
 
 	bool empty() const {return _begin == _end;}
 	size_t size() const {return std::distance(_begin, _end);}
-	EE& front() {ASSERT(!empty()); return *_begin;}
-	const EE& front() const {ASSERT(!empty()); return *_begin;}
-	EE& back() {ASSERT(!empty()); return *(_end - 1);}
-	const EE& back() const {ASSERT(!empty()); return *(_end - 1);}
+	EE& front() {MATHIC_ASSERT(!empty()); return *_begin;}
+	const EE& front() const {MATHIC_ASSERT(!empty()); return *_begin;}
+	EE& back() {MATHIC_ASSERT(!empty()); return *(_end - 1);}
+	const EE& back() const {MATHIC_ASSERT(!empty()); return *(_end - 1);}
 
 	void push_back(const EE& entry);
 	void pop_back();
@@ -207,7 +207,7 @@ namespace mathic {
 
 	iterator _begin;
 	iterator _end;
-#ifdef DEBUG
+#ifdef MATHIC_DEBUG
 	const size_t _capacityDebug;
 	const bool _sortOnInsertDebug;
 #endif
@@ -216,7 +216,7 @@ namespace mathic {
   template<class C, class EE>
 	KDTreeLeaf<C, EE>::KDTreeLeaf(memt::Arena& arena, const C& conf):
   Node(true, 0)
-#ifdef DEBUG
+#ifdef MATHIC_DEBUG
 	,_capacityDebug(conf.getLeafSize())
 	,_sortOnInsertDebug(conf.getSortOnInsert())
 #endif
@@ -228,7 +228,7 @@ namespace mathic {
   template<class C, class EE>
 	KDTreeLeaf<C,EE>::KDTreeLeaf(memt::Arena& arena, size_t capacity):
   Node(true, 0)
-#ifdef DEBUG
+#ifdef MATHIC_DEBUG
 	,_capacityDebug(capacity)
 	,_sortOnInsertDebug(false)
 #endif
@@ -239,7 +239,7 @@ namespace mathic {
 
   template<class C, class EE>
 	void KDTreeLeaf<C, EE>::push_back(const EE& entry) {
-	ASSERT(size() < _capacityDebug);
+	MATHIC_ASSERT(size() < _capacityDebug);
 	new (_end) EE(entry);
 	updateToLowerBound(entry);
 	++_end;
@@ -247,14 +247,14 @@ namespace mathic {
 
   template<class C, class EE>
 	void KDTreeLeaf<C, EE>::pop_back() {
-	ASSERT(!empty());
+	MATHIC_ASSERT(!empty());
 	--_end;
 	_end->~EE();
   }
 
   template<class C, class EE>
 	void KDTreeLeaf<C, EE>::insert(iterator it, const EE& entry) {
-	ASSERT(size() < _capacityDebug);
+	MATHIC_ASSERT(size() < _capacityDebug);
 	if (it == end()) {
 	  push_back(entry);
 	  return;
@@ -268,7 +268,7 @@ namespace mathic {
 
   template<class C, class EE>
 	void KDTreeLeaf<C, EE>::insert(const EE& entry, const C& conf) {
-	ASSERT(size() < _capacityDebug);
+	MATHIC_ASSERT(size() < _capacityDebug);
 	if (!conf.getSortOnInsert())
 	  push_back(entry);
 	else {
@@ -302,8 +302,12 @@ namespace mathic {
   template<class C, class EE>
 	template<class Iter>
 	std::pair<KDTreeInterior<C, EE>*, Iter> KDTreeNode<C, EE>::preSplit
-	(Interior* parent, Iter begin, Iter end, memt::Arena& arena, const C& conf) {
-	ASSERT(begin != end);
+	(Interior* parent,
+	 Iter begin,
+	 Iter end,
+	 memt::Arena& arena,
+	 const C& conf) {
+	MATHIC_ASSERT(begin != end);
 
 	size_t var = (parent != 0 ? parent->getVar() : static_cast<size_t>(-1));
 	while (true) {
@@ -333,7 +337,8 @@ namespace mathic {
 	KDTreeLeaf<C, EE>* KDTreeLeaf<C, EE>::makeLeafCopy
 	(Interior* parent, Iter begin, Iter end,
 	 memt::Arena& arena, const DivMaskCalculator& calc, const C& conf) {
-	ASSERT(static_cast<size_t>(std::distance(begin, end)) <= conf.getLeafSize());
+	MATHIC_ASSERT(static_cast<size_t>(std::distance(begin, end)) <=
+				  conf.getLeafSize());
 	Leaf* leaf = new (arena.allocObjectNoCon<Leaf>()) Leaf(arena, conf);
 	leaf->_parent = parent;
 	// cannot directly copy as memory is not constructed.
@@ -345,8 +350,8 @@ namespace mathic {
   }
 
   template<class C, class EE>
-	template<class EM, class MO>
-	NO_PINLINE size_t KDTreeLeaf<C, EE>::removeMultiples
+  template<class EM, class MO>
+  size_t KDTreeLeaf<C, EE>::removeMultiples
 	(const EM& monomial, MO& out, const C& conf) {
 	iterator it = begin();
 	iterator oldEnd = end();
@@ -370,17 +375,17 @@ namespace mathic {
 	// entries at the end need to be destructed.
 	const size_t newSize = std::distance(begin(), newEnd);
 	const size_t removedCount = size() - newSize;
-	ASSERT(newSize < size());
+	MATHIC_ASSERT(newSize < size());
 	do {
 	  pop_back();
 	} while (newSize < size());
-	ASSERT(size() == newSize);
+	MATHIC_ASSERT(size() == newSize);
 	return removedCount;
   }
 
   template<class C, class EE>
 	template<class EM>
-	NO_PINLINE typename KDTreeLeaf<C, EE>::iterator
+	typename KDTreeLeaf<C, EE>::iterator
 	KDTreeLeaf<C, EE>::findDivisor(const EM& extMonomial, const C& conf) {
 	if (!conf.getSortOnInsert()) {
 	  const iterator stop = end();
@@ -401,7 +406,7 @@ namespace mathic {
 
   template<class C, class EE>
 	template<class EM, class DO>
-	NO_PINLINE bool KDTreeLeaf<C, EE>::
+	bool KDTreeLeaf<C, EE>::
 	findAllDivisors(const EM& extMonomial, DO& out, const C& conf) {
 	if (!conf.getSortOnInsert()) {
 	  const iterator stop = end();
@@ -434,11 +439,11 @@ namespace mathic {
 	};
 
   template<class C, class EE>
-	NO_PINLINE KDTreeInterior<C, EE>&
+	KDTreeInterior<C, EE>&
 	KDTreeLeaf<C, EE>::split(memt::Arena& arena, const C& conf) {
-	ASSERT(conf.getVarCount() > 0);
-	ASSERT(size() >= 2);
-	// ASSERT not all equal
+	MATHIC_ASSERT(conf.getVarCount() > 0);
+	MATHIC_ASSERT(size() >= 2);
+	// MATHIC_ASSERT not all equal
 	Leaf& other = *new (arena.allocObjectNoCon<Leaf>()) Leaf(arena, conf);
 
 	typename C::Exponent exp;
@@ -486,15 +491,15 @@ namespace mathic {
 		  // todoL avoid infinite loop if all equal.
 		  continue; // bad split, use another variable
 		}
-		ASSERT(middle != end());
-		ASSERT(exp != conf.getExponent(middle->get(), var));
+		MATHIC_ASSERT(middle != end());
+		MATHIC_ASSERT(exp != conf.getExponent(middle->get(), var));
 
-#ifdef DEBUG
+#ifdef MATHIC_DEBUG
 		for (iterator it = begin(); it != middle; ++it) {
-		  ASSERT(!(exp < conf.getExponent(it->get(), var)));
+		  MATHIC_ASSERT(!(exp < conf.getExponent(it->get(), var)));
 		}
 		for (iterator it = middle; it != end(); ++it) {
-		  ASSERT(!(conf.getExponent(it->get(), var) < exp));
+		  MATHIC_ASSERT(!(conf.getExponent(it->get(), var) < exp));
 		}
 #endif
 		// nth_element does not guarantee where equal elements go,
@@ -513,8 +518,8 @@ namespace mathic {
 		  pop_back();
 
 	  }
-	  ASSERT(other.size() < conf.getLeafSize());
-	  ASSERT(size() < conf.getLeafSize());
+	  MATHIC_ASSERT(other.size() < conf.getLeafSize());
+	  MATHIC_ASSERT(size() < conf.getLeafSize());
 	  break;
 	}
 
@@ -525,7 +530,7 @@ namespace mathic {
 	  if (Node::isEqualOrLessChild())
 		Node::getParent()->setEqualOrLess(&interior);
 	  else {
-		ASSERT(Node::isStrictlyGreaterChild());
+		MATHIC_ASSERT(Node::isStrictlyGreaterChild());
 		Node::getParent()->setStrictlyGreater(&interior);
 	  }
 	}

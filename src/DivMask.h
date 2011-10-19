@@ -205,8 +205,8 @@ namespace mathic {
   template<>
 	class DivMask::HasDivMask<false> {
   public:
-	void resetDivMask() {ASSERT(false);}
-	DivMask getDivMask() const {ASSERT(false); return DivMask();}
+	void resetDivMask() {MATHIC_ASSERT(false);}
+	DivMask getDivMask() const {MATHIC_ASSERT(false); return DivMask();}
 	bool canDivide(const HasDivMask<false>& t) const {return true;}
 	template<bool B>
 	  void updateToLowerBound(const HasDivMask<B>& entry) {}

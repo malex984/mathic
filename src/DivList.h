@@ -1,6 +1,7 @@
 #ifndef DIV_ARRAY_GUARD
 #define DIV_ARRAY_GUARD
 
+#include "stdinc.h"
 #include "DivMask.h"
 #include "memtailor/memtailor.h"
 #include "Comparer.h"
@@ -218,14 +219,17 @@ namespace mathic {
 	  }
 	  const size_t origSize = list.size();
 	  const size_t newSize = std::distance(list.begin(), newEnd);
-	  ASSERT(newSize < list.size());
+	  MATHIC_ASSERT(newSize < list.size());
 	  list.resize(newSize);
 	  return origSize - newSize;
 	}
 
 	template<class C, class E, class M, class MO>
-	  size_t removeMultiples(C& conf, std::list<E>& list, const M& monomial, MO& out) {
-#ifdef DEBUG
+	size_t removeMultiples(C& conf,
+						   std::list<E>& list,
+						   const M& monomial,
+						   MO& out) {
+#ifdef MATHIC_DEBUG
 	  const size_t origSize = list.size();
 #endif
 	  typedef typename std::list<E>::iterator iterator;
@@ -240,7 +244,7 @@ namespace mathic {
 		} else
 		  ++it;
 	  }
-	  ASSERT(list.size() + removedCount == origSize);
+	  MATHIC_ASSERT(list.size() + removedCount == origSize);
 	  return removedCount;
 	}
 
@@ -405,7 +409,7 @@ namespace mathic {
 #endif
 	const size_t removedCount =
 	  DivListHelper::removeMultiples(_conf, _list, extMonomial, out);
-	ASSERT(size() + removedCount == origSize);
+	MATHIC_ASSERT(size() + removedCount == origSize);
 	reportChanges(removedCount);
 	return removedCount > 0;
   }
@@ -498,7 +502,7 @@ namespace mathic {
 	void DivList<C>::resetNumberOfChangesTillRebuild() {
 	if (!_conf.getDoAutomaticRebuilds())
 	  return;
-	ASSERT(_conf.getRebuildRatio() > 0);
+	MATHIC_ASSERT(_conf.getRebuildRatio() > 0);
 	_changesTillRebuild = std::max
 	  (static_cast<size_t>(size() * _conf.getRebuildRatio()),
 	   _conf.getRebuildMin());

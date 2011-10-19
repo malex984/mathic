@@ -1,6 +1,7 @@
 #ifndef K_D_TREE_GUARD
 #define K_D_TREE_GUARD
 
+#include "stdinc.h"
 #include "KDTreeWalker.h"
 #include "KDTreeLeaf.h"
 #include "DivMask.h"
@@ -179,7 +180,7 @@ namespace mathic {
 		Interior* parent;
 	  };
 
-#ifdef DEBUG
+#ifdef MATHIC_DEBUG
 	bool debugIsValid() const;
 #endif
 
@@ -221,29 +222,29 @@ namespace mathic {
 	}
 
 	void increment() {
-	  ASSERT(!_walker.atEnd());
-	  ASSERT(_walker.atLeaf());
-	  ASSERT(!_walker.asLeaf().empty());
-	  ASSERT(_leafIt != _walker.asLeaf().end());
+	  MATHIC_ASSERT(!_walker.atEnd());
+	  MATHIC_ASSERT(_walker.atLeaf());
+	  MATHIC_ASSERT(!_walker.asLeaf().empty());
+	  MATHIC_ASSERT(_leafIt != _walker.asLeaf().end());
 	  ++_leafIt;
 	  if (_leafIt == _walker.asLeaf().end()) {
 		_walker.nextNonEmptyLeaf();
-		ASSERT(_walker.atEnd() || !_walker.asLeaf().empty());
+		MATHIC_ASSERT(_walker.atEnd() || !_walker.asLeaf().empty());
 		_leafIt = _walker.atEnd() ? 0 : _walker.asLeaf().begin();
 	  }
-	  ASSERT((_walker.atEnd() && _leafIt == 0) ||
+	  MATHIC_ASSERT((_walker.atEnd() && _leafIt == 0) ||
 			 _leafIt != _walker.asLeaf().end());
 	}
 
 	void decrement() {
-	  ASSERT(_walker.atEnd() || _walker.atLeaf());
-	  ASSERT((_walker.atEnd() && _leafIt == 0) ||
+	  MATHIC_ASSERT(_walker.atEnd() || _walker.atLeaf());
+	  MATHIC_ASSERT((_walker.atEnd() && _leafIt == 0) ||
 			 _leafIt != _walker.asLeaf().end());
 	  if (!_walker.atEnd() && _leafIt != _walker.asLeaf().begin())
 		--_leafIt;
 	  else {
 		_walker.toPrevNonEmptyLeaf();
-		ASSERT(!_walker.asLeaf().empty());
+		MATHIC_ASSERT(!_walker.asLeaf().empty());
 		_leafIt = _walker.asLeaf().end();
 		--_leafIt;
 	  }
@@ -346,12 +347,12 @@ namespace mathic {
   _conf(configuration),
 	_size(0),
 	_divMaskCalculator(configuration) {
-	  ASSERT(_conf.getLeafSize() >= 2);
+	  MATHIC_ASSERT(_conf.getLeafSize() >= 2);
 	  _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
 	  if (_conf.getUseDivisorCache())
 		_divisorCache = end();
 	  resetNumberOfChangesTillRebuild();
-	  ASSERT(debugIsValid());
+	  MATHIC_ASSERT(debugIsValid());
 	}
 
   template<class C>
@@ -360,9 +361,9 @@ namespace mathic {
   }
 
   template<class C>
-	size_t KDTree<C>::size() const {
-	ASSERT(_size == static_cast<size_t>(std::distance(begin(), end())));
-	ASSERT(_size == static_cast<size_t>(std::distance(rbegin(), rend())));
+  size_t KDTree<C>::size() const {
+	MATHIC_ASSERT(_size == static_cast<size_t>(std::distance(begin(), end())));
+	MATHIC_ASSERT(_size == static_cast<size_t>(std::distance(rbegin(), rend())));
 	return _size;
   }
 
@@ -386,7 +387,7 @@ namespace mathic {
 	bool KDTree<C>::removeMultiples(const Monomial& monomial, MO& out) {
 	ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
 
-	ASSERT(_tmp.empty());
+	MATHIC_ASSERT(_tmp.empty());
 	size_t removedCount = 0;
 	Node* node = _root;
 	while (true) {
@@ -397,15 +398,15 @@ namespace mathic {
 		  _tmp.push_back(&interior.getEqualOrLess());
 		node = &interior.getStrictlyGreater();
 	  }
-	  ASSERT(node->isLeaf());
+	  MATHIC_ASSERT(node->isLeaf());
 	  removedCount += node->asLeaf().removeMultiples(extMonomial, out, _conf);
 	  if (_tmp.empty())
 		break;
 	  node = _tmp.back();
 	  _tmp.pop_back();
 	}
-	ASSERT(debugIsValid());
-	ASSERT(_tmp.empty());
+	MATHIC_ASSERT(debugIsValid());
+	MATHIC_ASSERT(_tmp.empty());
 	if (_conf.getUseDivisorCache() && removedCount > 0)
 	  _divisorCache = end();
 	reportChanges(0, removedCount);
@@ -413,13 +414,13 @@ namespace mathic {
   }
 
   template<class C>
-	NO_PINLINE bool KDTree<C>::removeMultiples(const Monomial& monomial) {
+	bool KDTree<C>::removeMultiples(const Monomial& monomial) {
 	DummyMultipleOutput out;
 	return removeMultiples(monomial, out);
   }
 
   template<class C>
-	NO_PINLINE void KDTree<C>::insert(const Entry& entry) {
+  void KDTree<C>::insert(const Entry& entry) {
 	ExtEntry extEntry(entry, _divMaskCalculator, _conf);
 
 	Node* node = _root;
@@ -429,7 +430,7 @@ namespace mathic {
 	}
 	Leaf* leaf = &node->asLeaf();
 
-	ASSERT(leaf->size() <= _conf.getLeafSize());
+	MATHIC_ASSERT(leaf->size() <= _conf.getLeafSize());
 	if (leaf->size() == _conf.getLeafSize()) {
 	  Interior& interior = leaf->split(_arena, _conf);
 	  interior.updateToLowerBound(extEntry);
@@ -437,12 +438,12 @@ namespace mathic {
 		_root = &interior;
 	  leaf = &interior.getChildFor(extEntry, _conf).asLeaf();
 	}
-	ASSERT(leaf->size() < _conf.getLeafSize());
+	MATHIC_ASSERT(leaf->size() < _conf.getLeafSize());
 	leaf->insert(extEntry, _conf);
 
 	if (_conf.getUseDivisorCache())
 	  _divisorCache = end();
-	ASSERT(debugIsValid());
+	MATHIC_ASSERT(debugIsValid());
 	reportChanges(1, 0);
   }
 
@@ -450,7 +451,7 @@ namespace mathic {
   /// inside nodes. Also, it allocates a std::vector every time.
   template<class C>
 	template<class Iter>
-	NO_PINLINE void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
+	void KDTree<C>::insert(Iter insertBegin, Iter insertEnd) {
 	if (!empty()) {
 	  for (; insertBegin != insertEnd; ++insertBegin)
 		insert(*insertBegin);
@@ -481,7 +482,7 @@ namespace mathic {
 	  else {
 		std::pair<Interior*, Iter> p =
 		  Node::preSplit(parent, insertBegin, insertEnd, _arena, _conf);
-		ASSERT(p.second != insertBegin && p.second != insertEnd);
+		MATHIC_ASSERT(p.second != insertBegin && p.second != insertEnd);
 		// push strictly-greater on todo
 		Task task;
 		task.begin = p.second;
@@ -529,21 +530,22 @@ namespace mathic {
 		}
 	}
 
-	ASSERT(debugIsValid());
+	MATHIC_ASSERT(debugIsValid());
 	// range insert into empty container is equivalent to a rebuild.
 	resetNumberOfChangesTillRebuild();
   }
 
   template<class C>
-	NO_PINLINE typename KDTree<C>::iterator KDTree<C>::findDivisor(const Monomial& monomial) {
+  typename KDTree<C>::iterator KDTree<C>::findDivisor
+	(const Monomial& monomial) {
 	if (_conf.getUseDivisorCache() &&
 		_divisorCache != end() && _conf.divides(*_divisorCache, monomial))
 	  return _divisorCache;
 
 	ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
 
-	ASSERT(debugIsValid());
-	ASSERT(_tmp.empty());
+	MATHIC_ASSERT(debugIsValid());
+	MATHIC_ASSERT(_tmp.empty());
 	Node* node = _root;
 	while (true) {
 	  while (node->isInterior()) {
@@ -559,11 +561,11 @@ namespace mathic {
 	  }
 
 	  {
-		ASSERT(node->isLeaf());
+		MATHIC_ASSERT(node->isLeaf());
 		Leaf& leaf = node->asLeaf();
 		LeafIt leafIt = leaf.findDivisor(extMonomial, _conf);
 		if (leafIt != leaf.end()) {
-		  ASSERT(_conf.divides(leafIt->get(), extMonomial.get()));
+		  MATHIC_ASSERT(_conf.divides(leafIt->get(), extMonomial.get()));
 		  _tmp.clear();
 		  return _divisorCache = iterator(leaf, leafIt);
 		}
@@ -574,7 +576,7 @@ namespace mathic {
 	  node = _tmp.back();
 	  _tmp.pop_back();
 	}
-	ASSERT(_tmp.empty());
+	MATHIC_ASSERT(_tmp.empty());
 	return end();
   }
 
@@ -583,7 +585,7 @@ namespace mathic {
 	void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) {
 	ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
 
-	ASSERT(_tmp.empty());
+	MATHIC_ASSERT(_tmp.empty());
 	Node* node = _root;
 	while (true) {
 	  while (node->isInterior()) {
@@ -593,7 +595,7 @@ namespace mathic {
 		  _tmp.push_back(&interior.getStrictlyGreater());
 		node = &interior.getEqualOrLess();
 	  }
-	  ASSERT(node->isLeaf());
+	  MATHIC_ASSERT(node->isLeaf());
 	  Leaf& leaf = node->asLeaf();
 	  if (!leaf.findAllDivisors(extMonomial, output, _conf)) {
 		_tmp.clear();
@@ -604,7 +606,7 @@ namespace mathic {
 	  node = _tmp.back();
 	  _tmp.pop_back();
 	}
-	ASSERT(_tmp.empty());
+	MATHIC_ASSERT(_tmp.empty());
   }
 
   template<class C>
@@ -654,7 +656,7 @@ namespace mathic {
 	void KDTree<C>::resetNumberOfChangesTillRebuild() {
 	if (!_conf.getDoAutomaticRebuilds())
 	  return;
-	ASSERT(_conf.getRebuildRatio() > 0);
+	MATHIC_ASSERT(_conf.getRebuildRatio() > 0);
 	_changesTillRebuild = std::max
 	  (static_cast<size_t>(size() * _conf.getRebuildRatio()),
 	   _conf.getRebuildMin());
@@ -664,7 +666,7 @@ namespace mathic {
 	void KDTree<C>::reportChanges(size_t additions, size_t removals) {
 	// note how negative value/overflow of _changesTillRebuild cannot
 	// happen this way.
-	ASSERT(removals <= _size + additions);
+	MATHIC_ASSERT(removals <= _size + additions);
 	_size = (_size + additions) - removals;
 	if (!_conf.getDoAutomaticRebuilds())
 	  return;
@@ -675,22 +677,22 @@ namespace mathic {
 	  rebuild();
   }
 
-#ifdef DEBUG
+#ifdef MATHIC_DEBUG
   template<class C>
 	bool KDTree<C>::debugIsValid() const {
-	ASSERT(_tmp.empty());
-	ASSERT(!_conf.getDoAutomaticRebuilds() || _conf.getRebuildRatio() > 0);
+	MATHIC_ASSERT(_tmp.empty());
+	MATHIC_ASSERT(!_conf.getDoAutomaticRebuilds() || _conf.getRebuildRatio() > 0);
 	Walker walker(_root);
 	if (walker.atEnd())
 	  return true;
-	ASSERT(walker.getNode()->getParent() == 0);
+	MATHIC_ASSERT(walker.getNode()->getParent() == 0);
 	for (; !walker.atEnd(); walker.next()) {
 	  if (walker.atLeaf()) {
 		Leaf& leaf = walker.asLeaf();
 		typedef typename Leaf::const_iterator LeafCIter;
 		if (C::UseTreeDivMask) {
 		  for (LeafCIter it = leaf.begin(); it != leaf.end(); ++it) {
-			ASSERT(leaf.getDivMask().canDivide(it->getDivMask()));
+			MATHIC_ASSERT(leaf.getDivMask().canDivide(it->getDivMask()));
 		  }
 		}
 
@@ -700,34 +702,34 @@ namespace mathic {
 		while (!ancestor.atRoot()) {
 		  Node* child = ancestor.getNode();
 		  ancestor.toParent();
-		  ASSERT(!ancestor.atEnd());
+		  MATHIC_ASSERT(!ancestor.atEnd());
 		  Interior& interior = ancestor.asInterior();
 		  if (child == &interior.getEqualOrLess()) {
 			typename Leaf::const_iterator it = leaf.begin();
 			for (; it != leaf.end(); ++it) {
-			  ASSERT(!(interior.getExponent() <
+			  MATHIC_ASSERT(!(interior.getExponent() <
 					   _conf.getExponent(it->get(), interior.getVar())));
 			  if (C::UseTreeDivMask) {
-				ASSERT(interior.getDivMask().canDivide(it->getDivMask()));
+				MATHIC_ASSERT(interior.getDivMask().canDivide(it->getDivMask()));
 			  }
 			}
 		  } else {
-			ASSERT(child == &ancestor.getStrictlyGreater());
+			MATHIC_ASSERT(child == &ancestor.getStrictlyGreater());
 			typename Leaf::const_iterator it = leaf.begin();
 			for (; it != leaf.end(); ++it) {
-			  ASSERT(interior.getExponent() <
+			  MATHIC_ASSERT(interior.getExponent() <
 					 _conf.getExponent(it->get(), interior.getVar()));
 			  if (C::UseTreeDivMask) {
-				ASSERT(interior.getDivMask().canDivide(it->getDivMask()));
+				MATHIC_ASSERT(interior.getDivMask().canDivide(it->getDivMask()));
 			  }
 			}
 		  }
 		}
 	  } else {
 		Interior& interior = walker.asInterior();
-		ASSERT(walker.getEqualOrLess().getParent() == &interior);
-		ASSERT(walker.getStrictlyGreater().getParent() == &interior);
-		ASSERT(interior.getVar() < _conf.getVarCount());
+		MATHIC_ASSERT(walker.getEqualOrLess().getParent() == &interior);
+		MATHIC_ASSERT(walker.getStrictlyGreater().getParent() == &interior);
+		MATHIC_ASSERT(interior.getVar() < _conf.getVarCount());
 	  }
 	}
 	return true;
