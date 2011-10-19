@@ -2,7 +2,7 @@
 #define DIV_ARRAY_GUARD
 
 #include "DivMask.h"
-#include "ArenaVector.h"
+#include "memtailor/memtailor.h"
 #include "Comparer.h"
 #include <vector>
 #include <string>
@@ -474,8 +474,8 @@ void DivList<C>::moveToFront(iterator pos) {
 template<class C>
 void DivList<C>::rebuild() {
   const size_t totalSize = size();
-  typedef ArenaVector<Entry, true> TmpContainer;
-  TmpContainer tmpCopy(Arena::getArena(), totalSize);
+  typedef memt::ArenaVector<Entry, true> TmpContainer;
+  TmpContainer tmpCopy(memt::Arena::getArena(), totalSize);
   std::copy(begin(), end(), std::back_inserter<TmpContainer>(tmpCopy));
   _divMaskCalculator.rebuild(tmpCopy.begin(), tmpCopy.end(), _conf);
   ListIter listEnd = _list.end();

@@ -3,9 +3,8 @@
 
 #include "KDTreeWalker.h"
 #include "KDTreeLeaf.h"
-#include "ArenaVector.h"
-#include "Arena.h"
 #include "DivMask.h"
+#include "memtailor/memtailor.h"
 #include <list>
 #include <string>
 #include <algorithm>
@@ -184,7 +183,7 @@ public:
 #endif
 
   std::vector<Node*> _tmp;
-  Arena _arena;
+  memt::Arena _arena;
   C _conf;
   Node* _root;
   size_t _size;
@@ -631,8 +630,8 @@ void KDTree<C>::clear() {
 template<class C>
 void KDTree<C>::rebuild() {
   const size_t totalSize = size();
-  typedef ArenaVector<Entry, true> TmpContainer;
-  TmpContainer tmpCopy(Arena::getArena(), totalSize);
+  typedef memt::ArenaVector<Entry, true> TmpContainer;
+  TmpContainer tmpCopy(memt::Arena::getArena(), totalSize);
   for (Walker walker(_root); !walker.atEnd(); walker.next()) {
     if (walker.atLeaf()) {
       Leaf& leaf = walker.asLeaf();

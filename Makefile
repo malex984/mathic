@@ -1,7 +1,7 @@
 # ***** Variables
 
 rawSources := sim/main.cpp sim/Timer.cpp sim/Simulation.cpp	\
-  sim/ColumnPrinter.cpp libs/specalloc.cpp
+  sim/ColumnPrinter.cpp libs/memtailor.cpp
 
 ifndef ldflags
   ldflags = $(LDFLAGS)
@@ -16,7 +16,7 @@ ifndef BIN_INSTALL_DIR
 endif
 
 cflags = $(CFLAGS) $(CPPFLAGS) -Wall -ansi -Isrc/ \
-         -Wno-uninitialized -Wno-unused-parameter -Ilibs/specalloc/src/
+         -Wno-uninitialized -Wno-unused-parameter -Ilibs/memtailor/include
 program = mm
 
 ifndef MODE

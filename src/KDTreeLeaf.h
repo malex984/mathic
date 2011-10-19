@@ -2,8 +2,8 @@
 #define K_D_TREE_LEAF_GUARD
 
 #include "DivMask.h"
-#include "Arena.h"
 #include "Comparer.h"
+#include "memtailor/memtailor.h"
 #include <algorithm>
 
 /** A helper class for KDTree. A node in the tree. The ExtEntry
@@ -67,7 +67,7 @@ public:
    is [begin, it) and the striclty-greater part is [it, end). */
   template<class Iter>
   static std::pair<Interior*, Iter> preSplit
-    (Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf);
+    (Interior* parent, Iter begin, Iter end, memt::Arena& arena, const C& conf);
 
 protected:
   KDTreeNode(bool leaf, Interior* parent):
@@ -154,8 +154,8 @@ class KDTreeLeaf : public KDTreeNode<C, EE> {
   typedef const EE& const_reference;
   typedef EE value_type;
 
-  KDTreeLeaf(Arena& arena, const C& conf);
-  KDTreeLeaf(Arena& arena, size_t capacity);
+  KDTreeLeaf(memt::Arena& arena, const C& conf);
+  KDTreeLeaf(memt::Arena& arena, size_t capacity);
 
   void clear();
 
@@ -164,7 +164,7 @@ class KDTreeLeaf : public KDTreeNode<C, EE> {
   /** Copies [begin, end) into the new leaf. */
   template<class Iter>
   static Leaf* makeLeafCopy
-    (Interior* parent, Iter begin, Iter end, Arena& arena,
+    (Interior* parent, Iter begin, Iter end, memt::Arena& arena,
     const DivMaskCalculator& calc, const C& conf);
 
   iterator begin() {return _begin;}
@@ -198,7 +198,7 @@ class KDTreeLeaf : public KDTreeNode<C, EE> {
   template<class EM, class DO>
   bool findAllDivisors(const EM& extMonomial, DO& out, const C& conf);
 
-  Interior& split(Arena& arena, const C& conf);
+  Interior& split(memt::Arena& arena, const C& conf);
 
  private:
   KDTreeLeaf(const KDTreeLeaf& t); // unavailable
@@ -213,7 +213,7 @@ class KDTreeLeaf : public KDTreeNode<C, EE> {
 };
 
 template<class C, class EE>
-KDTreeLeaf<C, EE>::KDTreeLeaf(Arena& arena, const C& conf):
+KDTreeLeaf<C, EE>::KDTreeLeaf(memt::Arena& arena, const C& conf):
 Node(true, 0)
 #ifdef DEBUG
 ,_capacityDebug(conf.getLeafSize())
@@ -225,7 +225,7 @@ Node(true, 0)
 }
 
 template<class C, class EE>
-KDTreeLeaf<C,EE>::KDTreeLeaf(Arena& arena, size_t capacity):
+KDTreeLeaf<C,EE>::KDTreeLeaf(memt::Arena& arena, size_t capacity):
 Node(true, 0)
 #ifdef DEBUG
 ,_capacityDebug(capacity)
@@ -301,7 +301,7 @@ private:
 template<class C, class EE>
 template<class Iter>
 std::pair<KDTreeInterior<C, EE>*, Iter> KDTreeNode<C, EE>::preSplit
-(Interior* parent, Iter begin, Iter end, Arena& arena, const C& conf) {
+(Interior* parent, Iter begin, Iter end, memt::Arena& arena, const C& conf) {
   ASSERT(begin != end);
 
   size_t var = (parent != 0 ? parent->getVar() : static_cast<size_t>(-1));
@@ -331,7 +331,7 @@ template<class C, class EE>
 template<class Iter>
 KDTreeLeaf<C, EE>* KDTreeLeaf<C, EE>::makeLeafCopy
 (Interior* parent, Iter begin, Iter end,
-Arena& arena, const DivMaskCalculator& calc, const C& conf) {
+memt::Arena& arena, const DivMaskCalculator& calc, const C& conf) {
   ASSERT(static_cast<size_t>(std::distance(begin, end)) <= conf.getLeafSize());
   Leaf* leaf = new (arena.allocObjectNoCon<Leaf>()) Leaf(arena, conf);
   leaf->_parent = parent;
@@ -434,7 +434,7 @@ private:
 
 template<class C, class EE>
 NO_PINLINE KDTreeInterior<C, EE>&
-KDTreeLeaf<C, EE>::split(Arena& arena, const C& conf) {
+KDTreeLeaf<C, EE>::split(memt::Arena& arena, const C& conf) {
   ASSERT(conf.getVarCount() > 0);
   ASSERT(size() >= 2);
   // ASSERT not all equal
