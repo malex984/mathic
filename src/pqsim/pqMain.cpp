@@ -8,14 +8,16 @@
 #include <iostream>
 #include <ctime>
 
-size_t toInt(const char* str) {
-  std::istringstream in(str);
-  size_t i;
-  in >> i;
-  return i;
+namespace {
+  size_t toInt(const char* str) {
+	std::istringstream in(str);
+	size_t i;
+	in >> i;
+	return i;
+  }
 }
 
-int main(int argc, const char** args) {
+int pqMain(int argc, const char** args) {
   srand(static_cast<unsigned int>(time(0)));
   srand(0);
   if (argc < 4) {

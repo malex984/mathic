@@ -1,8 +1,8 @@
 # ***** Variables
 
-rawSources := Timer.cpp \
-  sim/Simulation.cpp sim/ColumnPrinter.cpp \
-  pqsim/Item.cpp pqsim/Model.cpp pqsim/Simulator.cpp pqsim/main.cpp \
+rawSources := Timer.cpp main.cpp \
+  divsim/Simulation.cpp divsim/ColumnPrinter.cpp divsim/divMain.cpp \
+  pqsim/Item.cpp pqsim/Model.cpp pqsim/Simulator.cpp pqsim/pqMain.cpp \
   libs/memtailor.cpp
 
 ifndef ldflags
@@ -19,7 +19,7 @@ endif
 
 cflags = $(CFLAGS) $(CPPFLAGS) -Wall -ansi -Isrc/ \
          -Wno-uninitialized -Wno-unused-parameter -Ilibs/memtailor/include
-program = mm
+program = sim
 
 ifndef MODE
  MODE=release
@@ -128,7 +128,8 @@ benchAlexdual: all
 bin/$(program): $(outdir)$(program)
 ifneq ($(MODE), analysis)
 	@mkdir -p $(dir $@);
-	cd bin; rm -f $(program); ln -s ../$(outdir)$(program) $(program); cd ..
+	cd bin; rm -f div; ln -s ../$(outdir)$(program) div; cd ..
+	cd bin; rm -f pq; ln -s ../$(outdir)$(program) pq; cd ..
 endif
 
 # Link object files into executable

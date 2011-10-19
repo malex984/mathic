@@ -6,7 +6,7 @@
 #include "Timer.h"
 #include <iostream>
 
-int main() {
+int divMain() {
   const size_t repeats = IF_DEBUG(true ? 1 :) 1;
   Simulation sim(repeats, true);
   mic::Timer timer;
@@ -108,4 +108,5 @@ int main() {
 
   std::cout << "\n\n";
   sim.printData(std::cout);
+  return 0;
 }
