@@ -8,7 +8,6 @@ int main(int argc, const char** args) {
   const size_t offset = name.find_last_of("/\\");
   if (offset != std::string::npos)
 	name = name.substr(offset + 1);
-  std::cout << name << '\n';
   if (name == "div")
 	return divMain();
   else if (name == "pq")

@@ -2,6 +2,7 @@
 
 // utilities
 #include "../../src/Timer.h"
+#include "../../src/ColumnPrinter.h"
 
 // divisor query data structures
 #include "../../src/DivList.h"

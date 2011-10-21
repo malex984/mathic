@@ -2,3 +2,4 @@
 // to get MemTailor working.
 #include "mathic.h"
 #include "../../src/Timer.cpp"
+#include "../../src/ColumnPrinter.cpp"

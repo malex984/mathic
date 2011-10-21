@@ -276,7 +276,7 @@ void Simulator::printData(std::ostream& out) const {
   std::vector<SimData> sorted(_data);
   sort(sorted.begin(), sorted.end());
   out << "*** Simulation outcome ***" << std::endl;
-  ColumnPrinter pr;
+  mic::ColumnPrinter pr;
   pr.addColumn(true);
   pr.addColumn(false, " ", "ms");
   pr.addColumn(false, " ", "cmps");

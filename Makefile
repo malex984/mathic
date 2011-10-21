@@ -1,7 +1,7 @@
 # ***** Variables
 
-rawSources := Timer.cpp main.cpp \
-  divsim/Simulation.cpp divsim/ColumnPrinter.cpp divsim/divMain.cpp \
+rawSources := Timer.cpp main.cpp ColumnPrinter.cpp \
+  divsim/Simulation.cpp divsim/divMain.cpp \
   pqsim/Item.cpp pqsim/Model.cpp pqsim/Simulator.cpp pqsim/pqMain.cpp \
   libs/memtailor.cpp
 

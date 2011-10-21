@@ -49,7 +49,7 @@ void Simulation::printData(std::ostream& out) const {
   std::sort(sorted.begin(), sorted.end());
   out << "*** Simulation outcome for "
       << _repeats << " repeats ***" << std::endl;
-  ColumnPrinter pr;
+  mic::ColumnPrinter pr;
   pr.addColumn(true);
   pr.addColumn(false, " ", "ms");
   pr.addColumn(false, " ", "eqs");
