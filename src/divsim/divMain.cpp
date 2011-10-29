@@ -16,7 +16,7 @@ int main() {
 #ifdef DEBUG
   sim.makeStandard(10, 400, 100, false);
 #else
-  sim.makeStandard(10, 5000, 100000, true);
+  sim.makeStandard(10, 500, 10000, true);
 #endif
 
   /*
@@ -32,6 +32,7 @@ int main() {
   }
   //*/
 
+  sim.run<DivListModel<0, 0> >(1, 0, 1, 0.0, 0); // best array, no mask
   /*
   sim.run<DivListModel<0> >(1, 0, 0)
   sim.run<DivListModel<0> >(1, 1, 0);

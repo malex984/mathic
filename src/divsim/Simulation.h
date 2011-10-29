@@ -253,7 +253,8 @@ void Simulation::run(DivFinder& finder) {
         store.checkInsert(e, finder);
       } else if (e._type == StateUnknown || e._type == StateKnown) {
         tmp.clear();
-        finder.forAll(ForAll(tmp));
+        ForAll forAll(tmp);
+        finder.forAll(forAll);
         if (e._type == StateUnknown) {
           e._type = StateKnown;
           e._state.swap(tmp);

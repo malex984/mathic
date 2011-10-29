@@ -158,7 +158,7 @@ inline void DivListModel<ULL, UDM>::insert(const Entry& entry) {
     _finder.insert(entry);
     return;
   }
-  if (findDivisor(entry) != _finder.end())
+  if (findDivisor(entry) != 0)
     return;
   bool hasMultiples = _finder.removeMultiples(entry);
   _finder.insert(entry);
@@ -175,7 +175,7 @@ inline void DivListModel<ULL, UDM>::insert(const Entry& entry, MO& out) {
     _finder.insert(entry);
     return;
   }
-  if (findDivisor(entry) != _finder.end())
+  if (findDivisor(entry) != 0)
     return;
   bool hasMultiples = _finder.removeMultiples(entry, out);
   _finder.insert(entry);

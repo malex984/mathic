@@ -56,9 +56,6 @@
     <ClInclude Include="..\..\src\KDTreeLeaf.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\KDTreeWalker.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\stdinc.h">
       <Filter>Header Files</Filter>
     </ClInclude>

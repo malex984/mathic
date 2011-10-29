@@ -491,7 +491,7 @@ namespace mathic {
   template<class C>
   template<class EntryOutput>
   void DivList<C>::forAll(EntryOutput& output) const {
-    ConstEntryOutput<DO> constOutput(output);
+    ConstEntryOutput<EntryOutput> constOutput(output);
     const_cast<DivList<C>&>(*this).forAll(constOutput);
   }
 

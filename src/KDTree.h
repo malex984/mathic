@@ -2,7 +2,6 @@
 #define MATHIC_K_D_TREE_GUARD
 
 #include "stdinc.h"
-#include "KDTreeWalker.h"
 #include "KDTreeLeaf.h"
 #include "DivMask.h"
 #include "memtailor/memtailor.h"
@@ -45,24 +44,10 @@ namespace mathic {
     typedef KDTreeNode<C, ExtEntry> Node;
     typedef KDTreeInterior<C, ExtEntry> Interior;
     typedef KDTreeLeaf<C, ExtEntry> Leaf;
-    typedef KDTreeWalker<C, ExtEntry> Walker;
 
     typedef typename Leaf::iterator LeafIt;
 
-    /** Iterator for enumerating all entries. */
-    class iterator;
-
-    /** Const iterator for enumerating all entries. */
-    class const_iterator;
-
   public:
-
-    /** Reverse iterator for enumerating all entries. */
-    typedef std::reverse_iterator<iterator> reverse_iterator;
-
-    /** Reverse const iterator for enumerating all entries. */
-    typedef std::reverse_iterator<const_iterator> const_reverse_iterator;
-
     /** Constructs an object with the given configuration. The configuration
         is copied into the object, so a reference to the passed-in object is
         not kept. The configuration is not copied other than the initial copy. */
@@ -77,7 +62,7 @@ namespace mathic {
         as a multiple. Returns true if any multiples were removed.
         Calls out.push_back(entry) for each entry that is removed. */
     template<class MultipleOutput>
-      bool removeMultiples(const Monomial& monomial, MultipleOutput& out);
+    bool removeMultiples(const Monomial& monomial, MultipleOutput& out);
 
     /** Inserts entry into the data structure. Does NOT remove multiples
         of entry and entry is inserted even if it is a multiple of another
@@ -108,13 +93,13 @@ namespace mathic {
         The method returns if proceed returns false, otherwise the
         search for divisors proceeds. */
     template<class DivisorOutput>
-      void findAllDivisors(const Monomial& monomial, DivisorOutput& out);
+    void findAllDivisors(const Monomial& monomial, DivisorOutput& out);
 
     /** Calls out.proceed(entry) for each entry that divides monomial.
         The method returns if proceed returns false, otherwise the
         search for divisors proceeds. */
     template<class DivisorOutput>
-      void findAllDivisors(const Monomial& monomial, DivisorOutput& out) const;
+    void findAllDivisors(const Monomial& monomial, DivisorOutput& out) const;
 
     /** Calls out.proceed(entry) for each entry.
         The method returns if proceed returns false, otherwise the
@@ -134,22 +119,11 @@ namespace mathic {
     /** Rebuilds the data structure. */
     void rebuild();
 
-    iterator begin() {return iterator::makeBegin(_root);}
-    const_iterator begin() const {return const_cast<KDTree<C>&>(*this).begin();}
-    iterator end() {return iterator::makeEnd(_root);}
-    const_iterator end() const {return const_cast<KDTree<C>&>(*this).end();}
-
-    reverse_iterator rbegin() {return reverse_iterator(end());}
-    const_reverse_iterator rbegin() const {return const_reverse_iterator(end());}
-    reverse_iterator rend() {return reverse_iterator(begin());}
-    const_reverse_iterator rend() const {return const_reverse_iterator(begin());}
-	
-
     /** Returns whether there are entries. */
     bool empty() const {return size() == 0;}
 
     /** Returns the number of entries. */
-    size_t size() const;
+    size_t size() const {return _size;}
 
     /** Returns a string that describes the data structure. */
     std::string getName() const;
@@ -174,10 +148,6 @@ namespace mathic {
 
     void resetNumberOfChangesTillRebuild();
     void reportChanges(size_t additions, size_t removals);
-
-    /** Encapsulates common code between iterator and const_iterator. */
-    template<class TreeIt>
-      class IterHelper;
 
     /** Transfers proceed from entry to const entry. */
     template<class DO>
@@ -206,162 +176,14 @@ namespace mathic {
     bool debugIsValid() const;
 #endif
 
-    std::vector<Node*> _tmp;
-    memt::Arena _arena;
-    C _conf;
-    Node* _root;
-    size_t _size;
-    iterator _divisorCache; /// The divisor in the previous query. Can be end().
+    mutable std::vector<Node*> _tmp; // For navigating the tree.
+    memt::Arena _arena; // Everything permanent allocated from here.
+    C _conf; // User supplied configuration.
+    Node* _root; // Root of the tree. Can be null.
+    size_t _size; // Number of entries.
+    Entry* _divisorCache; /// The divisor in the previous query. Can be null.
     size_t _changesTillRebuild; /// Update using reportChanges().
-    DivMaskCalculator _divMaskCalculator;
-  };
-
-  template<class C>
-    template<class LeafIt>
-    class KDTree<C>::IterHelper {
-    typedef IterHelper<C> Helper;
-    typedef KDTreeWalker<C, ExtEntry> Walker;
-    typedef KDTreeNode<C, ExtEntry> Node;
-  public:
-    IterHelper() {} // singular iterator
-  IterHelper(const IterHelper<C>& it):
-    _walker(it.getWalker()), _leafIt(it.getLeafIterator()) {}
-    template<class T>
-      IterHelper(const T& it):
-    _walker(it.getWalker()), _leafIt(it.getLeafIterator()) {}
-  IterHelper(Leaf& leaf, LeafIt it): _walker(Walker::makeAt(&leaf, leaf.getParent())), _leafIt(it) {}
-  IterHelper(const Walker& walker, LeafIt it): _walker(walker), _leafIt(it) {}
-    static Helper makeBegin(Node* root) {
-      Walker walker = Walker::makeAtFirstNonEmptyLeaf(root);
-      LeafIt it = walker.atEnd() ? 0 : walker.asLeaf().begin();
-      return Helper(walker, it);
-    }
-    static Helper makeEnd(Node* root) {return Helper(Walker::makeAtEnd(root), 0);}
-
-    void assign(const IterHelper& it) {
-      _walker = it._walker;
-      _leafIt = it._leafIt;
-    }
-
-    void increment() {
-      MATHIC_ASSERT(!_walker.atEnd());
-      MATHIC_ASSERT(_walker.atLeaf());
-      MATHIC_ASSERT(!_walker.asLeaf().empty());
-      MATHIC_ASSERT(_leafIt != _walker.asLeaf().end());
-      ++_leafIt;
-      if (_leafIt == _walker.asLeaf().end()) {
-        _walker.nextNonEmptyLeaf();
-        MATHIC_ASSERT(_walker.atEnd() || !_walker.asLeaf().empty());
-        _leafIt = _walker.atEnd() ? 0 : _walker.asLeaf().begin();
-      }
-      MATHIC_ASSERT((_walker.atEnd() && _leafIt == 0) ||
-             _leafIt != _walker.asLeaf().end());
-    }
-
-    void decrement() {
-      MATHIC_ASSERT(_walker.atEnd() || _walker.atLeaf());
-      MATHIC_ASSERT((_walker.atEnd() && _leafIt == 0) ||
-             _leafIt != _walker.asLeaf().end());
-      if (!_walker.atEnd() && _leafIt != _walker.asLeaf().begin())
-        --_leafIt;
-      else {
-        _walker.toPrevNonEmptyLeaf();
-        MATHIC_ASSERT(!_walker.asLeaf().empty());
-        _leafIt = _walker.asLeaf().end();
-        --_leafIt;
-      }
-    }
-
-    template<class T>
-      bool equals(const T& it) const {
-      return _walker == it.getWalker() && _leafIt == it.getLeafIterator();
-    }
-
-    const LeafIt& get() const {return _leafIt;}
-    const LeafIt& getLeafIterator() const {return _leafIt;}
-    const Walker& getWalker() const {return _walker;}
-
-  private:
-    Walker _walker;
-    LeafIt _leafIt;
-  };
-
-  template<class C>
-    class KDTree<C>::iterator :
-  public std::iterator<std::bidirectional_iterator_tag, Entry> {
-    friend class KDTree;
-    typedef typename Leaf::iterator LeafIt;
-    typedef IterHelper<LeafIt> Helper;
-  public:
-    iterator() {} // singular iterator
-  iterator(const iterator& it): _it(it._it) {}
-    iterator& operator=(const iterator& it) {_it.assign(it._it); return *this;}
-
-    iterator& operator++() {_it.increment(); return *this;}
-    iterator operator++(int) {iterator tmp = *this; operator++(); return tmp;}
-    iterator& operator--() {_it.decrement(); return *this;}
-    iterator operator--(int) {iterator tmp = *this; operator--(); return tmp;}
-
-    bool operator==(const iterator& it) const {return _it.equals(it._it);}
-    bool operator!=(const iterator& it) const {return !(*this == it);}
-    bool operator==(const const_iterator& it) const {return _it.equals(it._it);}
-    bool operator!=(const const_iterator& it) const {return !(*this == it);}
-    Entry& operator*() const {return _it.get()->get();}
-    Entry* operator->() const {return &_it.get()->get();}
-
-  protected:
-  iterator(Leaf& leaf, LeafIt it): _it(leaf, it) {}
-    static iterator makeBegin(Node* root) {
-      return iterator(Helper::makeBegin(root));
-    }
-    static iterator makeEnd(Node* root) {
-      return iterator(Helper::makeEnd(root));
-    }
-
-  private:
-  iterator(const Helper& helper): _it(helper) {}
-
-    Helper _it;
-  };
-
-  template<class C>
-    class KDTree<C>::const_iterator :
-  public std::iterator<std::bidirectional_iterator_tag, const Entry> {
-    friend class KDTree;
-    typedef typename Leaf::const_iterator LeafIt;
-    typedef IterHelper<LeafIt> Helper;
-    typedef typename KDTree<C>::iterator iterator;
-  public:
-    const_iterator() {} // singular iterator
-  const_iterator(const typename KDTree<C>::iterator& it): _it(it._it) {}
-  const_iterator(const const_iterator& it): _it(it._it) {}
-    const_iterator& operator=(const const_iterator& it) {_it.assign(it._it); return *this;}
-
-    const_iterator& operator++() {_it.increment(); return *this;}
-    const_iterator operator++(int) {const_iterator tmp = *this; operator++(); return tmp;}
-    const_iterator& operator--() {_it.decrement(); return *this;}
-    const_iterator operator--(int) {const_iterator tmp = *this; operator--(); return tmp;}
-
-    bool operator==(const iterator& it) const {return _it.equals(it._it);}
-    bool operator!=(const iterator& it) const {return !(*this == it);}
-    bool operator==(const const_iterator& it) const {return _it.equals(it._it);}
-    bool operator!=(const const_iterator& it) const {return !(*this == it);}
-    Entry& operator*() const {return _it.get()->get();}
-    Entry* operator->() const {return &_it.get()->get();}
-
-  protected:
-  const_iterator(Leaf& leaf, LeafIt it): _it(leaf, it) {}
-    static const_iterator makeBegin(Node* root) {
-      return const_iterator(Helper::makeBegin(root));
-    }
-    static const_iterator makeEnd(Node* root) {
-      return const_iterator(Helper::makeEnd(root));
-    }
-
-  private:
-  const_iterator(const Helper& helper): _it(helper) {}
-
-    Helper _it;
+    DivMaskCalculator _divMaskCalculator; // All DivMasks calculated using this.
   };
 
   template<class C>
@@ -372,25 +194,18 @@ namespace mathic {
       MATHIC_ASSERT(_conf.getLeafSize() >= 2);
       _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
       if (_conf.getUseDivisorCache())
-        _divisorCache = end();
+        _divisorCache = 0;
       resetNumberOfChangesTillRebuild();
       MATHIC_ASSERT(debugIsValid());
     }
 
   template<class C>
-    KDTree<C>::~KDTree() {
+  KDTree<C>::~KDTree() {
     clear();
   }
 
   template<class C>
-  size_t KDTree<C>::size() const {
-    MATHIC_ASSERT(_size == static_cast<size_t>(std::distance(begin(), end())));
-    MATHIC_ASSERT(_size == static_cast<size_t>(std::distance(rbegin(), rend())));
-    return _size;
-  }
-
-  template<class C>
-    std::string KDTree<C>::getName() const {
+  std::string KDTree<C>::getName() const {
     std::stringstream out;
     out << "KDTree leaf:" << _conf.getLeafSize();
     if (UseDivMask && _conf.getDoAutomaticRebuilds()) {
@@ -427,11 +242,11 @@ namespace mathic {
       node = _tmp.back();
       _tmp.pop_back();
     }
-    MATHIC_ASSERT(debugIsValid());
     MATHIC_ASSERT(_tmp.empty());
     if (_conf.getUseDivisorCache() && removedCount > 0)
-      _divisorCache = end();
+      _divisorCache = 0;
     reportChanges(0, removedCount);
+    MATHIC_ASSERT(debugIsValid());
     return removedCount > 0;
   }
 
@@ -464,9 +279,9 @@ namespace mathic {
     leaf->insert(extEntry, _conf);
 
     if (_conf.getUseDivisorCache())
-      _divisorCache = end();
-    MATHIC_ASSERT(debugIsValid());
+      _divisorCache = 0;
     reportChanges(1, 0);
+    MATHIC_ASSERT(debugIsValid());
   }
 
   /// @todo: this function is too big and it knows too much about the details
@@ -486,7 +301,7 @@ namespace mathic {
     _size = std::distance(insertBegin, insertEnd);
     _divMaskCalculator.rebuild(insertBegin, insertEnd, _conf);
     if (_conf.getUseDivisorCache())
-      _divisorCache = this->end();
+      _divisorCache = 0;
 
     typedef InsertTodo<Iter> Task;
     typedef std::vector<Task> TaskCont;
@@ -541,7 +356,7 @@ namespace mathic {
       }
     }
     if (_conf.getUseDivisorCache())
-      _divisorCache = this->end();
+      _divisorCache = 0;
 
     if (C::UseTreeDivMask) {
       // Set div tree masks bottom up.
@@ -556,8 +371,8 @@ namespace mathic {
         if (node->getStrictlyGreater().isInterior())
           nodes.push_back(&node->getStrictlyGreater().asInterior());
       }
-      NodeCont::reverse_iterator it = nodes.rbegin();
-      NodeCont::reverse_iterator end = nodes.rend();
+      typename NodeCont::reverse_iterator it = nodes.rbegin();
+      typename NodeCont::reverse_iterator end = nodes.rend();
       for (; it != end; ++it) {
         Interior* node = *it;
         node->updateToLowerBound(node->getEqualOrLess());
@@ -574,8 +389,8 @@ namespace mathic {
   typename KDTree<C>::Entry* KDTree<C>::findDivisor
     (const Monomial& monomial) {
     if (_conf.getUseDivisorCache() &&
-        _divisorCache != end() && _conf.divides(*_divisorCache, monomial))
-      return &*_divisorCache;
+        _divisorCache != 0 && _conf.divides(*_divisorCache, monomial))
+      return _divisorCache;
 
     ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
 
@@ -602,7 +417,9 @@ namespace mathic {
         if (leafIt != leaf.end()) {
           MATHIC_ASSERT(_conf.divides(leafIt->get(), extMonomial.get()));
           _tmp.clear();
-          return &*(_divisorCache = iterator(leaf, leafIt));
+          if (_conf.getUseDivisorCache())
+            _divisorCache = &leafIt->get();
+          return &leafIt->get();
         }
       }
     next:
@@ -684,17 +501,27 @@ namespace mathic {
   }
 
   template<class C>
-    void KDTree<C>::clear() {
-    for (Walker walker(_root); !walker.atEnd(); walker.next())
-      if (walker.atLeaf())
-        walker.asLeaf().clear();
+  void KDTree<C>::clear() {
+    MATHIC_ASSERT(_tmp.empty());
+    if (_root != 0)
+      _tmp.push_back(_root);
+    while (!_tmp.empty()) {
+      Node* node = _tmp.back();
+      _tmp.pop_back();
+      while (node->isInterior()) {
+        _tmp.push_back(&node->asInterior().getStrictlyGreater());
+        node = &node->asInterior().getEqualOrLess();
+      }
+      MATHIC_ASSERT(node->isLeaf());
+      node->asLeaf().clear();
+    }
     _arena.freeAllAllocs();
     _size = 0;
     _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
     resetNumberOfChangesTillRebuild();
     _divMaskCalculator.rebuildDefault(_conf);
     if (_conf.getUseDivisorCache())
-      _divisorCache = end();
+      _divisorCache = 0;
   }
 
   template<class C>
@@ -702,14 +529,23 @@ namespace mathic {
     const size_t totalSize = size();
     typedef memt::ArenaVector<Entry, true> TmpContainer;
     TmpContainer tmpCopy(memt::Arena::getArena(), totalSize);
-    for (Walker walker(_root); !walker.atEnd(); walker.next()) {
-      if (walker.atLeaf()) {
-        Leaf& leaf = walker.asLeaf();
-        typename Leaf::const_iterator stop = leaf.end();
-        for (typename Leaf::const_iterator it = leaf.begin(); it != stop; ++it)
-          tmpCopy.push_back(it->get());
-        leaf.clear();
+
+    MATHIC_ASSERT(_tmp.empty());
+    if (_root != 0)
+      _tmp.push_back(_root);
+    while (!_tmp.empty()) {
+      Node* node = _tmp.back();
+      _tmp.pop_back();
+      while (node->isInterior()) {
+        _tmp.push_back(&node->asInterior().getStrictlyGreater());
+        node = &node->asInterior().getEqualOrLess();
       }
+      MATHIC_ASSERT(node->isLeaf());
+      Leaf& leaf = node->asLeaf();
+      typename Leaf::const_iterator stop = leaf.end();
+      for (typename Leaf::const_iterator it = leaf.begin(); it != stop; ++it)
+        tmpCopy.push_back(it->get());
+      leaf.clear();
     }
     _arena.freeAllAllocs();
     _size = 0;
@@ -753,57 +589,64 @@ namespace mathic {
 
 #ifdef MATHIC_DEBUG
   template<class C>
-    bool KDTree<C>::debugIsValid() const {
+  bool KDTree<C>::debugIsValid() const {
     MATHIC_ASSERT(_tmp.empty());
     MATHIC_ASSERT(!_conf.getDoAutomaticRebuilds() || _conf.getRebuildRatio() > 0);
-    Walker walker(_root);
-    if (walker.atEnd())
+
+    if (empty())
       return true;
-    MATHIC_ASSERT(walker.getNode()->getParent() == 0);
-    for (; !walker.atEnd(); walker.next()) {
-      if (walker.atLeaf()) {
-        Leaf& leaf = walker.asLeaf();
+    MATHIC_ASSERT(_root != 0);
+
+    std::vector<Node*> nodes;
+    nodes.reserve(size());
+    if (_root != 0)
+      nodes.push_back(_root);
+    size_t sizeSum = 0;
+    for (size_t i = 0; i < nodes.size(); ++i) {
+      Node* node = nodes[i];
+      if (node->isInterior()) {
+        MATHIC_ASSERT(node->asInterior().getVar() < _conf.getVarCount());
+        nodes.push_back(&node->asInterior().getStrictlyGreater());
+        nodes.push_back(&node->asInterior().getEqualOrLess());
+      } else
+        sizeSum += node->asLeaf().size();
+    }
+    MATHIC_ASSERT(sizeSum == size());
+
+    MATHIC_ASSERT(_tmp.empty());
+    for (size_t i = 0; i < nodes.size(); ++i) {
+      Node* nodei = nodes[i];
+      if (nodei->isLeaf()) {
+        Leaf& leaf = nodei->asLeaf();
         typedef typename Leaf::const_iterator LeafCIter;
         if (C::UseTreeDivMask) {
           for (LeafCIter it = leaf.begin(); it != leaf.end(); ++it) {
             MATHIC_ASSERT(leaf.getDivMask().canDivide(it->getDivMask()));
           }
         }
+        continue;
+      }
+      Interior& interior = nodei->asInterior();
 
-        Walker ancestor(walker);
-        // Check all interior nodes above leaf have each monomial in the
-        // leaf in the correct child. Also check div masks.
-        while (!ancestor.atRoot()) {
-          Node* child = ancestor.getNode();
-          ancestor.toParent();
-          MATHIC_ASSERT(!ancestor.atEnd());
-          Interior& interior = ancestor.asInterior();
-          if (child == &interior.getEqualOrLess()) {
-            typename Leaf::const_iterator it = leaf.begin();
-            for (; it != leaf.end(); ++it) {
-              MATHIC_ASSERT(!(interior.getExponent() <
-                       _conf.getExponent(it->get(), interior.getVar())));
-              if (C::UseTreeDivMask) {
-                MATHIC_ASSERT(interior.getDivMask().canDivide(it->getDivMask()));
-              }
-            }
-          } else {
-            MATHIC_ASSERT(child == &ancestor.getStrictlyGreater());
-            typename Leaf::const_iterator it = leaf.begin();
-            for (; it != leaf.end(); ++it) {
-              MATHIC_ASSERT(interior.getExponent() <
-                     _conf.getExponent(it->get(), interior.getVar()));
-              if (C::UseTreeDivMask) {
-                MATHIC_ASSERT(interior.getDivMask().canDivide(it->getDivMask()));
-              }
-            }
+      ASSERT(_tmp.empty());
+      _tmp.push_back(&interior.getEqualOrLess());
+      while (!_tmp.empty()) {
+        Node* node = _tmp.back();
+        _tmp.pop_back();
+        if (C::UseTreeDivMask) {
+          MATHIC_ASSERT(interior.getDivMask().canDivide(node->getDivMask()));
+        }
+        if (node->isInterior()) {
+          _tmp.push_back(&node->asInterior().getStrictlyGreater());
+          _tmp.push_back(&node->asInterior().getEqualOrLess());
+        } else {
+          Leaf& leaf = node->asLeaf();
+          typename Leaf::const_iterator stop = leaf.end();
+          for (typename Leaf::const_iterator it = leaf.begin(); it != stop; ++it) {
+            MATHIC_ASSERT(!(interior.getExponent() <
+              _conf.getExponent(it->get(), interior.getVar())));
           }
         }
-      } else {
-        Interior& interior = walker.asInterior();
-        MATHIC_ASSERT(walker.getEqualOrLess().getParent() == &interior);
-        MATHIC_ASSERT(walker.getStrictlyGreater().getParent() == &interior);
-        MATHIC_ASSERT(interior.getVar() < _conf.getVarCount());
       }
     }
     return true;

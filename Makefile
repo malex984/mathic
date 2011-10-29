@@ -1,9 +1,9 @@
 # ***** Variables
 
-rawSources := Timer.cpp main.cpp ColumnPrinter.cpp \
-  divsim/Simulation.cpp divsim/divMain.cpp \
-  pqsim/Item.cpp pqsim/Model.cpp pqsim/Simulator.cpp pqsim/pqMain.cpp \
-  libs/memtailor.cpp
+rawSources := Timer.cpp ColumnPrinter.cpp libs/memtailor.cpp
+rawDivSources := divsim/Simulation.cpp divsim/divMain.cpp
+rawPqSources := pqsim/Item.cpp pqsim/Model.cpp pqsim/Simulator.cpp	\
+  pqsim/pqMain.cpp
 
 ifndef ldflags
   ldflags = $(LDFLAGS)
@@ -19,7 +19,8 @@ endif
 
 cflags = $(CFLAGS) $(CPPFLAGS) -Wall -ansi -Isrc/ \
          -Wno-uninitialized -Wno-unused-parameter -Ilibs/memtailor/include
-program = sim
+pqProgram = pq
+divProgram = div
 
 ifndef MODE
  MODE=release
@@ -32,7 +33,7 @@ ifeq ($(MODE), release)
   MATCH=true
 endif
 ifeq ($(MODE), debug)
-  rawSources := $(rawSources) $(rawTests)
+  rawSources := $(rawSources)
   outdir = bin/debug/
   cflags += -g -D DEBUG -fno-inline -Werror -Wextra -Wno-uninitialized \
             -Wno-unused-parameter
@@ -52,7 +53,7 @@ ifeq ($(MODE), profile)
   benchArgs = _profile $(FROBBYARGS)
 endif
 ifeq ($(MODE), analysis)
-  rawSources := $(rawSources) $(rawTests)
+  rawSources := $(rawSources)
   outdir = bin/analysis/
   cflags += -Wextra -fsyntax-only -O1 -Wfloat-equal -Wundef				\
   -Wno-endif-labels -Wshadow -Wlarger-than-1000 -Wpointer-arith			\
@@ -69,14 +70,19 @@ ifeq ($(MATCH), false)
   $(error Unknown value of MODE: "$(MODE)")
 endif
 
-sources = $(patsubst %.cpp, src/%.cpp, $(rawSources))
-objs    = $(patsubst %.cpp, $(outdir)%.o, $(rawSources))
+sources    = $(patsubst %.cpp, src/%.cpp, $(rawSources))
+pqSources  = $(patsubst %.cpp, src/%.cpp, $(rawSources) $(rawPqSources))
+divSources = $(patsubst %.cpp, src/%.cpp, $(rawSources) $(rawDivSources))
+
+objs = $(patsubst %.cpp, $(outdir)%.o, $(rawSources))
+pqObjs = $(patsubst %.cpp, $(outdir)%.o, $(rawSources) $(rawPqSources))
+divObjs = $(patsubst %.cpp, $(outdir)%.o, $(rawSources) $(rawDivSources))
 
 # ***** Compilation
 
-.PHONY: all depend clean bin/$(program) test library distribution clear fixspace
+.PHONY: all depend clean bin/$(divProgram) bin/$(pqProgram) test library distribution clear fixspace
 
-all: bin/$(program) $(outdir)$(program)
+all: bin/$(pqProgram) $(outdir)$(pqProgram) bin/$(divProgram) $(outdir)$(divProgram)
 
 # ****************** Testing
 # use TESTARGS of
@@ -125,28 +131,53 @@ benchAlexdual: all
 	cd test/bench; ./run_alexdual_bench $(benchArgs)
 
 # Make symbolic link to program from bin/
-bin/$(program): $(outdir)$(program)
+bin/$(divProgram): $(outdir)$(divProgram)
 ifneq ($(MODE), analysis)
 	@mkdir -p $(dir $@);
-	cd bin; rm -f div; ln -s ../$(outdir)$(program) div; cd ..
-	cd bin; rm -f pq; ln -s ../$(outdir)$(program) pq; cd ..
+	cd bin; rm -f div; ln -s ../$(outdir)$(divProgram) div; cd ..
+	cd bin; rm -f pq; ln -s ../$(outdir)$(divProgram) pq; cd ..
 endif
 
 # Link object files into executable
-$(outdir)$(program): $(objs) | $(outdir)
+$(outdir)$(divProgram): $(divObjs) | $(outdir)
 	@mkdir -p $(dir $@)
 ifeq ($(MODE), analysis)
 	echo > $@
 endif
 ifneq ($(MODE), analysis)
-	$(CXX) $(objs) $(ldflags) -o $@
+	$(CXX) $(divObjs) $(ldflags) -o $@
 	if [ -f $@.exe ]; then \
       mv -f $@.exe $@; \
 	fi
 endif
 ifeq ($(MODE), release)
-	#strip $@
+	strip $@
 endif
+
+# Make symbolic link to program from bin/
+bin/$(pqProgram): $(outdir)$(pqProgram)
+ifneq ($(MODE), analysis)
+	@mkdir -p $(dir $@);
+	cd bin; rm -f div; ln -s ../$(outdir)$(pqProgram) div; cd ..
+	cd bin; rm -f pq; ln -s ../$(outdir)$(pqProgram) pq; cd ..
+endif
+
+# Link object files into executable
+$(outdir)$(pqProgram): $(pqObjs) | $(outdir)
+	@mkdir -p $(dir $@)
+ifeq ($(MODE), analysis)
+	echo > $@
+endif
+ifneq ($(MODE), analysis)
+	$(CXX) $(pqObjs) $(ldflags) -o $@
+	if [ -f $@.exe ]; then \
+      mv -f $@.exe $@; \
+	fi
+endif
+ifeq ($(MODE), release)
+    strip $@
+endif
+
 
 # Link object files into library
 library: bin/$(library)
