@@ -105,15 +105,15 @@ class DivListModel {
   template<class MultipleOutput>
   void insert(const Entry& entry, MultipleOutput& removed);
 
-  iterator findDivisor(const Monomial& monomial) {
+  Entry* findDivisor(const Monomial& monomial) {
     iterator it = _finder.findDivisor(monomial);
     if (_moveDivisorToFront && it != _finder.end()) {
       _finder.moveToFront(it);
       it = _finder.begin();
     }
-    return it;
+    return it == end() ? 0 : &*it;
   }
-  const_iterator findDivisor(const Monomial& monomial) const {
+  const Entry* findDivisor(const Monomial& monomial) const {
     return const_cast<DivListModel<ULL, UDM>&>(*this).findDivisor(monomial);
   }
 
@@ -124,6 +124,14 @@ class DivListModel {
   template<class DO>
   void findAllDivisors(const Monomial& monomial, DO& out) const {
     _finder.findAllDivisors(monomial, out);
+  }
+  template<class EO>
+  void forAll(EO& out) {
+    _finder.forAll(out);
+  }
+  template<class EO>
+  void forAll(EO& out) const {
+    _finder.forAll(out);
   }
 
   std::string getName() const;

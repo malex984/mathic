@@ -54,6 +54,7 @@
       <AdditionalIncludeDirectories>D:\key\projs\mathic\libs\memtailor\include;D:\key\projs\mathic\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <MinimalRebuild>false</MinimalRebuild>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -69,6 +70,7 @@
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>D:\key\projs\mathic\libs\memtailor\include;D:\key\projs\mathic\src;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -87,7 +89,6 @@
   <ItemGroup>
     <ClInclude Include="..\..\src\ColumnPrinter.h" />
     <ClInclude Include="..\..\src\Comparer.h" />
-    <ClInclude Include="..\..\src\ComTree.h" />
     <ClInclude Include="..\..\src\DivFinder.h" />
     <ClInclude Include="..\..\src\DivList.h" />
     <ClInclude Include="..\..\src\DivMask.h" />
@@ -97,16 +98,12 @@
     <ClInclude Include="..\..\src\divsim\Monomial.h" />
     <ClInclude Include="..\..\src\divsim\Simulation.h" />
     <ClInclude Include="..\..\src\divsim\stdinc.h" />
-    <ClInclude Include="..\..\src\Geobucket.h" />
-    <ClInclude Include="..\..\src\GeoFront.h" />
     <ClInclude Include="..\..\src\Heap.h" />
     <ClInclude Include="..\..\src\KDTree.h" />
     <ClInclude Include="..\..\src\KDTreeLeaf.h" />
     <ClInclude Include="..\..\src\KDTreeWalker.h" />
     <ClInclude Include="..\..\src\stdinc.h" />
-    <ClInclude Include="..\..\src\StlSet.h" />
     <ClInclude Include="..\..\src\Timer.h" />
-    <ClInclude Include="..\..\src\TourTree.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

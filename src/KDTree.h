@@ -49,12 +49,13 @@ namespace mathic {
 
     typedef typename Leaf::iterator LeafIt;
 
-  public:
     /** Iterator for enumerating all entries. */
     class iterator;
 
     /** Const iterator for enumerating all entries. */
     class const_iterator;
+
+  public:
 
     /** Reverse iterator for enumerating all entries. */
     typedef std::reverse_iterator<iterator> reverse_iterator;
@@ -91,11 +92,17 @@ namespace mathic {
         function, so the range must be mutable. If that is not acceptable,
         call the one element insert method for each element. */
     template<class Iter>
-      void insert(Iter begin, Iter end);
+    void insert(Iter begin, Iter end);
+
+    /** Returns a pointer to an entry that divides monomial. Returns null if no
+        entries divide monomial. */
+    Entry* findDivisor(const Monomial& monomial);
 
     /** Returns the position of a divisor of monomial. Returns end() if no
         entries divide monomial. */
-    iterator findDivisor(const Monomial& monomial);
+    const Entry* findDivisor(const Monomial& monomial) const {
+      return const_cast<KDTree<C>&>(*this).findDivisor(monomial);
+    }
 
     /** Calls out.proceed(entry) for each entry that divides monomial.
         The method returns if proceed returns false, otherwise the
@@ -109,11 +116,17 @@ namespace mathic {
     template<class DivisorOutput>
       void findAllDivisors(const Monomial& monomial, DivisorOutput& out) const;
 
-    /** Returns the position of a divisor of monomial. Returns end() if no
-        entries divide monomial. */
-    const_iterator findDivisor(const Monomial& monomial) const {
-      return const_cast<KDTree<C>&>(*this).findDivisor(monomial);
-    }
+    /** Calls out.proceed(entry) for each entry.
+        The method returns if proceed returns false, otherwise the
+        search for divisors proceeds. */
+    template<class EntryOutput>
+    void forAll(EntryOutput& out);
+
+    /** Calls out.proceed(entry) for each entry.
+        The method returns if proceed returns false, otherwise the
+        search for divisors proceeds. */
+    template<class EntryOutput>
+    void forAll(EntryOutput& out) const;
 
     /** Removes all entries. Does not reset the configuration object. */
     void clear();
@@ -166,11 +179,11 @@ namespace mathic {
     template<class TreeIt>
       class IterHelper;
 
-    /** Transfers push_back from entry to const entry. */
+    /** Transfers proceed from entry to const entry. */
     template<class DO>
-      class ConstDivisorOutput {
+      class ConstEntryOutput {
     public:
-    ConstDivisorOutput(DO& out): _out(out) {}
+    ConstEntryOutput(DO& out): _out(out) {}
       bool proceed(const Entry& entry) {return _out.proceed(entry);}
     private:
       DO& _out;
@@ -558,11 +571,11 @@ namespace mathic {
   }
 
   template<class C>
-  typename KDTree<C>::iterator KDTree<C>::findDivisor
+  typename KDTree<C>::Entry* KDTree<C>::findDivisor
     (const Monomial& monomial) {
     if (_conf.getUseDivisorCache() &&
         _divisorCache != end() && _conf.divides(*_divisorCache, monomial))
-      return _divisorCache;
+      return &*_divisorCache;
 
     ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
 
@@ -589,7 +602,7 @@ namespace mathic {
         if (leafIt != leaf.end()) {
           MATHIC_ASSERT(_conf.divides(leafIt->get(), extMonomial.get()));
           _tmp.clear();
-          return _divisorCache = iterator(leaf, leafIt);
+          return &*(_divisorCache = iterator(leaf, leafIt));
         }
       }
     next:
@@ -599,7 +612,7 @@ namespace mathic {
       _tmp.pop_back();
     }
     MATHIC_ASSERT(_tmp.empty());
-    return end();
+    return 0;
   }
 
   template<class C>
@@ -632,10 +645,42 @@ namespace mathic {
   }
 
   template<class C>
-    template<class DO>
-    void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) const {
-    ConstDivisorOutput<DO> constOutput(output);
+  template<class DO>
+  void KDTree<C>::findAllDivisors(const Monomial& monomial, DO& output) const {
+    ConstEntryOutput<DO> constOutput(output);
     const_cast<KDTree<C>&>(*this).findAllDivisors(monomial, constOutput);
+  }
+
+  template<class C>
+  template<class EO>
+  void KDTree<C>::forAll(EO& output) {
+    MATHIC_ASSERT(_tmp.empty());
+    Node* node = _root;
+    while (true) {
+      while (node->isInterior()) {
+        Interior& interior = node->asInterior();
+        _tmp.push_back(&interior.getStrictlyGreater());
+        node = &interior.getEqualOrLess();
+      }
+      MATHIC_ASSERT(node->isLeaf());
+      Leaf& leaf = node->asLeaf();
+      if (!leaf.forAll(output)) {
+        _tmp.clear();
+        break;
+      }
+      if (_tmp.empty())
+        break;
+      node = _tmp.back();
+      _tmp.pop_back();
+    }
+    MATHIC_ASSERT(_tmp.empty());
+  }
+
+  template<class C>
+  template<class DO>
+  void KDTree<C>::forAll(DO& output) const {
+    ConstEntryOutput<DO> constOutput(output);
+    const_cast<KDTree<C>&>(*this).forAll(constOutput);
   }
 
   template<class C>

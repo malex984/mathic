@@ -222,6 +222,18 @@ private:
 #endif
 };
 
+struct ForAll {
+public:
+  ForAll(std::vector<const Monomial::Exponent*>& entries): _entries(entries) {}
+  bool proceed(const Monomial& m) {
+    _entries.push_back(m.getPointer());
+    return true;
+  }
+
+private:
+  std::vector<const Monomial::Exponent*>& _entries;
+};
+
 template<class DivFinder>
 void Simulation::run(DivFinder& finder) {
   mic::Timer timer;
@@ -241,10 +253,7 @@ void Simulation::run(DivFinder& finder) {
         store.checkInsert(e, finder);
       } else if (e._type == StateUnknown || e._type == StateKnown) {
         tmp.clear();
-        for (typename DivFinder::const_iterator it = finder.begin();
-          it != finder.end(); ++it) {
-          tmp.push_back(it->getPointer());
-        }
+        finder.forAll(ForAll(tmp));
         if (e._type == StateUnknown) {
           e._type = StateKnown;
           e._state.swap(tmp);
@@ -255,8 +264,8 @@ void Simulation::run(DivFinder& finder) {
           }
         }
       } else if (!_findAll) {
-        typename DivFinder::const_iterator it = finder.findDivisor(e._monomial);
-        if (it == finder.end()) {
+        typename DivFinder::Entry* entry = finder.findDivisor(e._monomial);
+        if (entry == 0) {
           if (e._type == QueryHasDivisor) {
             std::cerr << "Divisor finder \"" << finder.getName()
                       << "\" failed to find divisor." << std::endl;
@@ -266,7 +275,7 @@ void Simulation::run(DivFinder& finder) {
         } else {
 #ifdef DEBUG
           for (size_t var = 0; var < _varCount; ++var) {
-            ASSERT((*it)[var] <= e._monomial[var]);
+            ASSERT((*entry)[var] <= e._monomial[var]);
           }
 #endif
           if (e._type == QueryNoDivisor) {

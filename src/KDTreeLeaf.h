@@ -191,13 +191,19 @@ namespace mathic {
       size_t removeMultiples(const EM& monomial, MO& out, const C& conf);
 
     template<class EM>
-      iterator findDivisor(const EM& extMonomial, const C& conf);
+    iterator findDivisor(const EM& extMonomial, const C& conf);
 
     /** Calls out.proceed(entry) for each entry that divides extMonomial.
         Stops and returns false if out.proceed(entry) returns false. Returns
         true if all calls out.proceed(entry) returned true. */
     template<class EM, class DO>
-      bool findAllDivisors(const EM& extMonomial, DO& out, const C& conf);
+    bool findAllDivisors(const EM& extMonomial, DO& out, const C& conf);
+
+    /** Calls out.proceed(entry) for each entry.
+        Stops and returns false if out.proceed(entry) returns false. Returns
+        true if all calls out.proceed(entry) returned true. */
+    template<class EO>
+    bool forAll(EO& eo);
 
     Interior& split(memt::Arena& arena, const C& conf);
 
@@ -406,8 +412,8 @@ namespace mathic {
   }
 
   template<class C, class EE>
-    template<class EM, class DO>
-    bool KDTreeLeaf<C, EE>::
+  template<class EM, class DO>
+  bool KDTreeLeaf<C, EE>::
     findAllDivisors(const EM& extMonomial, DO& out, const C& conf) {
     if (!conf.getSortOnInsert()) {
       const iterator stop = end();
@@ -424,6 +430,16 @@ namespace mathic {
           if (!out.proceed(it->get()))
             return false;
     }
+    return true;
+  }
+
+  template<class C, class EE>
+  template<class EO>
+  bool KDTreeLeaf<C, EE>::forAll(EO& output) {
+    const iterator stop = end();
+    for (iterator it = begin(); it != stop; ++it)
+      if (!output.proceed(it->get()))
+        return false;
     return true;
   }
 

@@ -85,9 +85,14 @@ namespace mathic {
     const_iterator findDivisor(const Monomial& monomial) const;
 
     template<class DO>
-      void findAllDivisors(const Monomial& monomial, DO& out);
+    void findAllDivisors(const Monomial& monomial, DO& out);
     template<class DO>
-      void findAllDivisors(const Monomial& monomial, DO& out) const;
+    void findAllDivisors(const Monomial& monomial, DO& out) const;
+
+    template<class EntryOutput>
+    void forAll(EntryOutput& output);
+    template<class EntryOutput>
+    void forAll(EntryOutput& output) const;
 
     iterator begin() {return iterator(_list.begin());}
     const_iterator begin() const {return const_iterator(_list.begin());}
@@ -122,9 +127,9 @@ namespace mathic {
     void reportChanges(size_t changesMadeCount);
 
     template<class DO>
-    class ConstDivisorOutput {
+    class ConstEntryOutput {
     public:
-    ConstDivisorOutput(DO& out): _out(out) {}
+    ConstEntryOutput(DO& out): _out(out) {}
       bool proceed(const Entry& entry) {return _out.proceed(entry);}
     private:
       DO& _out;
@@ -446,13 +451,13 @@ namespace mathic {
   }
 
   template<class C>
-    typename DivList<C>::const_iterator
+  typename DivList<C>::const_iterator
     DivList<C>::findDivisor(const Monomial& monomial) const {
     return const_cast<DivList<C>&>(*this).findDivisor(monomial);
   }
 
   template<class C>
-    template<class DO>
+  template<class DO>
     void DivList<C>::
     findAllDivisors(const Monomial& monomial, DO& out) {
     ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
@@ -467,15 +472,31 @@ namespace mathic {
   }
 
   template<class C>
-    template<class DO>
-    void DivList<C>::findAllDivisors(const Monomial& monomial,
+  template<class DO>
+  void DivList<C>::findAllDivisors(const Monomial& monomial,
                                      DO& output) const {
-    ConstDivisorOutput<DO> constOutput(output);
+    ConstEntryOutput<DO> constOutput(output);
     const_cast<DivList<C>&>(*this).findAllDivisors(monomial, constOutput);
   }
 
   template<class C>
-    std::string DivList<C>::getName() const {
+  template<class EntryOutput>
+  void DivList<C>::forAll(EntryOutput& output) {
+    iterator stop = end();
+    for (iterator it = begin(); it != stop; ++it)
+      if (!output.proceed(*it))
+        return;
+  }
+
+  template<class C>
+  template<class EntryOutput>
+  void DivList<C>::forAll(EntryOutput& output) const {
+    ConstEntryOutput<DO> constOutput(output);
+    const_cast<DivList<C>&>(*this).forAll(constOutput);
+  }
+
+  template<class C>
+  std::string DivList<C>::getName() const {
     std::ostringstream out;
     out <<"DivList"
         << (UseLinkedList ? " linked" : " array");

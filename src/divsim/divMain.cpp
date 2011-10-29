@@ -14,7 +14,7 @@ int main() {
   timer.print(std::cout);
   std::cout << std::endl;
 #ifdef DEBUG
-  sim.makeStandard(10, 400, 100, true);
+  sim.makeStandard(10, 400, 100, false);
 #else
   sim.makeStandard(10, 5000, 100000, true);
 #endif

@@ -90,8 +90,6 @@ class KDTreeModel {
   typedef KDTreeModelConfiguration<UseDivMask, UseTreeDivMask> C;
   typedef mathic::KDTree<C> Finder;
  public:
-  typedef typename Finder::iterator iterator;
-  typedef typename Finder::const_iterator const_iterator;
   typedef typename Finder::Monomial Monomial;
   typedef typename Finder::Entry Entry;
 
@@ -112,10 +110,10 @@ class KDTreeModel {
   template<class MultipleOutput>
   void insert(const Entry& entry, MultipleOutput& removed);
 
-  iterator findDivisor(const Monomial& monomial) {
+  Entry* findDivisor(const Monomial& monomial) {
     return _finder.findDivisor(monomial);
   }
-  const_iterator findDivisor(const Monomial& monomial) const {
+  const Entry* findDivisor(const Monomial& monomial) const {
     return _finder.findDivisor(monomial);
   }
   std::string getName() const;
@@ -128,11 +126,14 @@ class KDTreeModel {
   void findAllDivisors(const Monomial& monomial, DO& out) const {
     _finder.findAllDivisors(monomial, out);
   }
-
-  iterator begin() {return _finder.begin();}
-  const_iterator begin() const {return _finder.begin();}
-  iterator end() {return _finder.end();}
-  const_iterator end() const {return _finder.end();}
+  template<class EO>
+  void forAll(EO& out) {
+    _finder.forAll(out);
+  }
+  template<class EO>
+  void forAll(EO& out) const {
+    _finder.forAll(out);
+  }
   size_t size() const {return _finder.size();}
 
   unsigned long long getExpQueryCount() const {
@@ -152,7 +153,7 @@ inline void KDTreeModel<UDM, UTDM>::insert(const Entry& entry) {
     _finder.insert(entry);
     return;
   }
-  if (findDivisor(entry) != _finder.end())
+  if (findDivisor(entry) != 0)
     return;
   _finder.removeMultiples(entry);
   _finder.insert(entry);
@@ -166,7 +167,7 @@ insert(const Entry& entry, MultipleOutput& removed) {
     _finder.insert(entry);
     return;
   }
-  if (findDivisor(entry) != _finder.end())
+  if (findDivisor(entry) != 0)
     return;
   _finder.removeMultiples(entry, removed);
   _finder.insert(entry);
