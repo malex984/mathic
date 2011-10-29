@@ -6,7 +6,7 @@
 #include "Timer.h"
 #include <iostream>
 
-int divMain() {
+int main() {
   const size_t repeats = IF_DEBUG(true ? 1 :) 1;
   Simulation sim(repeats, true);
   mic::Timer timer;
@@ -88,7 +88,7 @@ int divMain() {
     for (int noneFrontSort = 0; noneFrontSort <= 2; ++noneFrontSort) {
       bool tof = (noneFrontSort == 1);
       bool sort = (noneFrontSort == 2);
-
+      
       for (double ratio = 0.5; ratio < 0.51; ratio += 0.1)
         for (size_t start = 500; start <= 500; start += 100)
           sim.run<DivListModel<1, 1> >(mini, tof, sort, ratio, start);

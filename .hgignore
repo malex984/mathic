@@ -7,3 +7,4 @@ core
 bin/
 libs/
 .svn
+build.vc10/

@@ -263,6 +263,7 @@ namespace mathic {
     iterator moveTo = end();
     for (--moveTo; moveTo != it; --moveTo)
       *moveTo = *(moveTo - 1);
+    updateToLowerBound(entry);
     *it = entry;
   }
 

@@ -1,6 +1,6 @@
 #ifndef PQ_MAIN
 #define PQ_MAIN
 
-int pqMain(int argc, const char** args);
+int main(int argc, const char** args);
 
 #endif

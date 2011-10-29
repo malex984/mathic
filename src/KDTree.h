@@ -414,7 +414,7 @@ namespace mathic {
       node = _tmp.back();
       _tmp.pop_back();
     }
-    //MATHIC_ASSERT(debugIsValid());
+    MATHIC_ASSERT(debugIsValid());
     MATHIC_ASSERT(_tmp.empty());
     if (_conf.getUseDivisorCache() && removedCount > 0)
       _divisorCache = end();
@@ -530,13 +530,26 @@ namespace mathic {
     if (_conf.getUseDivisorCache())
       _divisorCache = this->end();
 
-    // set div masks
     if (C::UseTreeDivMask) {
-      for (Walker walker(_root); !walker.atEnd(); walker.next())
-        if (walker.atInterior()) {
-          walker.getNode()->updateToLowerBound(walker.asInterior().getEqualOrLess());
-          walker.getNode()->updateToLowerBound(walker.asInterior().getStrictlyGreater());
-        }
+      // Set div tree masks bottom up.
+      typedef std::vector<Interior*> NodeCont;
+      NodeCont nodes;
+      if (_root->isInterior())
+        nodes.push_back(&_root->asInterior());
+      for (size_t i = 0; i < nodes.size(); ++i) {
+        Interior* node = nodes[i];
+        if (node->getEqualOrLess().isInterior())
+          nodes.push_back(&node->getEqualOrLess().asInterior());
+        if (node->getStrictlyGreater().isInterior())
+          nodes.push_back(&node->getStrictlyGreater().asInterior());
+      }
+      NodeCont::reverse_iterator it = nodes.rbegin();
+      NodeCont::reverse_iterator end = nodes.rend();
+      for (; it != end; ++it) {
+        Interior* node = *it;
+        node->updateToLowerBound(node->getEqualOrLess());
+        node->updateToLowerBound(node->getStrictlyGreater());
+      }
     }
 
     MATHIC_ASSERT(debugIsValid());

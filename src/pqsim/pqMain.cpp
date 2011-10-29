@@ -17,7 +17,7 @@ namespace {
   }
 }
 
-int pqMain(int argc, const char** args) {
+int main(int argc, const char** args) {
   srand(static_cast<unsigned int>(time(0)));
   srand(0);
   if (argc < 4) {
