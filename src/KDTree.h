@@ -130,6 +130,7 @@ namespace mathic {
     const_reverse_iterator rbegin() const {return const_reverse_iterator(end());}
     reverse_iterator rend() {return reverse_iterator(begin());}
     const_reverse_iterator rend() const {return const_reverse_iterator(begin());}
+	
 
     /** Returns whether there are entries. */
     bool empty() const {return size() == 0;}
@@ -145,6 +146,14 @@ namespace mathic {
 
     /** Returns a reference to this object's configuration object. */
     const C& getConfiguration() const {return _conf;}
+
+	/** Returns the number of bytes allocated by this object. Does not
+		include sizeof(*this), does not include any additional memory
+		that the configuration may have allocated and does not include
+		any memory that an Entry may point to. Does include
+		sizeof(Entry) as well as unused memory that is being kept to
+		avoid frequent allocations. */
+    size_t getMemoryUsage() const;
 
   private:
     KDTree(const KDTree<C>&); // unavailable
@@ -405,7 +414,7 @@ namespace mathic {
       node = _tmp.back();
       _tmp.pop_back();
     }
-    MATHIC_ASSERT(debugIsValid());
+    //MATHIC_ASSERT(debugIsValid());
     MATHIC_ASSERT(_tmp.empty());
     if (_conf.getUseDivisorCache() && removedCount > 0)
       _divisorCache = end();
@@ -675,6 +684,13 @@ namespace mathic {
       _changesTillRebuild -= changesMadeCount;
     else
       rebuild();
+  }
+
+  template<class C>
+  size_t KDTree<C>::getMemoryUsage() const {
+	size_t sum = _arena.getMemoryUsage();
+	sum += _tmp.capacity() * sizeof(_tmp.front());
+	return sum;
   }
 
 #ifdef MATHIC_DEBUG

@@ -45,9 +45,13 @@ int divMain() {
 
 
   for (int mini = 1; mini <= 1; ++mini) {
-    for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
-      for (int useDivisorCache = 0; useDivisorCache <= 0; ++useDivisorCache) {
- /*
+    for (int sortOnInsert = 1; sortOnInsert <= 1; ++sortOnInsert) {
+      for (int useDivCache = 0; useDivCache <= 1; ++useDivCache) {
+        sim.run<KDTreeModel<1,1> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<1,0> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<0,0> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
+		
+		/*
         for (size_t leafSize = 5; leafSize <= 15; leafSize += 5)
           for (size_t start = 0; start <= 0; start += 200)
             for (double ratio = 0; ratio < 0.1; ratio += 0.2)
@@ -92,7 +96,7 @@ int divMain() {
   }
   //*/
 
-  //* best for single query from best to worst
+  /* best for single query from best to worst
   sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000); // best tree, mask
   sim.run<KDTreeModel<0,0> >(15, 1, 0, 0, 0.0, 0); // best tree, no mask
   sim.run<DivListModel<0, 1> >(1, 1, 0, 0.5, 500); // best array, mask

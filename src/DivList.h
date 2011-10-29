@@ -106,6 +106,14 @@ namespace mathic {
 
     void rebuild();
 
+	/** Returns the number of bytes allocated by this object. Does not
+		include sizeof(*this), does not include any additional memory
+		that the configuration may have allocated and does not include
+		any memory that an Entry may point to. Does include
+		sizeof(Entry) as well as unused memory that is being kept to
+		avoid frequent allocations. */
+    size_t getMemoryUsage() const;
+
   private:
     DivList(const DivList<C>&); // unavailable
     void operator=(const DivList<C>&); // unavailable
@@ -114,7 +122,7 @@ namespace mathic {
     void reportChanges(size_t changesMadeCount);
 
     template<class DO>
-      class ConstDivisorOutput {
+    class ConstDivisorOutput {
     public:
     ConstDivisorOutput(DO& out): _out(out) {}
       bool proceed(const Entry& entry) {return _out.proceed(entry);}
@@ -518,6 +526,11 @@ namespace mathic {
       _changesTillRebuild -= changesMadeCount;
     else
       rebuild();
+  }
+
+  template<class C>
+  size_t DivList<C>::getMemoryUsage() const {
+	return _list.capacity() * sizeof(_list.front());
   }
 }
 

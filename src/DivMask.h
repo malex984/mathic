@@ -125,11 +125,12 @@ namespace mathic {
       // divide the range [a,b] into bitsForVar equal pieces
       // and use the left end points of those ranges
       // as the points for the bits.
-      Exponent increment = (max - min) / bitsForVar;
+      Exponent increment = (max - min) / static_cast<Exponent>(bitsForVar); // todo: can avoid cast?
       if (increment == 0)
         increment = 1;
       for (size_t i = 0; i < bitsForVar; ++i)
-        _bits.push_back(std::make_pair(var, min + increment * i));
+        _bits.push_back(std::make_pair(var, min + increment * static_cast<Exponent>(i)));
+         // todo: can avoid cast?
     }
   }
 

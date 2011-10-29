@@ -33,7 +33,7 @@ namespace mathic {
 	typedef C Configuration;
 	typedef typename Configuration::Entry Entry;
 
-  Heap(const Configuration& configuration): _conf(configuration) {}
+    Heap(const Configuration& configuration): _conf(configuration) {}
 	Configuration& getConfiguration() {return _conf;}
 	const Configuration& getConfiguration() const {return _conf;}
 
@@ -43,6 +43,8 @@ namespace mathic {
 	Entry pop();
 	Entry top() const {return _tree[Node()];}
 	bool empty() const {return _tree.empty();}
+	size_t size() const {return _tree.size();}
+
 	void print(std::ostream& out) const;
 
 	void decreaseTop(Entry newEntry);
