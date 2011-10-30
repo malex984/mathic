@@ -133,9 +133,7 @@ benchAlexdual: all
 # Make symbolic link to program from bin/
 bin/$(divProgram): $(outdir)$(divProgram)
 ifneq ($(MODE), analysis)
-	@mkdir -p $(dir $@);
-	cd bin; rm -f div; ln -s ../$(outdir)$(divProgram) div; cd ..
-	cd bin; rm -f pq; ln -s ../$(outdir)$(divProgram) pq; cd ..
+	mkdir -p $(dir $@); rm -f $@; ln -s ../$< $@
 endif
 
 # Link object files into executable
@@ -157,9 +155,7 @@ endif
 # Make symbolic link to program from bin/
 bin/$(pqProgram): $(outdir)$(pqProgram)
 ifneq ($(MODE), analysis)
-	@mkdir -p $(dir $@);
-	cd bin; rm -f div; ln -s ../$(outdir)$(pqProgram) div; cd ..
-	cd bin; rm -f pq; ln -s ../$(outdir)$(pqProgram) pq; cd ..
+	mkdir -p $(dir $@); rm -f $@; ln -s ../$< $@
 endif
 
 # Link object files into executable
