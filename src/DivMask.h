@@ -108,7 +108,7 @@ namespace mathic {
     const size_t TotalBits = sizeof(MaskType) * BitsPerByte;
     for (size_t var = 0; var < varCount; ++var) {
       const size_t bitsForVar =
-        TotalBits / varCount + (var < TotalBits % varCount);
+        TotalBits / varCount + (varCount - var - 1 < TotalBits % varCount);
       if (bitsForVar == 0)
         continue;
 

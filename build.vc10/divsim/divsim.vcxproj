@@ -98,7 +98,6 @@
     <ClInclude Include="..\..\src\divsim\Monomial.h" />
     <ClInclude Include="..\..\src\divsim\Simulation.h" />
     <ClInclude Include="..\..\src\divsim\stdinc.h" />
-    <ClInclude Include="..\..\src\Heap.h" />
     <ClInclude Include="..\..\src\KDTree.h" />
     <ClInclude Include="..\..\src\KDTreeLeaf.h" />
     <ClInclude Include="..\..\src\stdinc.h" />

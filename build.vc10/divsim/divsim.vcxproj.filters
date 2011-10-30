@@ -47,9 +47,6 @@
     <ClInclude Include="..\..\src\DivMask.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\Heap.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\KDTree.h">
       <Filter>Header Files</Filter>
     </ClInclude>

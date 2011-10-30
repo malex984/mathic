@@ -32,6 +32,7 @@ public:
     size_t size; // insert _mem( [begin, begin + size) ) if size > 0.
 	Value popValue; // pop this value if size == 0
   };
+
 private:
   struct SimData {
     std::string name;

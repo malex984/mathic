@@ -42,7 +42,7 @@ int main() {
   sim.run<DivListModel<1> >(1, 0, 1);
   //*/
 
-  sim.run<KDTreeModel<1,0> >(2, 1, 0, 0, 1.0, 1000);
+  sim.run<KDTreeModel<1,0> >(2, 1, 0, 0, 1.0, 100);
 
 
   for (int mini = 1; mini <= 1; ++mini) {
