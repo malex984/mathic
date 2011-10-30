@@ -42,17 +42,23 @@ int main() {
   sim.run<DivListModel<1> >(1, 0, 1);
   //*/
 
-  sim.run<KDTreeModel<1,0> >(2, 1, 0, 0, 1.0, 100);
-
-
+  sim.run<DivListModel<0, 0> >(1, 1, 0, 0.5, 500);
   for (int mini = 1; mini <= 1; ++mini) {
-    for (int sortOnInsert = 1; sortOnInsert <= 1; ++sortOnInsert) {
+    for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
       for (int useDivCache = 0; useDivCache <= 1; ++useDivCache) {
 
         sim.run<KDTreeModel<1,1> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
         sim.run<KDTreeModel<1,0> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
         sim.run<KDTreeModel<0,0> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
-		
+
+        sim.run<KDTreeModel<1,1> >(10, mini,sortOnInsert,useDivCache, 0.0, 0);
+        sim.run<KDTreeModel<1,0> >(10, mini,sortOnInsert,useDivCache, 0.0, 0);
+        sim.run<KDTreeModel<0,0> >(10, mini,sortOnInsert,useDivCache, 0.0, 0);
+
+        sim.run<KDTreeModel<1,1> >(40, mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<1,0> >(40, mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<0,0> >(40, mini,sortOnInsert,useDivCache, 0.5, 10);
+
 		/*
         for (size_t leafSize = 5; leafSize <= 15; leafSize += 5)
           for (size_t start = 0; start <= 0; start += 200)
