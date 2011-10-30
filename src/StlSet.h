@@ -41,6 +41,17 @@ namespace mathic {
 	  out << '\n';
 	}
 
+    /** This is necessarily an estimate since there is no
+     way to tell how much memory a std::multiset is using. */
+    size_t getMemoryUse() const {
+      const size_t bytesPerItemEstimate =
+        2 * sizeof(void*) + // assume binary tree with left and right pointers
+        sizeof(void*) + // assume minimal overhead in the allocator behind new
+        sizeof(int) + // assume some overhead to maintain balance in tree
+        sizeof(Entry); // assume data payload        
+      return _set.size() * bytesPerItemEstimate;
+    }
+
   private:
 	Configuration _conf;
 	struct Cmp {

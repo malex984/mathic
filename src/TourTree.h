@@ -27,12 +27,14 @@ namespace mathic {
 
 	void decreaseTop(Entry newEntry);
 
+    size_t getMemoryUse() const;
+
   private:
 	class Player;
 	typedef ComTree<Player*, C::fastIndex> Tree;
 	typedef typename Tree::Node Node;
 	struct Player { 
-    Player(const Entry& entry, Node leaf): entry(entry), leaf(leaf) {}
+      Player(const Entry& entry, Node leaf): entry(entry), leaf(leaf) {}
 	  Entry entry;
 	  Node leaf;
 	};
@@ -49,7 +51,13 @@ namespace mathic {
   };
 
   template<class C>
-	TourTree<C>::TourTree(const C& configuration): _conf(configuration) {
+  size_t TourTree<C>::getMemoryUse() const {
+    return _tree.getMemoryUse() +
+      _players.capacity() * sizeof(_players.front());
+  }
+
+  template<class C>
+  TourTree<C>::TourTree(const C& configuration): _conf(configuration) {
 	reallocate();
   }
 

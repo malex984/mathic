@@ -63,6 +63,8 @@ namespace mathic {
 	bool debugIsValid(Bucket* bucketBegin, Bucket* bucketEnd) const;
 #endif
 
+    size_t getMemoryUse() const;
+
   private:
 	const Bucket* computeMax(Bucket* bucketBegin, Bucket* bucketEnd) const;
 
@@ -72,7 +74,12 @@ namespace mathic {
   };
 
   template<class C, class B>
-	const B* GeoFront<C, B, false>::getMax(B* bucketBegin, B* bucketEnd) const {
+  size_t GeoFront<C, B, false>::getMemoryUse() const {
+    return 0;
+  }
+
+  template<class C, class B>
+  const B* GeoFront<C, B, false>::getMax(B* bucketBegin, B* bucketEnd) const {
 	// the point is that the compiler is more likely to compile this
 	// pre-calculation so that computeMax won't get called in cases
 	// where the maximum has already been computed.
@@ -156,6 +163,8 @@ namespace mathic {
 	bool debugIsValid(Bucket* bucketBegin, Bucket* bucketEnd) const;
 #endif
 
+    size_t getMemoryUse() const;
+
   private:
 	std::vector<Bucket*> _buckets;
 	Bucket** _bucketBegin;
@@ -166,6 +175,11 @@ namespace mathic {
 	size_t _debugCapacityEnd;
 #endif
   };
+
+  template<class C, class B>
+  size_t GeoFront<C, B, true>::getMemoryUse() const {
+    return _buckets.capacity() * sizeof(_buckets.front());
+  }
 
   template<class C, class B>
 	GeoFront<C, B, true>::GeoFront(const C& conf, size_t& entryCountRef):

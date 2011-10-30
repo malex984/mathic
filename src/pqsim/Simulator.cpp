@@ -280,11 +280,13 @@ void Simulator::printData(std::ostream& out) const {
   pr.addColumn(true);
   pr.addColumn(false, " ", "ms");
   pr.addColumn(false, " ", "cmps");
+  pr.addColumn(false, " ", "kb");
   for (std::vector<SimData>::const_iterator it = sorted.begin();
     it != sorted.end(); ++it) {
     pr[0] << it->name << '\n';
     pr[1] << commafy(it->mseconds) << '\n';
     pr[2] << commafy(it->comparisons) << '\n';
+    pr[3] << commafy(it->memoryUse / 1024) << '\n';
   }
   pr.print(out);
 }
@@ -315,6 +317,7 @@ void Simulator::SimData::print(std::ostream& out) {
   out << name
     << " " << commafy(mseconds) << " ms"
     << " " << commafy(comparisons) << " cmps"
+    << " " << commafy(memoryUse / 1024) << " kb"
     << '\n';
 }
 

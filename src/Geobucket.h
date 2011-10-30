@@ -146,6 +146,8 @@ namespace mathic {
 	bool empty() const;
 	void print(std::ostream& out) const;
 
+    size_t getMemoryUse() const;
+
   private:
 	Geobucket(const Geobucket&); // unavailable
 	Geobucket& operator=(const Geobucket&); // unavailable
@@ -742,6 +744,13 @@ namespace mathic {
 	  MATHIC_ASSERT(C::bucketStorage == GeoStoreDoubleBuffer ?
 			 otherBuffer != 0 : otherBuffer == 0);
 	}
+
+  template<class C>
+  size_t Geobucket<C>::getMemoryUse() const {
+    return _mem.capacity() * sizeof(_mem.front()) +
+      _buckets.capacity() * sizeof(_buckets.front()) +
+      _front.getMemoryUse();
+  }
 
 #ifdef MATHIC_DEBUG
   template<class C>

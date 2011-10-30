@@ -49,6 +49,8 @@ namespace mathic {
 
 	void decreaseTop(Entry newEntry);
 
+    size_t getMemoryUse() const;
+
   private:
 	typedef ComTree<Entry, Configuration::fastIndex> Tree;
 	typedef typename Tree::Node Node;
@@ -65,7 +67,12 @@ namespace mathic {
   };
 
   template<class C>
-	std::string Heap<C>::getName() const {
+  size_t Heap<C>::getMemoryUse() const {
+    return _tree.getMemoryUse();
+  }
+
+  template<class C>
+  std::string Heap<C>::getName() const {
 	return std::string("heap(") +
 	  (C::fastIndex ?  "fi" : "si") +
 	  (C::supportDeduplication ? " dedup" : "") +

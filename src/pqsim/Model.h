@@ -64,6 +64,10 @@ public:
     return _ds.getConfiguration().getComparisons();
   }
 
+  size_t getMemoryUse() const {
+    return _ds.getMemoryUse();
+  }
+
 private:
   class Configuration : public ConfigurationBase {
   public:

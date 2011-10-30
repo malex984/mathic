@@ -37,6 +37,7 @@ private:
     std::string name;
     unsigned long comparisons;
     unsigned long mseconds;
+    size_t memoryUse;
     bool operator<(const SimData& sd) const;
     void print(std::ostream& out);
   };
@@ -89,6 +90,7 @@ void Simulator::run(PQueue& pqueue, bool printData, bool printStates) {
 
   SimData data;
   data.name = pqueue.getName();
+  data.memoryUse = pqueue.getMemoryUse();
   data.comparisons = pqueue.getComparisons();
   data.mseconds = (unsigned long)
     ((double(timeEnd) - timeBegin) * 1000) / CLOCKS_PER_SEC;

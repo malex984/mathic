@@ -48,7 +48,16 @@ int main(int argc, const char** args) {
   {HeapModel<0,0,0> x; sim.run(x);}
 #else
   {TourTreeModel<1,0> x; sim.run(x);}
+  {TourTreeModel<0,0> x; sim.run(x);}
   {GeobucketModel<0,0,0,0,0,0,0> x(4, 32); sim.run(x);}
+  {GeobucketModel<0,0,0,0,0,0,0> x(2, 32); sim.run(x);}
+  {GeobucketModel<0,0,0,1,0,0,0> x(4, 32); sim.run(x);}
+  {StlSetModel<1> x; sim.run(x);}
+  {StlSetModel<0> x; sim.run(x);}
+  {HeapModel<0,0,0> x; sim.run(x);}
+  {HeapModel<1,0,0> x; sim.run(x);}
+  {HeapModel<0,1,0> x; sim.run(x);}
+  {HeapModel<1,1,0> x; sim.run(x);}
 #endif
 
   sim.printData(std::cout);
