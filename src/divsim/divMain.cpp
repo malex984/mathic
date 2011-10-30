@@ -16,7 +16,7 @@ int main() {
 #ifdef DEBUG
   sim.makeStandard(10, 400, 100, false);
 #else
-  sim.makeStandard(10, 500, 10000, true);
+  sim.makeStandard(10, 5000, 1000000, true);
 #endif
 
   /*
@@ -32,7 +32,7 @@ int main() {
   }
   //*/
 
-  sim.run<DivListModel<0, 0> >(1, 0, 1, 0.0, 0); // best array, no mask
+  //sim.run<DivListModel<0, 0> >(1, 0, 1, 0.0, 0); // best array, no mask
   /*
   sim.run<DivListModel<0> >(1, 0, 0)
   sim.run<DivListModel<0> >(1, 1, 0);
@@ -42,12 +42,13 @@ int main() {
   sim.run<DivListModel<1> >(1, 0, 1);
   //*/
 
-    //sim.run<KDTreeModel<1,1> >(40, 1, 0, 0, 1.0, 1000); // best tree, mask
+  sim.run<KDTreeModel<1,0> >(2, 1, 0, 0, 1.0, 1000);
 
 
   for (int mini = 1; mini <= 1; ++mini) {
     for (int sortOnInsert = 1; sortOnInsert <= 1; ++sortOnInsert) {
       for (int useDivCache = 0; useDivCache <= 1; ++useDivCache) {
+/*
         sim.run<KDTreeModel<1,1> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
         sim.run<KDTreeModel<1,0> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
         sim.run<KDTreeModel<0,0> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);

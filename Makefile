@@ -175,7 +175,7 @@ ifneq ($(MODE), analysis)
 	fi
 endif
 ifeq ($(MODE), release)
-    strip $@
+	strip $@
 endif
 
 
