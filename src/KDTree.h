@@ -179,7 +179,7 @@ namespace mathic {
     mutable std::vector<Node*> _tmp; // For navigating the tree.
     memt::Arena _arena; // Everything permanent allocated from here.
     C _conf; // User supplied configuration.
-    Node* _root; // Root of the tree. Can be null.
+    Node* _root; // Root of the tree.
     size_t _size; // Number of entries.
     Entry* _divisorCache; /// The divisor in the previous query. Can be null.
     size_t _changesTillRebuild; /// Update using reportChanges().
@@ -260,19 +260,23 @@ namespace mathic {
   void KDTree<C>::insert(const Entry& entry) {
     ExtEntry extEntry(entry, _divMaskCalculator, _conf);
 
+    Interior* parent = 0;
     Node* node = _root;
     while (node->isInterior()) {
       node->updateToLowerBound(extEntry);
-      node = &node->asInterior().getChildFor(extEntry, _conf);
+      parent = &node->asInterior();
+      node = &parent->getChildFor(extEntry, _conf);
     }
     Leaf* leaf = &node->asLeaf();
 
     MATHIC_ASSERT(leaf->size() <= _conf.getLeafSize());
     if (leaf->size() == _conf.getLeafSize()) {
-      Interior& interior = leaf->split(_arena, _conf);
+      Interior& interior = leaf->split(parent, _arena, _conf);
       interior.updateToLowerBound(extEntry);
-      if (leaf == _root)
+      if (parent == 0) {
+        ASSERT(leaf == _root);
         _root = &interior;
+      }
       leaf = &interior.getChildFor(extEntry, _conf).asLeaf();
     }
     MATHIC_ASSERT(leaf->size() < _conf.getLeafSize());
@@ -307,6 +311,7 @@ namespace mathic {
     typedef std::vector<Task> TaskCont;
     TaskCont todo;
 
+    _root = 0;
     Interior* parent = 0;
     bool isEqualOrLessChild = false;
     while (true) {
@@ -314,11 +319,13 @@ namespace mathic {
       const size_t insertCount = std::distance(insertBegin, insertEnd);
       const bool isLeaf = (insertCount <= _conf.getLeafSize());
       if (isLeaf)
-        node = Leaf::makeLeafCopy(parent, insertBegin,
-                                  insertEnd, _arena, _divMaskCalculator, _conf);
+        node = Leaf::makeLeafCopy
+          (insertBegin, insertEnd, _arena, _divMaskCalculator, _conf);
       else {
+        const size_t var =
+          (parent == 0 ? static_cast<size_t>(-1) : parent->getVar());
         std::pair<Interior*, Iter> p =
-          Node::preSplit(parent, insertBegin, insertEnd, _arena, _conf);
+          Node::preSplit(var, insertBegin, insertEnd, _arena, _conf);
         MATHIC_ASSERT(p.second != insertBegin && p.second != insertEnd);
         // push strictly-greater on todo
         Task task;
@@ -331,9 +338,10 @@ namespace mathic {
         node = p.first;
       }
 
-      if (parent == 0)
+      if (parent == 0) {
+        ASSERT(_root == 0);
         _root = node;
-      else if (isEqualOrLessChild)
+      } else if (isEqualOrLessChild)
         parent->setEqualOrLess(node);
       else
         parent->setStrictlyGreater(node);
@@ -347,12 +355,12 @@ namespace mathic {
         insertBegin = task.begin;
         insertEnd = task.end;
         parent = task.parent;
-        // only strictly-greater goes on todo
+        // only strictlyGreater goes on todo
         isEqualOrLessChild = false;
       } else {
-        // continue with equal-or-less as next item
-        parent = &node->asInterior();
         isEqualOrLessChild = true;
+        parent = &node->asInterior();
+        // continue with equal-or-less as next item      
       }
     }
     if (_conf.getUseDivisorCache())
@@ -593,14 +601,13 @@ namespace mathic {
     MATHIC_ASSERT(_tmp.empty());
     MATHIC_ASSERT(!_conf.getDoAutomaticRebuilds() || _conf.getRebuildRatio() > 0);
 
+    MATHIC_ASSERT(_root != 0);
     if (empty())
       return true;
-    MATHIC_ASSERT(_root != 0);
 
     std::vector<Node*> nodes;
     nodes.reserve(size());
-    if (_root != 0)
-      nodes.push_back(_root);
+    nodes.push_back(_root);
     size_t sizeSum = 0;
     for (size_t i = 0; i < nodes.size(); ++i) {
       Node* node = nodes[i];
