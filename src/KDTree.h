@@ -35,6 +35,8 @@ namespace mathic {
     typedef typename Tree::ExtEntry ExtEntry;
     typedef typename Tree::ExtMonoRef ExtMonoRef;
   public:
+    typedef C Configuration;
+
     /** Constructs an object with the given configuration. The configuration
         is copied into the object, so a reference to the passed-in object is
         not kept. The configuration is not copied other than the initial copy. */
