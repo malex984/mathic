@@ -4,7 +4,6 @@
 #include "stdinc.h"
 #include "DivMask.h"
 #include "BinaryKDTree.h"
-#include "KDEntryArray.h"
 #include "memtailor/memtailor.h"
 #include <list>
 #include <string>

@@ -1,5 +1,5 @@
-#ifndef MATHIC_BINARY_K_D_TREE_GUARD
-#define MATHIC_BINARY_K_D_TREE_GUARD
+#ifndef MATHIC_BINARY_K_D_TRExtEntry_GUARD
+#define MATHIC_BINARY_K_D_TRExtEntry_GUARD
 
 #include "stdinc.h"
 #include "DivMask.h"
@@ -7,173 +7,6 @@
 #include "memtailor/memtailor.h"
 
 namespace mathic {
-  /** A helper class for KDTree. A node in the tree. The ExtEntry
-      comes from the KdTree. */
-  template<class Configuration, class ExtEntry>
-    class KDTreeNode;
-
-  /** A helper class for KDTree. An interior node in the tree. The ExtEntry
-      comes from the KdTree. @todo: rename to KDTreeInternal. */
-  template<class Configuration, class ExtEntry>
-    class KDTreeInterior;
-
-  /** A helper class for KDTree. Represents a leaf in the tree. Leaves
-      hold the monomials. The Configuration is as for KdTree. The ExtEntry
-      comes from the KdTree. */
-  template<class Configuration, class ExtEntry>
-    class KDTreeLeaf;
-
-  template<class C, class EE>
-  class KDTreeNode {
-    typedef KDTreeNode<C, EE> Node;
-    typedef KDTreeLeaf<C, EE> Leaf;
-    typedef KDTreeInterior<C, EE> Interior;
-    friend class KDTreeInterior<C, EE>;
-    friend class KDTreeLeaf<C, EE>;
-  public:
-    bool isLeaf() const {return _isLeaf;}
-    const Leaf& asLeaf() const {
-      MATHIC_ASSERT(isLeaf());
-      return static_cast<const Leaf&>(*this);
-    }
-    Leaf& asLeaf() {
-      MATHIC_ASSERT(isLeaf());
-      return static_cast<Leaf&>(*this);
-    }
-
-    bool isInterior() const {return !isLeaf();}
-    const Interior& asInterior() const {
-      MATHIC_ASSERT(isInterior());
-      return static_cast<Interior&>(*this);
-    }
-    Interior& asInterior() {
-      MATHIC_ASSERT(isInterior());
-      return static_cast<Interior&>(*this);
-    }
-
-    /** Partitions [begin, end) into two parts. The
-        returned node has the information about the split, while the returned
-        iterator it is such that the equal-or-less part of the partition
-        is [begin, it) and the strictly-greater part is [it, end). These two
-        ranges should be used to construct nodes that are then set as the
-        children of the returned node. */
-    template<class Iter>
-      static std::pair<Interior*, Iter> preSplit
-      (size_t var, Iter begin, Iter end, memt::Arena& arena, const C& conf);
-
-  protected:
-  KDTreeNode(bool leaf): _isLeaf(leaf) {}
-
-  private:
-    KDTreeNode(const KDTreeNode<C, EE>&); // unavailable
-    void operator=(const KDTreeNode<C, EE>&); // unavailable
-
-    class SplitEqualOrLess;
-    const bool _isLeaf;
-  };
-
-  template<class C, class EE>
-  class KDTreeInterior : public KDTreeNode<C, EE>,
-    public mathic::DivMask::HasDivMask<C::UseTreeDivMask> {
-  public:
-    typedef typename C::Exponent Exponent;
-    typedef KDTreeInterior<C, EE> Interior;
-    typedef KDTreeLeaf<C, EE> Leaf;
-    typedef KDTreeNode<C, EE> Node;
-
-    KDTreeInterior
-      (Node& equalOrLess,
-       Node& strictlyGreater,
-       size_t var,
-       Exponent exponent):
-    Node(false),
-      _equalOrLess(&equalOrLess),
-      _strictlyGreater(&strictlyGreater),
-      _var(var),
-      _exponent(exponent) {
-      }
-    KDTreeInterior
-      (size_t var,
-       Exponent exponent):
-    Node(false),
-      _equalOrLess(0),
-      _strictlyGreater(0),
-      _var(var),
-      _exponent(exponent) {
-      }
-    size_t getVar() const {return _var;}
-    Exponent getExponent() const {return _exponent;}
-
-    Node& getEqualOrLess() {return *_equalOrLess;}
-    const Node& getEqualOrLess() const {return *_equalOrLess;}
-    void setEqualOrLess(Node* equalOrLess) {_equalOrLess = equalOrLess;}
-
-    Node& getStrictlyGreater() {return *_strictlyGreater;}
-    const Node& getStrictlyGreater() const {return *_strictlyGreater;}
-    void setStrictlyGreater(Node* strictlyGreater) {
-      _strictlyGreater = strictlyGreater;
-    }
-
-    Node& getChildFor(const EE& entry, const C& conf) {
-      if (getExponent() < conf.getExponent(entry.get(), getVar()))
-        return getStrictlyGreater();
-      else
-        return getEqualOrLess();
-    }
-
-    using DivMask::HasDivMask<C::UseTreeDivMask>::updateToLowerBound;
-    void updateToLowerBound(Node& node) {
-      if (!C::UseTreeDivMask)
-        return;
-      if (node.isLeaf())
-        DivMask::HasDivMask<C::UseTreeDivMask>::
-          updateToLowerBound(node.asLeaf().entries());
-      else
-        DivMask::HasDivMask<C::UseTreeDivMask>::
-          updateToLowerBound(node.asInterior());
-    }
-
-  private:
-    Node* _equalOrLess;
-    Node* _strictlyGreater;
-    size_t _var;
-    Exponent _exponent;
-  };
-
-  template<class C, class EE>
-  class KDTreeLeaf : public KDTreeNode<C, EE> {
-    typedef KDTreeInterior<C, EE> Interior;
-    typedef KDTreeLeaf<C, EE> Leaf;
-    typedef KDTreeNode<C, EE> Node;
-  public:
-    typedef typename C::Monomial Monomial;
-    typedef EE* iterator;
-    typedef const EE* const_iterator;
-    typedef const EE& const_reference;
-    typedef EE value_type;
-    typedef DivMask::Calculator<C> DivMaskCalculator;
-
-    KDTreeLeaf(memt::Arena& arena, const C& conf);
-
-    /** Copies Entry's in [begin, end) into the new leaf after
-     calculating div mask if using those. */
-    template<class Iter>
-    KDTreeLeaf(Iter begin, Iter end, memt::Arena& arena,
-      const DivMaskCalculator& calc, const C& conf);
-
-    /** Copies ExtEntry's [begin, end) into the new leaf. */
-    template<class Iter>
-    KDTreeLeaf(Iter begin, Iter end, memt::Arena& arena, const C& conf);
-
-    KDEntryArray<C, EE>& entries() {return _entries;}
-    const KDEntryArray<C, EE>& entries() const {return _entries;}
-
-    Interior& split(Interior* parent, memt::Arena& arena, const C& conf);
-
-  private:
-    KDEntryArray<C, EE> _entries;
-  };
-
   template<class C>
   class BinaryKDTree {
   public:
@@ -183,12 +16,183 @@ namespace mathic {
     typedef typename DivMask::Extender<Entry, C::UseDivMask> ExtEntry;
     typedef typename DivMask::Extender<const Monomial&,C::UseDivMask> ExtMonoRef;
     typedef typename DivMask::Calculator<C> DivMaskCalculator;
-    typedef KDTreeNode<C, ExtEntry> Node;
-    typedef KDTreeInterior<C, ExtEntry> Interior;
-    typedef KDTreeLeaf<C, ExtEntry> Leaf;
-    typedef typename Leaf::iterator LeafIt;
+
+    struct ExpOrder {
+    ExpOrder(size_t var, const C& conf): _var(var), _conf(conf) {}
+      bool operator()(const ExtEntry& a, const ExtEntry& b) const {
+        return _conf.getExponent(a.get(), _var) < _conf.getExponent(b.get(), _var);
+      }
+    private:
+      const size_t _var;
+      const C& _conf;
+    };
+
+    private:
+    /** A helper class for KDTree. A node in the tree. The ExtEntry
+        comes from the KdTree. */
+    class KDTreeNode;
+
+    /** A helper class for KDTree. An interior node in the tree. The ExtEntry
+        comes from the KdTree. @todo: rename to KDTreeInternal. */
+    class KDTreeInterior;
+
+    /** A helper class for KDTree. Represents a leaf in the tree. Leaves
+        hold the monomials. The Configuration is as for KdTree. The ExtEntry
+        comes from the KdTree. */
+    class KDTreeLeaf;
+
+    typedef KDTreeNode Node;
+    typedef KDTreeInterior Interior;
+    typedef KDTreeLeaf Leaf;
     typedef C Configuration;
     static const bool UseDivMask = C::UseDivMask;
+
+    class KDTreeNode {
+    public:
+      bool isLeaf() const {return _isLeaf;}
+      const Leaf& asLeaf() const {
+        MATHIC_ASSERT(isLeaf());
+        return static_cast<const Leaf&>(*this);
+      }
+      Leaf& asLeaf() {
+        MATHIC_ASSERT(isLeaf());
+        return static_cast<Leaf&>(*this);
+      }
+
+      bool isInterior() const {return !isLeaf();}
+      const Interior& asInterior() const {
+        MATHIC_ASSERT(isInterior());
+        return static_cast<Interior&>(*this);
+      }
+      Interior& asInterior() {
+        MATHIC_ASSERT(isInterior());
+        return static_cast<Interior&>(*this);
+      }
+
+      /** Partitions [begin, end) into two parts. The
+          returned node has the information about the split, while the returned
+          iterator it is such that the equal-or-less part of the partition
+          is [begin, it) and the strictly-greater part is [it, end). These two
+          ranges should be used to construct nodes that are then set as the
+          children of the returned node. */
+      template<class Iter>
+        static std::pair<Interior*, Iter> preSplit
+        (size_t var, Iter begin, Iter end, memt::Arena& arena, const C& conf);
+
+    protected:
+    KDTreeNode(bool leaf): _isLeaf(leaf) {}
+
+    private:
+      KDTreeNode(const KDTreeNode&); // unavailable
+      void operator=(const KDTreeNode&); // unavailable
+
+      class SplitEqualOrLess;
+      const bool _isLeaf;
+    };
+
+    class KDTreeInterior : public KDTreeNode,
+      public mathic::DivMask::HasDivMask<C::UseTreeDivMask> {
+    public:
+      typedef typename C::Exponent Exponent;
+      typedef KDTreeInterior Interior;
+      typedef KDTreeLeaf Leaf;
+      typedef KDTreeNode Node;
+
+      KDTreeInterior
+        (Node& equalOrLess,
+         Node& strictlyGreater,
+         size_t var,
+         Exponent exponent):
+      Node(false),
+        _equalOrLess(&equalOrLess),
+        _strictlyGreater(&strictlyGreater),
+        _var(var),
+        _exponent(exponent) {
+        }
+      KDTreeInterior
+        (size_t var,
+         Exponent exponent):
+      Node(false),
+        _equalOrLess(0),
+        _strictlyGreater(0),
+        _var(var),
+        _exponent(exponent) {
+        }
+      size_t getVar() const {return _var;}
+      Exponent getExponent() const {return _exponent;}
+
+      Node& getEqualOrLess() {return *_equalOrLess;}
+      const Node& getEqualOrLess() const {return *_equalOrLess;}
+      void setEqualOrLess(Node* equalOrLess) {_equalOrLess = equalOrLess;}
+
+      Node& getStrictlyGreater() {return *_strictlyGreater;}
+      const Node& getStrictlyGreater() const {return *_strictlyGreater;}
+      void setStrictlyGreater(Node* strictlyGreater) {
+        _strictlyGreater = strictlyGreater;
+      }
+
+      Node& getChildFor(const ExtEntry& entry, const C& conf) {
+        if (getExponent() < conf.getExponent(entry.get(), getVar()))
+          return getStrictlyGreater();
+        else
+          return getEqualOrLess();
+      }
+
+      using DivMask::HasDivMask<C::UseTreeDivMask>::updateToLowerBound;
+      void updateToLowerBound(Node& node) {
+        if (!C::UseTreeDivMask)
+          return;
+        if (node.isLeaf())
+          DivMask::HasDivMask<C::UseTreeDivMask>::
+            updateToLowerBound(node.asLeaf().entries());
+        else
+          DivMask::HasDivMask<C::UseTreeDivMask>::
+            updateToLowerBound(node.asInterior());
+      }
+
+    private:
+      Node* _equalOrLess;
+      Node* _strictlyGreater;
+      size_t _var;
+      Exponent _exponent;
+    };
+
+    
+    class KDTreeLeaf : public KDTreeNode {
+      typedef KDTreeInterior Interior;
+      typedef KDTreeLeaf Leaf;
+      typedef KDTreeNode Node;
+    public:
+      typedef typename C::Monomial Monomial;
+      typedef ExtEntry* iterator;
+      typedef const ExtEntry* const_iterator;
+      typedef const ExtEntry& const_reference;
+      typedef ExtEntry value_type;
+      typedef DivMask::Calculator<C> DivMaskCalculator;
+
+      KDTreeLeaf(memt::Arena& arena, const C& conf);
+
+      /** Copies Entry's in [begin, end) into the new leaf after
+       calculating div mask if using those. */
+      template<class Iter>
+      KDTreeLeaf(Iter begin, Iter end, memt::Arena& arena,
+        const DivMaskCalculator& calc, const C& conf);
+
+      /** Copies ExtEntry's [begin, end) into the new leaf. */
+      template<class Iter>
+      KDTreeLeaf(Iter begin, Iter end, memt::Arena& arena, const C& conf);
+
+      mathic::KDEntryArray<C, ExtEntry>& entries() {return _entries;}
+      const KDEntryArray<C, ExtEntry>& entries() const {return _entries;}
+
+      Interior& split(Interior* parent, memt::Arena& arena, const C& conf);
+
+    private:
+      KDEntryArray<C, ExtEntry> _entries;
+    };
+
+  public:
+    typedef typename Leaf::iterator LeafIt;
 
   public:
     BinaryKDTree(const C& configuration);
@@ -574,13 +578,14 @@ namespace mathic {
   }
 #endif
 
-  template<class C, class EE>
-  KDTreeLeaf<C, EE>::KDTreeLeaf(memt::Arena& arena, const C& conf):
+  template<class C>
+  BinaryKDTree<C>::KDTreeLeaf::KDTreeLeaf(memt::Arena& arena, const C& conf):
   Node(true), _entries(arena, conf) {}
 
-  template<class C, class EE>
+  template<class C>
+  
   template<class Iter>
-  KDTreeLeaf<C, EE>::KDTreeLeaf(
+  BinaryKDTree<C>::KDTreeLeaf::KDTreeLeaf(
     Iter begin,
     Iter end,
     memt::Arena& arena,
@@ -588,17 +593,19 @@ namespace mathic {
     const C& conf):
     Node(true), _entries(begin, end, arena, calc, conf) {}
 
-  template<class C, class EE>
+  template<class C>
+  
   template<class Iter>
-  KDTreeLeaf<C, EE>::KDTreeLeaf(
+  BinaryKDTree<C>::KDTreeLeaf::KDTreeLeaf(
     Iter begin,
     Iter end,
     memt::Arena& arena,
     const C& conf):
     Node(true), _entries(begin, end, arena, conf) {}
 
-  template<class C, class EE>
-  class KDTreeNode<C, EE>::SplitEqualOrLess {
+  template<class C>
+  
+  class BinaryKDTree<C>::KDTreeNode::SplitEqualOrLess {
   public:
     typedef typename C::Exponent Exponent;
     typedef typename C::Entry Entry;
@@ -613,9 +620,10 @@ namespace mathic {
     const C& _conf;
   };
 
-  template<class C, class EE>
+  template<class C>
+  
   template<class Iter>
-  std::pair<KDTreeInterior<C, EE>*, Iter> KDTreeNode<C, EE>::preSplit
+  std::pair<typename BinaryKDTree<C>::KDTreeInterior*, Iter> BinaryKDTree<C>::KDTreeNode::preSplit
     (size_t var,
      Iter begin,
      Iter end,
@@ -623,33 +631,21 @@ namespace mathic {
      const C& conf) {
     MATHIC_ASSERT(begin != end);
     typename C::Exponent exp;
-    Iter middle = KDEntryArray<C, EE>::split(begin, end, var, exp, conf);
+    Iter middle = KDEntryArray<C, ExtEntry>::split(begin, end, var, exp, conf);
     Interior* interior = new (arena.allocObjectNoCon<Interior>())
       Interior(var, exp);
     return std::make_pair(interior, middle);
   }
-
-  template<class C, class EE>
-  struct ExpOrder {
-    typedef typename C::Entry Entry;
-  ExpOrder(size_t var, const C& conf): _var(var), _conf(conf) {}
-    bool operator()(const EE& a, const EE& b) const {
-      return _conf.getExponent(a.get(), _var) < _conf.getExponent(b.get(), _var);
-    }
-  private:
-    const size_t _var;
-    const C& _conf;
-  };
-
-  template<class C, class EE>
-  KDTreeInterior<C, EE>&
-  KDTreeLeaf<C, EE>::split(Interior* parent, memt::Arena& arena, const C& conf) {
+  
+  template<class C>
+  typename BinaryKDTree<C>::KDTreeInterior&
+  BinaryKDTree<C>::KDTreeLeaf::split(Interior* parent, memt::Arena& arena, const C& conf) {
     MATHIC_ASSERT(conf.getVarCount() > 0);
     MATHIC_ASSERT(entries().size() >= 2);
     size_t var = (parent == 0 ? static_cast<size_t>(-1) : parent->getVar());
     typename C::Exponent exp;
 
-    iterator middle = KDEntryArray<C, EE>::split
+    iterator middle = KDEntryArray<C, ExtEntry>::split
       (entries().begin(), entries().end(), var, exp, conf);
     Leaf& other = *new (arena.allocObjectNoCon<Leaf>()) Leaf(middle, entries().end(), arena, conf);
     while (middle != entries().end())

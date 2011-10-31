@@ -101,6 +101,7 @@
     <ClInclude Include="..\..\src\divsim\stdinc.h" />
     <ClInclude Include="..\..\src\KDEntryArray.h" />
     <ClInclude Include="..\..\src\KDTree.h" />
+    <ClInclude Include="..\..\src\PackedKDTree.h" />
     <ClInclude Include="..\..\src\stdinc.h" />
     <ClInclude Include="..\..\src\Timer.h" />
   </ItemGroup>

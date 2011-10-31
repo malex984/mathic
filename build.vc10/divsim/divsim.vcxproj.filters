@@ -80,5 +80,8 @@
     <ClInclude Include="..\..\src\KDEntryArray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\src\PackedKDTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
