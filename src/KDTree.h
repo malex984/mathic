@@ -192,10 +192,9 @@ namespace mathic {
     void rebuild() {
       EntryRecorder recorder(memt::Arena::getArena(), size());
       _tree.forAll(recorder);
-      _tree.clear();
       _divMaskCalculator.rebuild
         (recorder.begin(), recorder.end(), getConfiguration());
-      _tree.insert(recorder.begin(), recorder.end(), _divMaskCalculator);
+      _tree.reset(recorder.begin(), recorder.end(), _divMaskCalculator);
       resetNumberOfChangesTillRebuild();
     }
 

@@ -200,7 +200,7 @@ namespace mathic {
     void insert(const ExtEntry& entry);
 
     template<class Iter>
-    void insert(Iter begin, Iter end, const DivMaskCalculator& calc);
+    void reset(Iter begin, Iter end, const DivMaskCalculator& calc);
 
     Entry* findDivisor(const ExtMonoRef& monomial);
 
@@ -234,7 +234,7 @@ namespace mathic {
     memt::Arena _arena; // Everything permanent allocated from here.
     C _conf; // User supplied configuration.
     mutable std::vector<Node*> _tmp; // For navigating the tree.
-    Node* _root; // Root of the tree.
+    Node* _root; // Root of the tree. Cannot be null.
   };
 
   template<class C>
@@ -253,7 +253,6 @@ namespace mathic {
   template<class C>
   template<class MO>
   size_t BinaryKDTree<C>::removeMultiples(const ExtMonoRef& extMonomial, MO& out) {
-
     MATHIC_ASSERT(_tmp.empty());
     size_t removedCount = 0;
     Node* node = _root;
@@ -303,21 +302,17 @@ namespace mathic {
     MATHIC_ASSERT(debugIsValid());
   }
 
-  /// @todo: this function is too big and it knows too much about the details
-  /// inside nodes. Also, it allocates a std::vector every time.
   template<class C>
   template<class Iter>
-  void BinaryKDTree<C>::insert(Iter insertBegin, Iter insertEnd, const DivMaskCalculator& calc) {
-      // @todo: rename to rebuild or something like that
-
+  void BinaryKDTree<C>::reset(Iter insertBegin, Iter insertEnd, const DivMaskCalculator& calc) {
+    clear();
     _arena.freeAllAllocs();
-    _root = 0;
+    _root = 0; // temporary value
 
     typedef InsertTodo<Iter> Task;
     typedef std::vector<Task> TaskCont;
     TaskCont todo;
 
-    _root = 0;
     Interior* parent = 0;
     bool isEqualOrLessChild = false;
     while (true) {
@@ -369,6 +364,7 @@ namespace mathic {
         // continue with equal-or-less as next item      
       }
     }
+    ASSERT(_root != 0);
 
     if (C::UseTreeDivMask) {
       // Set div tree masks bottom up.
@@ -489,8 +485,8 @@ namespace mathic {
   template<class C>
   void BinaryKDTree<C>::clear() {
     MATHIC_ASSERT(_tmp.empty());
-    if (_root != 0)
-      _tmp.push_back(_root);
+    // Call Entry destructors
+    _tmp.push_back(_root);
     while (!_tmp.empty()) {
       Node* node = _tmp.back();
       _tmp.pop_back();

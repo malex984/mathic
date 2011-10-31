@@ -75,6 +75,8 @@ pqSources  = $(patsubst %.cpp, src/%.cpp, $(rawSources) $(rawPqSources))
 divSources = $(patsubst %.cpp, src/%.cpp, $(rawSources) $(rawDivSources))
 
 objs = $(patsubst %.cpp, $(outdir)%.o, $(rawSources))
+allObjs = $(patsubst %.cpp, $(outdir)%.o, \
+  $(rawSources) $(rawPqSources) $(rawDivSources))
 pqObjs = $(patsubst %.cpp, $(outdir)%.o, $(rawSources) $(rawPqSources))
 divObjs = $(patsubst %.cpp, $(outdir)%.o, $(rawSources) $(rawDivSources))
 
@@ -204,7 +206,7 @@ ifeq ($(MODE), analysis)
 	  echo > $@
 endif
 
--include $(objs:.o=.d)
+-include $(allObjs:.o=.d)
 
 # Installation.
 install:
