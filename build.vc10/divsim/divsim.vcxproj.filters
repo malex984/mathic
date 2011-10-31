@@ -50,9 +50,6 @@
     <ClInclude Include="..\..\src\KDTree.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="..\..\src\KDTreeLeaf.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="..\..\src\stdinc.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -75,6 +72,12 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\src\divsim\stdinc.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\BinaryKDTree.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\src\KDEntryArray.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
