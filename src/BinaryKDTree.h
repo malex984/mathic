@@ -54,7 +54,9 @@ namespace mathic {
     /** Partitions [begin, end) into two parts. The
         returned node has the information about the split, while the returned
         iterator it is such that the equal-or-less part of the partition
-        is [begin, it) and the strictly-greater part is [it, end). */
+        is [begin, it) and the strictly-greater part is [it, end). These two
+        ranges should be used to construct nodes that are then set as the
+        children of the returned node. */
     template<class Iter>
       static std::pair<Interior*, Iter> preSplit
       (size_t var, Iter begin, Iter end, memt::Arena& arena, const C& conf);
@@ -63,12 +65,16 @@ namespace mathic {
   KDTreeNode(bool leaf): _isLeaf(leaf) {}
 
   private:
+    KDTreeNode(const KDTreeNode<C, EE>&); // unavailable
+    void operator=(const KDTreeNode<C, EE>&); // unavailable
+
     class SplitEqualOrLess;
     const bool _isLeaf;
   };
 
   template<class C, class EE>
-    class KDTreeInterior : public KDTreeNode<C, EE>, public mathic::DivMask::HasDivMask<C::UseTreeDivMask> {
+  class KDTreeInterior : public KDTreeNode<C, EE>,
+    public mathic::DivMask::HasDivMask<C::UseTreeDivMask> {
   public:
     typedef typename C::Exponent Exponent;
     typedef KDTreeInterior<C, EE> Interior;
@@ -115,20 +121,19 @@ namespace mathic {
         return getEqualOrLess();
     }
 
-    using mathic::DivMask::HasDivMask<C::UseTreeDivMask>::updateToLowerBound;
+    using DivMask::HasDivMask<C::UseTreeDivMask>::updateToLowerBound;
     void updateToLowerBound(Node& node) {
       if (!C::UseTreeDivMask)
         return;
       if (node.isLeaf())
-        mathic::DivMask::HasDivMask<C::UseTreeDivMask>::updateToLowerBound(node.asLeaf().entries());
+        DivMask::HasDivMask<C::UseTreeDivMask>::
+          updateToLowerBound(node.asLeaf().entries());
       else
-        mathic::DivMask::HasDivMask<C::UseTreeDivMask>::updateToLowerBound(node.asInterior());
+        DivMask::HasDivMask<C::UseTreeDivMask>::
+          updateToLowerBound(node.asInterior());
     }
 
   private:
-    KDTreeInterior(const Interior&); // unavailable
-    void operator=(const Interior&); // unavailable
-
     Node* _equalOrLess;
     Node* _strictlyGreater;
     size_t _var;
@@ -146,26 +151,27 @@ namespace mathic {
     typedef const EE* const_iterator;
     typedef const EE& const_reference;
     typedef EE value_type;
-
     typedef DivMask::Calculator<C> DivMaskCalculator;
 
     KDTreeLeaf(memt::Arena& arena, const C& conf);
 
-    /** Copies [begin, end) into the new leaf. */
+    /** Copies Entry's in [begin, end) into the new leaf after
+     calculating div mask if using those. */
     template<class Iter>
     KDTreeLeaf(Iter begin, Iter end, memt::Arena& arena,
       const DivMaskCalculator& calc, const C& conf);
 
-    EntryArray<C, EE>& entries() {return _entries;}
-    const EntryArray<C, EE>& entries() const {return _entries;}
+    /** Copies ExtEntry's [begin, end) into the new leaf. */
+    template<class Iter>
+    KDTreeLeaf(Iter begin, Iter end, memt::Arena& arena, const C& conf);
+
+    KDEntryArray<C, EE>& entries() {return _entries;}
+    const KDEntryArray<C, EE>& entries() const {return _entries;}
 
     Interior& split(Interior* parent, memt::Arena& arena, const C& conf);
 
   private:
-    KDTreeLeaf(const KDTreeLeaf& t); // unavailable
-    void operator=(const KDTreeLeaf&); // unavailable
-
-    EntryArray<C, EE> _entries;
+    KDEntryArray<C, EE> _entries;
   };
 
   template<class C>
@@ -582,8 +588,18 @@ namespace mathic {
     Iter begin,
     Iter end,
     memt::Arena& arena,
-    const DivMaskCalculator& calc, const C& conf):
+    const DivMaskCalculator& calc,
+    const C& conf):
     Node(true), _entries(begin, end, arena, calc, conf) {}
+
+  template<class C, class EE>
+  template<class Iter>
+  KDTreeLeaf<C, EE>::KDTreeLeaf(
+    Iter begin,
+    Iter end,
+    memt::Arena& arena,
+    const C& conf):
+    Node(true), _entries(begin, end, arena, conf) {}
 
   template<class C, class EE>
   class KDTreeNode<C, EE>::SplitEqualOrLess {
@@ -610,26 +626,11 @@ namespace mathic {
      memt::Arena& arena,
      const C& conf) {
     MATHIC_ASSERT(begin != end);
-    while (true) {
-      var = (var + 1) % conf.getVarCount();
-
-      typename C::Exponent min = conf.getExponent(*begin, var);
-      typename C::Exponent max = conf.getExponent(*begin, var);
-      for (Iter it = begin; it != end; ++it) {
-        min = std::min(min, conf.getExponent(*it, var));
-        max = std::max(max, conf.getExponent(*it, var));
-      }
-      // todo: avoid infinite loop if all duplicates
-      if (min == max)
-        continue;
-      // this formula for avg avoids overflow
-      typename C::Exponent exp = min + (max - min) / 2;
-      Interior* interior = new (arena.allocObjectNoCon<Interior>())
-        Interior(var, exp);
-      SplitEqualOrLess cmp(var, exp, conf);
-      Iter middle = std::partition(begin, end, cmp);
-      return std::make_pair(interior, middle);
-    }
+    typename C::Exponent exp;
+    Iter middle = KDEntryArray<C, EE>::split(begin, end, var, exp, conf);
+    Interior* interior = new (arena.allocObjectNoCon<Interior>())
+      Interior(var, exp);
+    return std::make_pair(interior, middle);
   }
 
   template<class C, class EE>
@@ -649,85 +650,16 @@ namespace mathic {
   KDTreeLeaf<C, EE>::split(Interior* parent, memt::Arena& arena, const C& conf) {
     MATHIC_ASSERT(conf.getVarCount() > 0);
     MATHIC_ASSERT(entries().size() >= 2);
-    // MATHIC_ASSERT not all equal
-    Leaf& other = *new (arena.allocObjectNoCon<Leaf>()) Leaf(arena, conf);
     size_t var = (parent == 0 ? static_cast<size_t>(-1) : parent->getVar());
     typename C::Exponent exp;
-    while (true) {
-      var = (var + 1) % conf.getVarCount();
 
-      if (1) {
-        typename C::Exponent min = conf.getExponent(entries().front().get(), var);
-        typename C::Exponent max = conf.getExponent(entries().front().get(), var);
-        for (iterator it = entries().begin(); it != entries().end(); ++it) {
-          min = std::min(min, conf.getExponent(it->get(), var));
-          max = std::max(max, conf.getExponent(it->get(), var));
-        }
-        if (min == max && entries().size() > 1) {
-          // todo: avoid infinite loop if all equal
-          continue;
-        }
-        exp = min + (max - min) / 2; // this formula for avg avoids overflow
-
-        iterator newEnd = entries().begin();
-        for (iterator it = entries().begin(); it != entries().end(); ++it) {
-          if (exp < conf.getExponent(it->get(), var))
-            other.entries().push_back(*it);
-          else {
-            if (it != newEnd) {
-              *newEnd = *it;
-            }
-            ++newEnd;
-          }
-        }
-        while (newEnd != entries().end())
-          entries().pop_back();
-      } else {
-        iterator middle = entries().begin() + entries().size() / 2;
-        ExpOrder<C, EE> order(var, conf);
-
-        std::nth_element(entries().begin(), middle, entries().end(), order);
-        if (middle != entries().end()) {
-          exp = conf.getExponent(middle->get(), var);
-          while (middle != entries().end() && conf.getExponent(middle->get(), var) == exp)
-            ++middle;
-        }
-        if (middle == entries().end() && entries().size() > 1) {
-          // todo: avoid infinite loop if all equal.
-          continue; // bad split, use another variable
-        }
-        MATHIC_ASSERT(middle != entries().end());
-        MATHIC_ASSERT(exp != conf.getExponent(middle->get(), var));
-
-#ifdef MATHIC_DEBUG
-        for (iterator it = entries().begin(); it != middle; ++it) {
-          MATHIC_ASSERT(!(exp < conf.getExponent(it->get(), var)));
-        }
-        for (iterator it = middle; it != entries().end(); ++it) {
-          MATHIC_ASSERT(!(conf.getExponent(it->get(), var) < exp));
-        }
-#endif
-        // nth_element does not guarantee where equal elements go,
-        // so we cannot just copy [middle, end()).
-        iterator newEnd = entries().begin();
-        for (iterator it = entries().begin(); it != entries().end(); ++it) {
-          if (exp < conf.getExponent(it->get(), var))
-            other.entries().push_back(*it);
-          else {
-            if (it != newEnd) {
-              *newEnd = *it;
-            }
-            ++newEnd;
-          }
-        }
-        while (newEnd != entries().end())
-          entries().pop_back();
-
-      }
-      MATHIC_ASSERT(other.entries().size() < conf.getLeafSize());
-      MATHIC_ASSERT(entries().size() < conf.getLeafSize());
-      break;
-    }
+    iterator middle = KDEntryArray<C, EE>::split
+      (entries().begin(), entries().end(), var, exp, conf);
+    Leaf& other = *new (arena.allocObjectNoCon<Leaf>()) Leaf(middle, entries().end(), arena, conf);
+    while (middle != entries().end())
+      entries().pop_back();
+    if (conf.getSortOnInsert())
+      std::sort(entries().begin(), entries().end(), Comparer<C>(conf));
 
     Interior& interior = *new (arena.allocObjectNoCon<Interior>())
       Interior(*this, other, var, exp);
