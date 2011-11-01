@@ -21,18 +21,19 @@ int main() {
   timer.print(std::cout);
   std::cout << std::endl;
 
-  /*
-  sim.run<KDTreeModel<1,0,1> >(2, 1, 0, 0, 1.0, 1000); // best tree, mask
-  sim.run<KDTreeModel<1,0,0> >(2, 1, 0, 0, 1.0, 1000); // best tree, mask
+#ifndef DEBUG
+  sim.run<KDTreeModel<1,0,1,2> >(1, 0, 0, 1.0, 1000); // best tree, mask
+  sim.run<KDTreeModel<1,0,0,2> >(1, 0, 0, 1.0, 1000); // best tree, mask
 
-  sim.run<KDTreeModel<0,0,1> >(2, 1, 0, 0, 0.0, 0); // best tree, no mask
-  sim.run<KDTreeModel<0,0,0> >(2, 1, 0, 0, 0.0, 0); // best tree, no mask
+  sim.run<KDTreeModel<0,0,1,2> >(1, 0, 0, 0.0, 0); // best tree, no mask
+  sim.run<KDTreeModel<0,0,0,2> >(1, 0, 0, 0.0, 0); // best tree, no mask
 
-  sim.run<KDTreeModel<0,0,1> >(2, 1, 0, 0, 1.0, 1000); // best tree, mask
-  sim.run<KDTreeModel<0,0,0> >(2, 1, 0, 0, 1.0, 1000); // best tree, mask
+  sim.run<KDTreeModel<0,0,1,2> >(1, 0, 0, 1.0, 1000); // best tree, mask
+  sim.run<KDTreeModel<0,0,0,2> >(1, 0, 0, 1.0, 1000); // best tree, mask
 
   sim.run<DivListModel<0, 0> >(1, 1, 0, 0.5, 500);
-  return 0;//*/
+  return 0;
+#endif
 
   /*
   for (int minimizeOnInsert = 1; minimizeOnInsert <= 1; ++minimizeOnInsert) {
@@ -57,23 +58,23 @@ int main() {
   sim.run<DivListModel<1> >(1, 0, 1);
   //*/
 
-  sim.run<DivListModel<0, 0> >(1, 1, 0, 0.5, 500);
-  sim.run<KDTreeModel<0,0,1> >(2, 1, 0, 0, 0.0, 0);
+  sim.run<DivListModel<0,0> >(1, 1, 0, 0.5, 500);
+  sim.run<KDTreeModel<0,0,1,2> >(1, 0, 0, 0.0, 0);
   for (int mini = 1; mini <= 1; ++mini) {
     for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
       for (int useDivCache = 0; useDivCache <= 1; ++useDivCache) {
 
-        sim.run<KDTreeModel<1,1,1> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
-        sim.run<KDTreeModel<1,0,1> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
-        sim.run<KDTreeModel<0,0,1> >(2, mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<1,1,1,2> >(mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<1,0,1,2> >(mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<0,0,1,2> >(mini,sortOnInsert,useDivCache, 0.5, 10);
 
-        sim.run<KDTreeModel<1,1,1> >(10, mini,sortOnInsert,useDivCache, 0.0, 0);
-        sim.run<KDTreeModel<1,0,1> >(10, mini,sortOnInsert,useDivCache, 0.0, 0);
-        sim.run<KDTreeModel<0,0,1> >(10, mini,sortOnInsert,useDivCache, 0.0, 0);
+        sim.run<KDTreeModel<1,1,1,10> >(mini,sortOnInsert,useDivCache, 0.0, 0);
+        sim.run<KDTreeModel<1,0,1,10> >(mini,sortOnInsert,useDivCache, 0.0, 0);
+        sim.run<KDTreeModel<0,0,1,10> >(mini,sortOnInsert,useDivCache, 0.0, 0);
 
-        sim.run<KDTreeModel<1,1,1> >(40, mini,sortOnInsert,useDivCache, 0.5, 10);
-        sim.run<KDTreeModel<1,0,1> >(40, mini,sortOnInsert,useDivCache, 0.5, 10);
-        sim.run<KDTreeModel<0,0,1> >(40, mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<1,1,1,40> >(mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<1,0,1,40> >(mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<0,0,1,40> >(mini,sortOnInsert,useDivCache, 0.5, 10);
 
 		/*
         for (size_t leafSize = 5; leafSize <= 15; leafSize += 5)

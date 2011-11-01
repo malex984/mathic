@@ -34,14 +34,30 @@ namespace mathic {
 
     class Node {
     public:
-      Node(memt::Arena& arena, const C& conf);
+      static Node* makeNode(memt::Arena& arena, const C& conf) {
+        return new (arena.alloc(sizeOf(0)))
+          Node(arena, conf);
+      }
 
       template<class Iter>
-      Node(Iter begin, Iter end, memt::Arena& arena,
-        const C& conf, size_t childCount);
+      static Node* makeNode(Iter begin, Iter end, memt::Arena& arena,
+        const C& conf, size_t childCount) {
+        return new (arena.alloc(sizeOf(childCount)))
+          Node(begin, end, arena, conf, childCount);
+      }
+
       template<class Iter>
-      Node(Iter begin, Iter end, memt::Arena& arena,
-        const DivMaskCalculator& calc, const C& conf, size_t childCount);
+      static Node* makeNode(Iter begin, Iter end, memt::Arena& arena,
+        const DivMaskCalculator& calc, const C& conf, size_t childCount) {
+        return new (arena.alloc(sizeOf(childCount)))
+          Node(begin, end, arena, calc, conf, childCount);
+      }
+
+      static size_t sizeOf(size_t childCount) {
+        if (childCount > 0)
+          --childCount; // array has size 1, so one element already there
+        return sizeof(Node) + childCount * sizeof(Child);
+      }
 
       struct Child {
         size_t var;
@@ -50,12 +66,12 @@ namespace mathic {
       };
       typedef Child* iterator;
       typedef Child const* const_iterator;
-      iterator childBegin() {return _childrenBegin;}
-      const_iterator childBegin() const {return _childrenBegin;}
+      iterator childBegin() {return _childrenMemoryBegin;}
+      const_iterator childBegin() const {return _childrenMemoryBegin;}
       iterator childEnd() {return _childrenEnd;}
       const_iterator childEnd() const {return _childrenEnd;}
 
-      bool hasChildren() const {return _childrenBegin != _childrenEnd;}
+      bool hasChildren() const {return childBegin() != childEnd();}
       template<class Ext>
       bool inChild(const_iterator child, const Ext& ext, const C& conf) const {
         return child->exponent < conf.getExponent(ext.get(), child->var);
@@ -80,11 +96,24 @@ namespace mathic {
       Node(const Node&); // unavailable
       void operator=(const Node&); // unavailable
 
+      Node(memt::Arena& arena, const C& conf);
+      
+      template<class Iter>
+      Node(Iter begin, Iter end, memt::Arena& arena,
+        const C& conf, size_t childCount);
+
+      template<class Iter>
+      Node(Iter begin, Iter end, memt::Arena& arena,
+        const DivMaskCalculator& calc, const C& conf, size_t childCount);
+
       class SplitEqualOrLess;
 
       KDEntryArray<C, ExtEntry> _entries;
-      Child* _childrenBegin;
-      Child* _childrenEnd;
+      // Array has size 1 to appease compiler since size 0 produces warnings
+      // or errors. Actual size can be greater if more memory has been
+      // allocated for the node than sizeof(Node).
+      Child* _childrenEnd; // points into _childrenMemoryBegin
+      Child _childrenMemoryBegin[1];
     };
 
   public:
@@ -142,7 +171,7 @@ namespace mathic {
   PackedKDTree<C>::PackedKDTree(const C& configuration):
   _conf(configuration) {
     MATHIC_ASSERT(_conf.getLeafSize() >= 2);
-    _root = new (_arena.allocObjectNoCon<Node>()) Node(_arena, _conf);
+    _root = Node::makeNode(_arena, _conf);
     MATHIC_ASSERT(debugIsValid());
   }
 
@@ -153,9 +182,9 @@ namespace mathic {
 
   template<class C>
   PackedKDTree<C>::Node::Node(memt::Arena& arena, const C& conf):
-  _entries(arena, conf),
-  _childrenBegin(0),
-  _childrenEnd(0) {}
+  _entries(arena, conf) {
+    _childrenEnd = childBegin();
+  }
 
   template<class C>
   template<class Iter>
@@ -166,15 +195,7 @@ namespace mathic {
     const C& conf,
     size_t childCount):
   _entries(begin, end, arena, conf) {
-    if (childCount == 0) {
-      _childrenBegin = 0;
-      _childrenEnd = 0;
-    } else {
-      std::pair<Child*, Child*> p =
-        arena.allocArrayNoCon<Child>(childCount);
-      _childrenBegin = p.first;
-      _childrenEnd = p.second;
-    }
+    _childrenEnd = childBegin() + childCount;
   }
 
   template<class C>
@@ -186,16 +207,8 @@ namespace mathic {
     const DivMaskCalculator& calc,
     const C& conf,
     size_t childCount):
-  _entries(begin, end, arena, calc, conf) {
-    if (childCount == 0) {
-      _childrenBegin = 0;
-      _childrenEnd = 0;
-    } else {
-      std::pair<Child*, Child*> p =
-        arena.allocArrayNoCon<Child>(childCount);
-      _childrenBegin = p.first;
-      _childrenEnd = p.second;
-    }
+    _entries(begin, end, arena, calc, conf) {
+    _childrenEnd = childBegin() + childCount;
   }
 
   template<class C>
@@ -307,8 +320,8 @@ stopped:;
         // set up equal-or-less
         end = middle;
       }
-      Node* node = new (_arena.allocObjectNoCon<Node>())
-        Node(begin, end, _arena, calc, _conf, children.size());
+      Node* node = Node::makeNode
+        (begin, end, _arena, calc, _conf, children.size());
       if (_root == 0)
         _root = node;
       if (fromParent != 0)
@@ -411,7 +424,7 @@ stopped:;
         _tmp.push_back(it->node);
     }
     _arena.freeAllAllocs();
-    _root = new (_arena.allocObjectNoCon<Node>()) Node(_arena, _conf);
+    _root = Node::makeNode(_arena, _conf);
   }
 
   template<class C>
@@ -551,8 +564,7 @@ stopped:;
       (entries().begin(), entries().end(), var, exp, conf);
     ASSERT(middle != entries().begin());
 
-    Node* copied = new (arena.allocObjectNoCon<Node>())
-      Node(entries().begin(), middle, arena, conf,
+    Node* copied = makeNode(entries().begin(), middle, arena, conf,
       std::distance(childBegin(), childEnd()) + 1);
     std::copy(childBegin(), childEnd(), copied->childBegin());
     Child newChild;
@@ -567,8 +579,7 @@ stopped:;
     const size_t targetSize = std::distance(middle, entries().end());
     while (entries().size() > targetSize)
       entries().pop_back();
-    _childrenBegin = 0;
-    _childrenEnd = 0;
+    _childrenEnd = childBegin();
 
     if (conf.getSortOnInsert())
       std::sort(entries().begin(), entries().end(), Comparer<C>(conf));

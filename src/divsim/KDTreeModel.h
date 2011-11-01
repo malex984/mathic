@@ -6,11 +6,11 @@
 #include <string>
 #include <vector>
 
-template<bool UseDivMask, bool UseTreeDivMask, bool PackedTree>
+template<bool UseDivMask, bool UseTreeDivMask, bool PackedTree, size_t LeafSize>
 class KDTreeModelConfiguration;
 
 /** Helper class for KDTreeModel. */
-template<bool UDM, bool UTDM, bool PT>
+template<bool UDM, bool UTDM, bool PT, size_t LS>
 class KDTreeModelConfiguration {
  public:
   typedef int Exponent;
@@ -19,13 +19,11 @@ class KDTreeModelConfiguration {
 
   KDTreeModelConfiguration
     (size_t varCount,
-     size_t leafSize,
      bool sortOnInsert,
      bool useDivisorCache,
      double rebuildRatio,
      size_t minRebuild):
    _varCount(varCount),
-   _leafSize(leafSize),
    _sortOnInsert(sortOnInsert),
    _useDivisorCache(useDivisorCache),
    _useAutomaticRebuild((rebuildRatio > 0.0 || minRebuild > 0) && UDM),
@@ -61,7 +59,7 @@ class KDTreeModelConfiguration {
     return false;
   }
 
-  size_t getLeafSize() const {return _leafSize;}
+  size_t getLeafSize() const {return LeafSize;}
   bool getUseDivisorCache() const {return _useDivisorCache;}
   bool getDoAutomaticRebuilds() const {return _useAutomaticRebuild;}
   double getRebuildRatio() const {return _rebuildRatio;}
@@ -70,12 +68,12 @@ class KDTreeModelConfiguration {
   static const bool UseDivMask = UDM;
   static const bool UseTreeDivMask = UTDM;
   static const bool PackedTree = PT;
+  static const size_t LeafSize = LS;
 
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
  private:
   const size_t _varCount;
-  const size_t _leafSize;
   const bool _sortOnInsert;
   const bool _useDivisorCache;
   const bool _useAutomaticRebuild;
@@ -85,23 +83,28 @@ class KDTreeModelConfiguration {
 };
 
 /** An instantiation of the capabilities of KDTree. */
-template<bool UseDivMask, bool UseTreeDivMask, bool PackedTree>
+template<
+  bool UseDivMask,
+  bool UseTreeDivMask,
+  bool PackedTree,
+  size_t LeafSize
+>
 class KDTreeModel {
  private:
-  typedef KDTreeModelConfiguration<UseDivMask, UseTreeDivMask, PackedTree> C;
+  typedef KDTreeModelConfiguration
+    <UseDivMask, UseTreeDivMask, PackedTree, LeafSize> C;
   typedef mathic::KDTree<C> Finder;
  public:
   typedef typename Finder::Monomial Monomial;
   typedef typename Finder::Entry Entry;
 
  KDTreeModel(size_t varCount,
-             size_t leafSize,
              bool minimizeOnInsert,
              bool sortOnInsert,
              bool useDivisorCache,
              double rebuildRatio,
              size_t minRebuild):
-  _finder(C(varCount, leafSize, sortOnInsert, useDivisorCache, rebuildRatio, minRebuild)),
+  _finder(C(varCount, sortOnInsert, useDivisorCache, rebuildRatio, minRebuild)),
   _minimizeOnInsert(minimizeOnInsert) {
     ASSERT(!UseTreeDivMask || UseDivMask);
   }
@@ -148,8 +151,8 @@ class KDTreeModel {
   bool _minimizeOnInsert;
 };
 
-template<bool UDM, bool UTDM, bool PT>
-inline void KDTreeModel<UDM, UTDM, PT>::insert(const Entry& entry) {
+template<bool UDM, bool UTDM, bool PT, size_t LS>
+inline void KDTreeModel<UDM, UTDM, PT, LS>::insert(const Entry& entry) {
   if (!_minimizeOnInsert) {
     _finder.insert(entry);
     return;
@@ -160,9 +163,9 @@ inline void KDTreeModel<UDM, UTDM, PT>::insert(const Entry& entry) {
   _finder.insert(entry);
 }
 
-template<bool UDM, bool UTDM, bool PT>
+template<bool UDM, bool UTDM, bool PT, size_t LS>
 template<class MultipleOutput>
-inline void KDTreeModel<UDM, UTDM, PT>::
+inline void KDTreeModel<UDM, UTDM, PT, LS>::
 insert(const Entry& entry, MultipleOutput& removed) {
   if (!_minimizeOnInsert) {
     _finder.insert(entry);
@@ -174,8 +177,8 @@ insert(const Entry& entry, MultipleOutput& removed) {
   _finder.insert(entry);
 }
 
-template<bool UDM, bool UTDM, bool PT>
-inline std::string KDTreeModel<UDM, UTDM, PT>::getName() const {
+template<bool UDM, bool UTDM, bool PT, size_t LS>
+inline std::string KDTreeModel<UDM, UTDM, PT, LS>::getName() const {
   return _finder.getName() +
     (_minimizeOnInsert ? " remin" : " nomin");
 }

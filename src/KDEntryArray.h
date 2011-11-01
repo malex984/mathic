@@ -28,15 +28,17 @@ namespace mathic {
 
     void clear();
 
-    iterator begin() {return _begin;}
-    const_iterator begin() const {return _begin;}
+    iterator begin() {return reinterpret_cast<ExtEntry*>(_beginMemory);}
+    const_iterator begin() const {
+      return reinterpret_cast<const ExtEntry*>(_beginMemory);
+    }
     iterator end() {return _end;}
     const_iterator end() const {return _end;}
 
-    bool empty() const {return _begin == _end;}
-    size_t size() const {return _end - _begin;}
-    EE& front() {MATHIC_ASSERT(!empty()); return *_begin;}
-    const EE& front() const {MATHIC_ASSERT(!empty()); return *_begin;}
+    bool empty() const {return begin() == end();}
+    size_t size() const {return std::distance(begin(), end());}
+    EE& front() {MATHIC_ASSERT(!empty()); return *begin();}
+    const EE& front() const {MATHIC_ASSERT(!empty()); return *begin();}
     EE& back() {MATHIC_ASSERT(!empty()); return *(_end - 1);}
     const EE& back() const {MATHIC_ASSERT(!empty()); return *(_end - 1);}
 
@@ -81,10 +83,12 @@ namespace mathic {
 
     class SplitEqualOrLess;
 
-    iterator _begin;
-    iterator _end;
+
+    /** This is the memory for the entries. It is kept as a raw char*
+     to avoid constructing all the entries right away. */
+    char _beginMemory[C::LeafSize * sizeof(ExtEntry)];
+    iterator _end; // points into _beginMemory
 #ifdef MATHIC_DEBUG
-    const size_t _capacityDebug;
     const bool _sortOnInsertDebug;
 #endif
   };
@@ -139,12 +143,10 @@ namespace mathic {
   template<class C, class EE>
   KDEntryArray<C, EE>::KDEntryArray(memt::Arena& arena, const C& conf)
 #ifdef MATHIC_DEBUG
-  : _capacityDebug(conf.getLeafSize()),
-    _sortOnInsertDebug(conf.getSortOnInsert())
+    :_sortOnInsertDebug(conf.getSortOnInsert())
 #endif
   {
-    _begin = arena.allocArrayNoCon<EE>(conf.getLeafSize()).first;
-    _end = _begin;
+    _end = begin();
   }
 
   template<class C, class EE>
@@ -156,14 +158,12 @@ namespace mathic {
     const DivMaskCalculator& calc,
     const C& conf) 
 #ifdef MATHIC_DEBUG
-:_capacityDebug(conf.getLeafSize()),
-_sortOnInsertDebug(conf.getSortOnInsert())
+  :_sortOnInsertDebug(conf.getSortOnInsert())
 #endif
   {
     MATHIC_ASSERT(static_cast<size_t>(std::distance(begin, end)) <=
                   conf.getLeafSize());
-    _begin = arena.allocArrayNoCon<ExtEntry>(conf.getLeafSize()).first;
-    _end = _begin;
+    _end = this->begin();
     // cannot directly copy as memory is not constructed.
     for (; begin != end; ++begin)
       push_back(EE(*begin, calc, conf));
@@ -179,14 +179,12 @@ _sortOnInsertDebug(conf.getSortOnInsert())
     memt::Arena& arena,
     const C& conf) 
 #ifdef MATHIC_DEBUG
-:_capacityDebug(conf.getLeafSize()),
-_sortOnInsertDebug(conf.getSortOnInsert())
+  :_sortOnInsertDebug(conf.getSortOnInsert())
 #endif
   {
     MATHIC_ASSERT(static_cast<size_t>(std::distance(begin, end)) <=
-                  conf.getLeafSize());
-    _begin = arena.allocArrayNoCon<ExtEntry>(conf.getLeafSize()).first;
-    _end = _begin;
+                  C::LeafSize);
+    _end = this->begin();
     // cannot directly copy as memory is not constructed.
     for (; begin != end; ++begin)
       push_back(*begin);
@@ -196,7 +194,7 @@ _sortOnInsertDebug(conf.getSortOnInsert())
 
   template<class C, class EE>
     void KDEntryArray<C, EE>::push_back(const EE& entry) {
-    MATHIC_ASSERT(size() < _capacityDebug);
+    MATHIC_ASSERT(size() < C::LeafSize);
     new (_end) EE(entry);
     updateToLowerBound(entry);
     ++_end;
@@ -211,7 +209,7 @@ _sortOnInsertDebug(conf.getSortOnInsert())
 
   template<class C, class EE>
     void KDEntryArray<C, EE>::insert(iterator it, const EE& entry) {
-    MATHIC_ASSERT(size() < _capacityDebug);
+    MATHIC_ASSERT(size() < C::LeafSize);
     if (it == end()) {
       push_back(entry);
       return;
@@ -226,7 +224,7 @@ _sortOnInsertDebug(conf.getSortOnInsert())
 
   template<class C, class EE>
     void KDEntryArray<C, EE>::insert(const EE& entry, const C& conf) {
-    MATHIC_ASSERT(size() < _capacityDebug);
+    MATHIC_ASSERT(size() < C::LeafSize);
     if (!conf.getSortOnInsert())
       push_back(entry);
     else {
