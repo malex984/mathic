@@ -37,8 +37,11 @@ namespace mathic {
       Node(memt::Arena& arena, const C& conf);
 
       template<class Iter>
-      Node(Iter begin, Iter end, memt::Arena& arena, const C& conf,
-        size_t childCount = 0);
+      Node(Iter begin, Iter end, memt::Arena& arena,
+        const C& conf, size_t childCount);
+      template<class Iter>
+      Node(Iter begin, Iter end, memt::Arena& arena,
+        const DivMaskCalculator& calc, const C& conf, size_t childCount);
 
       struct Child {
         size_t var;
@@ -124,7 +127,9 @@ namespace mathic {
     struct InsertTodo {
       Iter begin;
       Iter end;
-      Node* parent;
+      Exponent exp;
+      size_t var;
+      typename Node::Child* fromParent;
     };
 
     memt::Arena _arena; // Everything permanent allocated from here.
@@ -161,6 +166,27 @@ namespace mathic {
     const C& conf,
     size_t childCount):
   _entries(begin, end, arena, conf) {
+    if (childCount == 0) {
+      _childrenBegin = 0;
+      _childrenEnd = 0;
+    } else {
+      std::pair<Child*, Child*> p =
+        arena.allocArrayNoCon<Child>(childCount);
+      _childrenBegin = p.first;
+      _childrenEnd = p.second;
+    }
+  }
+
+  template<class C>
+  template<class Iter>
+  PackedKDTree<C>::Node::Node(
+    Iter begin,
+    Iter end,
+    memt::Arena& arena,
+    const DivMaskCalculator& calc,
+    const C& conf,
+    size_t childCount):
+  _entries(begin, end, arena, calc, conf) {
     if (childCount == 0) {
       _childrenBegin = 0;
       _childrenEnd = 0;
@@ -239,10 +265,62 @@ stopped:;
   template<class Iter>
   void PackedKDTree<C>::reset(Iter insertBegin, Iter insertEnd, const DivMaskCalculator& calc) {
     clear();
-    for (; insertBegin != insertEnd; ++insertBegin) {
-      ExtEntry extEntry(*insertBegin, calc, _conf);
-      insert(extEntry);
+    _arena.freeAllAllocs();
+    _root = 0; // temporary value
+
+    typedef InsertTodo<Iter> Task;
+    typedef std::vector<Task> TaskCont;
+    TaskCont todo;
+    TaskCont children;
+
+    {
+      Task initialTask;
+      initialTask.begin = insertBegin;
+      initialTask.end = insertEnd;
+      initialTask.var = static_cast<size_t>(-1);
+      initialTask.fromParent = 0;
+      todo.push_back(initialTask);
     }
+    while (!todo.empty()) {
+      Iter begin = todo.back().begin;
+      Iter end = todo.back().end;
+      size_t var = todo.back().var;
+      typename Node::Child* fromParent = todo.back().fromParent;
+      if (fromParent != 0) {
+        fromParent->var = var;
+        fromParent->exponent = todo.back().exp;
+      }
+      todo.pop_back();
+
+      // split off children until reaching few enough entries
+      while (_conf.getLeafSize() <
+        static_cast<size_t>(std::distance(begin, end))) {
+        Task child;
+        Iter middle = KDEntryArray<C, ExtEntry>::
+          split(begin, end, var, child.exp, _conf);
+        MATHIC_ASSERT(begin < middle && middle < end);
+        MATHIC_ASSERT(var < _conf.getVarCount());
+        child.begin = middle;
+        child.end = end;
+        child.var = var;
+        children.push_back(child);
+        // set up equal-or-less
+        end = middle;
+      }
+      Node* node = new (_arena.allocObjectNoCon<Node>())
+        Node(begin, end, _arena, calc, _conf, children.size());
+      if (_root == 0)
+        _root = node;
+      if (fromParent != 0)
+        fromParent->node = node;
+      for (size_t child = 0; child < children.size(); ++child) {
+        children[child].fromParent = &*(node->childBegin() + child);
+        todo.push_back(children[child]);
+      }
+      children.clear();
+    }
+    MATHIC_ASSERT(_root != 0);
+    MATHIC_ASSERT(debugIsValid());
   }
 
   template<class C>

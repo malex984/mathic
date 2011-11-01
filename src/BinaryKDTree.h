@@ -307,8 +307,6 @@ namespace mathic {
     MATHIC_ASSERT(leaf->entries().size() < _conf.getLeafSize());
     leaf->entries().insert(extEntry, _conf);
     MATHIC_ASSERT(debugIsValid());
-
-    //print(std::cerr); std::cerr << std::flush; // todo: debug code, remove
   }
 
   template<class C>

@@ -22,8 +22,15 @@ int main() {
   std::cout << std::endl;
 
   /*
-    sim.run<KDTreeModel<0,0,1> >(2, 1, 0, 0, 0.0, 0);
-  sim.run<KDTreeModel<0,0,0> >(2, 1, 0, 0, 0.0, 0);
+  sim.run<KDTreeModel<1,0,1> >(2, 1, 0, 0, 1.0, 1000); // best tree, mask
+  sim.run<KDTreeModel<1,0,0> >(2, 1, 0, 0, 1.0, 1000); // best tree, mask
+
+  sim.run<KDTreeModel<0,0,1> >(2, 1, 0, 0, 0.0, 0); // best tree, no mask
+  sim.run<KDTreeModel<0,0,0> >(2, 1, 0, 0, 0.0, 0); // best tree, no mask
+
+  sim.run<KDTreeModel<0,0,1> >(2, 1, 0, 0, 1.0, 1000); // best tree, mask
+  sim.run<KDTreeModel<0,0,0> >(2, 1, 0, 0, 1.0, 1000); // best tree, mask
+
   sim.run<DivListModel<0, 0> >(1, 1, 0, 0.5, 500);
   return 0;//*/
 
