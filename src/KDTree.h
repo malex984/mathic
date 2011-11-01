@@ -274,7 +274,7 @@ namespace mathic {
     std::stringstream out;
     const C& conf = getConfiguration();
     out << "KDTree(" << (C::PackedTree ? "packed" : "binary") << ')';
-    out << " leaf:" << conf.getLeafSize();
+    out << " leaf:" << C::LeafSize;
     if (UseDivMask && conf.getDoAutomaticRebuilds()) {
       out << " autob:" << conf.getRebuildRatio()
           << '/' << conf.getRebuildMin();

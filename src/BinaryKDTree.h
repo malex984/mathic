@@ -247,7 +247,7 @@ namespace mathic {
   template<class C>
   BinaryKDTree<C>::BinaryKDTree(const C& configuration):
   _conf(configuration) {
-    MATHIC_ASSERT(_conf.getLeafSize() >= 2);
+    MATHIC_ASSERT(C::LeafSize >= 2);
     _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
     MATHIC_ASSERT(debugIsValid());
   }
@@ -294,8 +294,8 @@ namespace mathic {
     }
     Leaf* leaf = &node->asLeaf();
 
-    MATHIC_ASSERT(leaf->entries().size() <= _conf.getLeafSize());
-    if (leaf->entries().size() == _conf.getLeafSize()) {
+    MATHIC_ASSERT(leaf->entries().size() <= C::LeafSize);
+    if (leaf->entries().size() == C::LeafSize) {
       Interior& interior = leaf->split(parent, _arena, _conf);
       interior.updateToLowerBound(extEntry);
       if (parent == 0) {
@@ -304,7 +304,7 @@ namespace mathic {
       }
       leaf = &interior.getChildFor(extEntry, _conf).asLeaf();
     }
-    MATHIC_ASSERT(leaf->entries().size() < _conf.getLeafSize());
+    MATHIC_ASSERT(leaf->entries().size() < C::LeafSize);
     leaf->entries().insert(extEntry, _conf);
     MATHIC_ASSERT(debugIsValid());
   }
@@ -325,7 +325,7 @@ namespace mathic {
     while (true) {
       Node* node = 0;
       const size_t insertCount = std::distance(insertBegin, insertEnd);
-      const bool isLeaf = (insertCount <= _conf.getLeafSize());
+      const bool isLeaf = (insertCount <= C::LeafSize);
       if (isLeaf)
         node = new (_arena.allocObjectNoCon<Leaf>())
           Leaf(insertBegin, insertEnd, _arena, calc, _conf);

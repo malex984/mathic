@@ -170,7 +170,7 @@ namespace mathic {
   template<class C>
   PackedKDTree<C>::PackedKDTree(const C& configuration):
   _conf(configuration) {
-    MATHIC_ASSERT(_conf.getLeafSize() >= 2);
+    MATHIC_ASSERT(C::LeafSize >= 2);
     _root = Node::makeNode(_arena, _conf);
     MATHIC_ASSERT(debugIsValid());
   }
@@ -247,8 +247,8 @@ stopped:;
     typename Node::iterator child = node->childBegin();
     while (true) {
       if (child == node->childEnd()) {
-        MATHIC_ASSERT(node->entries().size() <= _conf.getLeafSize());
-        if (node->entries().size() < _conf.getLeafSize())
+        MATHIC_ASSERT(node->entries().size() <= C::LeafSize);
+        if (node->entries().size() < C::LeafSize)
           break;
         // split node as it is full
         ASSERT(node == _root || parentChild != 0);
@@ -267,7 +267,7 @@ stopped:;
 
     // insert into node
     MATHIC_ASSERT(child == node->childEnd());
-    MATHIC_ASSERT(node->entries().size() < _conf.getLeafSize());
+    MATHIC_ASSERT(node->entries().size() < C::LeafSize);
     node->entries().insert(extEntry, _conf);
     MATHIC_ASSERT(debugIsValid());
 
@@ -306,8 +306,7 @@ stopped:;
       todo.pop_back();
 
       // split off children until reaching few enough entries
-      while (_conf.getLeafSize() <
-        static_cast<size_t>(std::distance(begin, end))) {
+      while (C::LeafSize < static_cast<size_t>(std::distance(begin, end))) {
         Task child;
         Iter middle = KDEntryArray<C, ExtEntry>::
           split(begin, end, var, child.exp, _conf);

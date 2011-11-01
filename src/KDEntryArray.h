@@ -162,7 +162,7 @@ namespace mathic {
 #endif
   {
     MATHIC_ASSERT(static_cast<size_t>(std::distance(begin, end)) <=
-                  conf.getLeafSize());
+                  C::LeafSize);
     _end = this->begin();
     // cannot directly copy as memory is not constructed.
     for (; begin != end; ++begin)
