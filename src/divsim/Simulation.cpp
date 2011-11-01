@@ -6,18 +6,6 @@
 #include <algorithm>
 
 namespace {
-  std::string commafy(unsigned long long l) {
-    std::stringstream out;
-    out << l;
-    std::string str;
-    for (size_t i = 0; i < out.str().size(); ++i) {
-      str += out.str()[i];
-      if (i != out.str().size() - 1 && ((out.str().size() - i) % 3) == 1)
-        str += ',';
-    }
-    return str;
-  }
-
   void makeRandom(std::vector<int>& monomial) {
     for (size_t var = 0; var < monomial.size(); ++var)
       monomial[var] = rand() % 1000;
@@ -56,16 +44,16 @@ void Simulation::printData(std::ostream& out) const {
   for (std::vector<SimData>::const_iterator it = sorted.begin();
     it != sorted.end(); ++it) {
     pr[0] << it->_name << '\n';
-    pr[1] << commafy(it->_mseconds) << '\n';
-    pr[2] << commafy(it->_expQueryCount) << '\n';
+    pr[1] << mic::ColumnPrinter::commafy(it->_mseconds) << '\n';
+    pr[2] << mic::ColumnPrinter::commafy(it->_expQueryCount) << '\n';
   }
   pr.print(out);
 }
 
 void Simulation::SimData::print(std::ostream& out) {
   out << _name
-    << " " << commafy(_mseconds) << " ms"
-    << " " << commafy(_expQueryCount) << " eqs"
+    << " " << mic::ColumnPrinter::commafy(_mseconds) << " ms"
+    << " " << mic::ColumnPrinter::commafy(_expQueryCount) << " eqs"
     << '\n';
 }
 

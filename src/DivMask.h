@@ -1,10 +1,29 @@
 #ifndef MATHIC_BIT_MASK_GUARD
 #define MATHIC_BIT_MASK_GUARD
 
+#include "stdinc.h"
 #include <vector>
 #include <utility>
+#include <algorithm>
+
+// Value x means do 2^x mask checks before printing stats
+#define MATHIC_TRACK_DIV_MASK_HIT_RATIO 25
+#ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
+#include <iostream>
+#include <ColumnPrinter.h>
+#endif
 
 namespace mathic {
+#ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
+  namespace DivMaskStats {
+    extern unsigned long maskComputes; // div masks computed
+    extern unsigned long maskChecks; // how many times mask is checked
+    extern unsigned long divChecks; // times divisibility is checked with mask
+    extern unsigned long divDivides; // mask can't hit as there is divisibility
+    extern unsigned long divHits; // times mask rules out divisibility
+  }
+#endif
+
   /** Class representing a div mask. This is a set of bits that can
       be used to determine that one monomial cannot divide another
       monomial. */
@@ -26,13 +45,59 @@ namespace mathic {
     _mask(calc.compute(t, conf)) {}
 
     template<class T, class Configuration>
-      void recalculate(const T& t,
-                       const Calculator<Configuration>& calc,
-                       const Configuration& conf) {
+    void recalculate(const T& t,
+                     const Calculator<Configuration>& calc,
+                     const Configuration& conf) {
       _mask = calc.compute(t, conf);
     }
 
     bool canDivide(const DivMask& mask) const {
+#ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
+      ++DivMaskStats::maskChecks;
+      // print stats every 2^MATHIC_TRACK_DIV_MASK_HIT_RATIO time
+      const unsigned long mod = (1 << MATHIC_TRACK_DIV_MASK_HIT_RATIO) - 1;
+      if ((DivMaskStats::maskChecks & mod) == 0) {
+        std::cerr << "**** DivMask stats (turn off by not defining macro) ****\n";
+        ColumnPrinter pr;
+        pr.addColumn(true, "* ");
+        pr.addColumn(false, " ");
+        pr.addColumn(false, "  ");
+        pr.addColumn(true, " ");
+        pr[0] << "masks computed:\n";
+        pr[1] << ColumnPrinter::commafy(DivMaskStats::maskComputes) << '\n';
+        pr[2] << ColumnPrinter::percent
+          (DivMaskStats::maskComputes, DivMaskStats::maskChecks) << '\n';
+        pr[3] << "of mask checks\n";
+
+        pr[0] << "mask checks:\n";
+        pr[1] << ColumnPrinter::commafy(DivMaskStats::maskChecks) << '\n';
+        pr[2] << '\n';
+        pr[3] << '\n';
+
+        pr[0] << "mask div checks:\n";
+        pr[1] << ColumnPrinter::commafy(DivMaskStats::divChecks) << '\n';
+        pr[2] << ColumnPrinter::percent
+          (DivMaskStats::divChecks, DivMaskStats::maskChecks) << '\n';
+        pr[3] << "of mask checks\n";
+
+        pr[0] << "actually divide:\n";
+        pr[1] << ColumnPrinter::commafy(DivMaskStats::divDivides) << '\n';
+        pr[2] << ColumnPrinter::percent
+          (DivMaskStats::divDivides, DivMaskStats::divChecks) << '\n';
+        pr[3] << "of div checks\n";
+
+        pr[0] << "mask div hits:\n";
+        pr[1] << ColumnPrinter::commafy(DivMaskStats::divHits) << '\n';
+        pr[2] << ColumnPrinter::percent
+          (DivMaskStats::divHits, DivMaskStats::divChecks) << '\n';
+        pr[3] << "of div checks, " << ColumnPrinter::percent
+          (DivMaskStats::divHits,
+           DivMaskStats::divChecks - DivMaskStats::divDivides)
+           << " adjusted.\n";          
+        std::cerr << pr << "****\n";
+      }
+#endif
+
       return (_mask & ~mask._mask) == 0;
     }
 
@@ -44,18 +109,31 @@ namespace mathic {
     /** Extender extends T with a div mask if UseDivMask is true. It is
         allowed for T to be a reference type or const. */
     template<class T, bool UseDivMask>
-      class Extender;
+    class Extender;
 
     /** Base class to include a DivMask into a class at compile time
         based on the template parameter UseDivMask. The class offers
         the same methods either way, but they are replaced by do-nothing
         or asserting versions if UseDivMask is false. */
     template<bool UseDivMask>
-      class HasDivMask;
+    class HasDivMask;
 
   protected:
+    template<class C>
+    class ExponentComparer {
+    public:
+      ExponentComparer(size_t var, const C& conf): _var(var), _conf(conf) {}
+      template<class E>
+      bool operator()(const E& a, const E& b) const {
+        return _conf.getExponent(a, _var) < _conf.getExponent(b, _var);
+      }
+    private:
+      size_t _var;
+      const C& _conf;
+    };
+
     typedef unsigned long MaskType;
-  DivMask(MaskType mask): _mask(mask) {}
+    DivMask(MaskType mask): _mask(mask) {}
 
   private:
     /** To eliminate warnings about T& if T is already a reference type. */
@@ -75,7 +153,7 @@ namespace mathic {
         after this. Mixing div masks computed before a call to
         rebuild() with ones after has unpredictable results. */
     template<class Iter>
-      void rebuild(Iter begin, Iter end, const C& conf);
+    void rebuild(Iter begin, Iter end, const C& conf);
 
     /** Rebuilds without the benefit of knowing a range of entries
         that the div masks are supposed to work well for. */
@@ -83,7 +161,7 @@ namespace mathic {
 
     /** Computes a div mask for t. */
     template<class T>
-      DivMask::MaskType compute(const T& t, const C& conf) const;
+    DivMask::MaskType compute(const T& t, const C& conf) const;
 
   private:
     typedef typename C::Exponent Exponent;
@@ -95,9 +173,9 @@ namespace mathic {
   };
 
   template<class C>
-    template<class Iter>
-    void DivMask::Calculator<C, true>::
-    rebuild(Iter begin, Iter end, const C& conf) {
+  template<class Iter>
+  void DivMask::Calculator<C, true>::
+  rebuild(Iter begin, Iter end, const C& conf) {
     if (begin == end) {
       rebuildDefault(conf);
       return;
@@ -112,25 +190,43 @@ namespace mathic {
       if (bitsForVar == 0)
         continue;
 
-      // determine minimum and maximum
-      Exponent min = conf.getExponent(*begin, 0);
-      Exponent max = min;
-      for (Iter it = begin; it != end; ++it) {
-        if (max < conf.getExponent(*begin, var))
-          max = conf.getExponent(*begin, var);
-        if (conf.getExponent(*begin, var) < min)
-          min = conf.getExponent(*begin, var);
-      }
+      const bool useRank = true;
+      if (useRank) {
+        std::sort(begin, end, ExponentComparer<C>(var, conf));
+        size_t size = std::distance(begin, end);
+        size_t offset = size / bitsForVar;
+        if (offset== 0)
+          offset = 1;
+        for (size_t i = 1; i <= bitsForVar; ++i) {
+          size_t j = i * offset;
+          if (j >= size)
+            j = size - 1;
+          _bits.push_back(
+            std::make_pair(var, conf.getExponent(begin[j], var)));
+          if (j == size - 1)
+            break;
+        }
+      } else {
+        // determine minimum and maximum
+        Exponent min = conf.getExponent(*begin, 0);
+        Exponent max = min;
+        for (Iter it = begin; it != end; ++it) {
+          if (max < conf.getExponent(*begin, var))
+            max = conf.getExponent(*begin, var);
+          if (conf.getExponent(*begin, var) < min)
+            min = conf.getExponent(*begin, var);
+        }
 
-      // divide the range [a,b] into bitsForVar equal pieces
-      // and use the left end points of those ranges
-      // as the points for the bits.
-      Exponent increment = (max - min) / static_cast<Exponent>(bitsForVar); // todo: can avoid cast?
-      if (increment == 0)
-        increment = 1;
-      for (size_t i = 0; i < bitsForVar; ++i)
-        _bits.push_back(std::make_pair(var, min + increment * static_cast<Exponent>(i)));
-         // todo: can avoid cast?
+        // divide the range [a,b] into bitsForVar equal pieces
+        // and use the left end points of those ranges
+        // as the points for the bits.
+        Exponent increment = (max - min) / static_cast<Exponent>(bitsForVar); // todo: can avoid cast?
+        if (increment == 0)
+          increment = 1;
+        for (size_t i = 0; i < bitsForVar; ++i)
+          _bits.push_back(std::make_pair(var, min + increment * static_cast<Exponent>(i)));
+           // todo: can avoid cast?
+      }
     }
   }
 
@@ -155,6 +251,9 @@ namespace mathic {
     template<class T>
     DivMask::MaskType DivMask::Calculator<C, true>::
     compute(const T& t, const C& conf) const {
+#ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
+      ++DivMaskStats::maskComputes;
+#endif
     typedef typename BitContainer::const_iterator const_iterator;
     const const_iterator end = _bits.end();
     DivMask::MaskType mask = 0;
@@ -169,12 +268,12 @@ namespace mathic {
     Calculator(const C& conf) {}
 
     template<class Iter>
-      void rebuild(Iter begin, Iter end, const C& conf) {}
+    void rebuild(Iter begin, Iter end, const C& conf) {}
     void rebuildDefault(const C& conf) {}
   };
 
   template<>
-    class DivMask::HasDivMask<true> {
+  class DivMask::HasDivMask<true> {
   public:
     template<class T, class C>
       HasDivMask(const T& t, const Calculator<C>& calc, const C& conf):
@@ -204,7 +303,7 @@ namespace mathic {
   };
 
   template<>
-    class DivMask::HasDivMask<false> {
+  class DivMask::HasDivMask<false> {
   public:
     void resetDivMask() {MATHIC_ASSERT(false);}
     DivMask getDivMask() const {MATHIC_ASSERT(false); return DivMask();}
@@ -214,7 +313,7 @@ namespace mathic {
   };
 
   template<class T>
-    class DivMask::Extender<T, true> : public HasDivMask<true> {
+  class DivMask::Extender<T, true> : public HasDivMask<true> {
   private:
     typedef typename Ref<T>::RefType Reference;
     typedef typename Ref<const T>::RefType ConstReference;
@@ -225,8 +324,22 @@ namespace mathic {
     HasDivMask<true>(t, calc, conf), _t(t) {}
 
     template<class S, class C>
-      bool divides(const Extender<S, true>& t, const C& conf) const {
-      return this->canDivide(t) && conf.divides(get(), t.get());
+    bool divides(const Extender<S, true>& t, const C& conf) const {
+      bool canDiv = this->canDivide(t);
+#ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
+      ++DivMaskStats::divChecks;
+      if (!canDiv)
+        ++DivMaskStats::divHits;
+#endif
+      if (!canDiv)
+        return false;
+
+      bool actuallyDivides = conf.divides(get(), t.get());
+#ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
+      if (actuallyDivides)
+        ++DivMaskStats::divDivides;
+#endif
+      return actuallyDivides;
     }
 
     template<class C>

@@ -1,6 +1,6 @@
 # ***** Variables
 
-rawSources := Timer.cpp ColumnPrinter.cpp libs/memtailor.cpp
+rawSources := Timer.cpp ColumnPrinter.cpp DivMask.cpp libs/memtailor.cpp
 rawDivSources := divsim/Simulation.cpp divsim/divMain.cpp
 rawPqSources := pqsim/Item.cpp pqsim/Model.cpp pqsim/Simulator.cpp	\
   pqsim/pqMain.cpp

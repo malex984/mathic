@@ -120,6 +120,30 @@ namespace mathic {
 	}
   }
 
+  std::string ColumnPrinter::commafy(unsigned long long l) {
+    std::stringstream out;
+    out << l;
+    std::string str;
+    for (size_t i = 0; i < out.str().size(); ++i) {
+      str += out.str()[i];
+      if (i != out.str().size() - 1 && ((out.str().size() - i) % 3) == 1)
+        str += ',';
+    }
+    return str;
+  }
+
+  std::string ColumnPrinter::percent(
+      unsigned long long numerator,
+      unsigned long long denominator) {
+    double ratio = static_cast<double>(numerator) / denominator;
+    std::ostringstream out;
+    // round up to nearest whole number of percent
+    unsigned long long l = static_cast<unsigned long long>(ratio * 1000 + 0.5);
+    out << l / 10 << '.' << l % 10 << '%';
+    return out.str();
+  }
+
+
   std::ostream& operator<<(std::ostream& out, const ColumnPrinter& printer) {
 	printer.print(out);
 	return out;

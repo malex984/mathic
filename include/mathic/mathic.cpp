@@ -3,3 +3,4 @@
 #include "mathic.h"
 #include "../../src/Timer.cpp"
 #include "../../src/ColumnPrinter.cpp"
+#include "../../src/DivMask.cpp"

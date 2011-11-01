@@ -81,6 +81,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="..\..\src\ColumnPrinter.cpp" />
+    <ClCompile Include="..\..\src\DivMask.cpp" />
     <ClCompile Include="..\..\src\divsim\divMain.cpp" />
     <ClCompile Include="..\..\src\divsim\Simulation.cpp" />
     <ClCompile Include="..\..\src\libs\memtailor.cpp" />

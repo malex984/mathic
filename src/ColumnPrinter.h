@@ -6,6 +6,7 @@
 #include <vector>
 #include <cstdio>
 #include <memory>
+#include <string>
 
 namespace mathic {
   class ColumnPrinter {
@@ -22,6 +23,11 @@ namespace mathic {
 	std::ostream& operator[](size_t col);
 
 	void print(std::ostream& out) const;
+
+    static std::string commafy(unsigned long long l);
+    static std::string percent(
+      unsigned long long numerator,
+      unsigned long long denominator);
 
   private:
 	struct Col {
