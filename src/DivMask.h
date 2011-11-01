@@ -10,7 +10,7 @@
 #define MATHIC_TRACK_DIV_MASK_HIT_RATIO 25
 #ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
 #include <iostream>
-#include <ColumnPrinter.h>
+#include "ColumnPrinter.h"
 #endif
 
 namespace mathic {
