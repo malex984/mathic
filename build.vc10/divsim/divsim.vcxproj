@@ -94,7 +94,6 @@
     <ClInclude Include="..\..\src\DivList.h" />
     <ClInclude Include="..\..\src\DivMask.h" />
     <ClInclude Include="..\..\src\divsim\DivListModel.h" />
-    <ClInclude Include="..\..\src\divsim\divMain.h" />
     <ClInclude Include="..\..\src\divsim\KDTreeModel.h" />
     <ClInclude Include="..\..\src\divsim\Monomial.h" />
     <ClInclude Include="..\..\src\divsim\Simulation.h" />

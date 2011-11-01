@@ -5,6 +5,7 @@
 #include "DivMask.h"
 #include "KDEntryArray.h"
 #include "memtailor/memtailor.h"
+#include <ostream>
 
 namespace mathic {
   template<class C>
@@ -220,6 +221,8 @@ namespace mathic {
 
     C& getConfiguration() {return _conf;}
 
+    void print(std::ostream& out) const;
+
 #ifdef MATHIC_DEBUG
     bool debugIsValid() const;
 #endif
@@ -304,6 +307,8 @@ namespace mathic {
     MATHIC_ASSERT(leaf->entries().size() < _conf.getLeafSize());
     leaf->entries().insert(extEntry, _conf);
     MATHIC_ASSERT(debugIsValid());
+
+    //print(std::cerr); std::cerr << std::flush; // todo: debug code, remove
   }
 
   template<class C>
@@ -512,6 +517,39 @@ namespace mathic {
 	return sum;
   }
 
+  template<class C>
+  void BinaryKDTree<C>::print(std::ostream& out) const {
+    out << "<<<<<<<< BinaryKDTree >>>>>>>>\n";
+    MATHIC_ASSERT(_tmp.empty());
+    Node* node = _root;
+    while (true) {
+      if (node->isInterior()) {
+        Interior& interior = node->asInterior();
+        out << "**** Interior Node " << &interior << '\n';
+        out << "Split on " << interior.getVar() <<
+          '^' << interior.getExponent() << '\n';
+        out << "Child <=: " << &interior.getEqualOrLess() << '\n';
+        out << "Child > : " << &interior.getStrictlyGreater() << '\n';
+        out << '\n';
+        _tmp.push_back(&interior.getEqualOrLess());
+        _tmp.push_back(&interior.getStrictlyGreater());
+      } else {
+        Leaf& leaf = node->asLeaf();
+        out << "**** Leaf Node " << &leaf << '\n';
+        for (size_t i = 0; i < leaf.entries().size(); ++i) {
+          out << "Entry " << (i + 1) << ": "
+            << leaf.entries().begin()[i].get() << '\n';
+        }
+        out << '\n';
+      }
+      if (_tmp.empty())
+        break;
+      node = _tmp.back();
+      _tmp.pop_back();
+    }
+    MATHIC_ASSERT(_tmp.empty());
+  }
+
 #ifdef MATHIC_DEBUG
   template<class C>
   bool BinaryKDTree<C>::debugIsValid() const {
@@ -549,8 +587,11 @@ namespace mathic {
         continue;
       }
       Interior& interior = nodei->asInterior();
+      size_t var = interior.getVar();
+      Exponent exp = interior.getExponent();
 
       ASSERT(_tmp.empty());
+      // check equal or less than sub tree
       _tmp.push_back(&interior.getEqualOrLess());
       while (!_tmp.empty()) {
         Node* node = _tmp.back();
@@ -565,12 +606,26 @@ namespace mathic {
           _tmp.push_back(&node->asInterior().getStrictlyGreater());
           _tmp.push_back(&node->asInterior().getEqualOrLess());
         } else {
-          Leaf& leaf = node->asLeaf();
-          typename Leaf::const_iterator stop = leaf.entries().end();
-          for (typename Leaf::const_iterator it = leaf.entries().begin(); it != stop; ++it) {
-            MATHIC_ASSERT(!(interior.getExponent() <
-              _conf.getExponent(it->get(), interior.getVar())));
-          }
+          MATHIC_ASSERT(node->asLeaf().entries().allLessThanOrEqualTo(var, exp, _conf));
+        }
+      }
+
+      // check strictly greater
+      _tmp.push_back(&interior.getStrictlyGreater());
+      while (!_tmp.empty()) {
+        Node* node = _tmp.back();
+        _tmp.pop_back();
+        if (C::UseTreeDivMask) {
+          if (node->isInterior())
+            MATHIC_ASSERT(interior.getDivMask().canDivide(node->asInterior().getDivMask()));
+          else
+            MATHIC_ASSERT(interior.getDivMask().canDivide(node->asLeaf().entries().getDivMask()));
+        }
+        if (node->isInterior()) {
+          _tmp.push_back(&node->asInterior().getStrictlyGreater());
+          _tmp.push_back(&node->asInterior().getEqualOrLess());
+        } else {
+          MATHIC_ASSERT(node->asLeaf().entries().allStrictlyGreaterThan(var, exp, _conf));
         }
       }
     }
@@ -582,8 +637,7 @@ namespace mathic {
   BinaryKDTree<C>::KDTreeLeaf::KDTreeLeaf(memt::Arena& arena, const C& conf):
   Node(true), _entries(arena, conf) {}
 
-  template<class C>
-  
+  template<class C>  
   template<class Iter>
   BinaryKDTree<C>::KDTreeLeaf::KDTreeLeaf(
     Iter begin,
@@ -593,8 +647,7 @@ namespace mathic {
     const C& conf):
     Node(true), _entries(begin, end, arena, calc, conf) {}
 
-  template<class C>
-  
+  template<class C>  
   template<class Iter>
   BinaryKDTree<C>::KDTreeLeaf::KDTreeLeaf(
     Iter begin,
@@ -604,7 +657,6 @@ namespace mathic {
     Node(true), _entries(begin, end, arena, conf) {}
 
   template<class C>
-  
   class BinaryKDTree<C>::KDTreeNode::SplitEqualOrLess {
   public:
     typedef typename C::Exponent Exponent;

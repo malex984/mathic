@@ -6,11 +6,11 @@
 #include <string>
 #include <vector>
 
-template<bool UseDivMask, bool UseTreeDivMask>
+template<bool UseDivMask, bool UseTreeDivMask, bool PackedTree>
 class KDTreeModelConfiguration;
 
 /** Helper class for KDTreeModel. */
-template<bool UDM, bool UTDM>
+template<bool UDM, bool UTDM, bool PT>
 class KDTreeModelConfiguration {
  public:
   typedef int Exponent;
@@ -69,6 +69,7 @@ class KDTreeModelConfiguration {
 
   static const bool UseDivMask = UDM;
   static const bool UseTreeDivMask = UTDM;
+  static const bool PackedTree = PT;
 
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
@@ -84,10 +85,10 @@ class KDTreeModelConfiguration {
 };
 
 /** An instantiation of the capabilities of KDTree. */
-template<bool UseDivMask, bool UseTreeDivMask>
+template<bool UseDivMask, bool UseTreeDivMask, bool PackedTree>
 class KDTreeModel {
  private:
-  typedef KDTreeModelConfiguration<UseDivMask, UseTreeDivMask> C;
+  typedef KDTreeModelConfiguration<UseDivMask, UseTreeDivMask, PackedTree> C;
   typedef mathic::KDTree<C> Finder;
  public:
   typedef typename Finder::Monomial Monomial;
@@ -147,8 +148,8 @@ class KDTreeModel {
   bool _minimizeOnInsert;
 };
 
-template<bool UDM, bool UTDM>
-inline void KDTreeModel<UDM, UTDM>::insert(const Entry& entry) {
+template<bool UDM, bool UTDM, bool PT>
+inline void KDTreeModel<UDM, UTDM, PT>::insert(const Entry& entry) {
   if (!_minimizeOnInsert) {
     _finder.insert(entry);
     return;
@@ -159,9 +160,9 @@ inline void KDTreeModel<UDM, UTDM>::insert(const Entry& entry) {
   _finder.insert(entry);
 }
 
-template<bool UDM, bool UTDM>
+template<bool UDM, bool UTDM, bool PT>
 template<class MultipleOutput>
-inline void KDTreeModel<UDM, UTDM>::
+inline void KDTreeModel<UDM, UTDM, PT>::
 insert(const Entry& entry, MultipleOutput& removed) {
   if (!_minimizeOnInsert) {
     _finder.insert(entry);
@@ -173,8 +174,8 @@ insert(const Entry& entry, MultipleOutput& removed) {
   _finder.insert(entry);
 }
 
-template<bool UDM, bool UTDM>
-inline std::string KDTreeModel<UDM, UTDM>::getName() const {
+template<bool UDM, bool UTDM, bool PT>
+inline std::string KDTreeModel<UDM, UTDM, PT>::getName() const {
   return _finder.getName() +
     (_minimizeOnInsert ? " remin" : " nomin");
 }

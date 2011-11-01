@@ -58,6 +58,9 @@ namespace mathic {
     template<class EO>
     bool forAll(EO& eo);
 
+    bool allStrictlyGreaterThan(size_t var, Exponent exp, const C& conf);
+    bool allLessThanOrEqualTo(size_t var, Exponent exp, const C& conf);
+
     /** Reorders [begin, iter) and chooses a var and an exp such that
      if mid is the returned value, then [begin, mid) has less than or
      equal to exp exponent of var and [mid,end) has strictly greater
@@ -321,6 +324,30 @@ _sortOnInsertDebug(conf.getSortOnInsert())
     const iterator stop = end();
     for (iterator it = begin(); it != stop; ++it)
       if (!output.proceed(it->get()))
+        return false;
+    return true;
+  }
+
+  template<class C, class EE>
+  bool KDEntryArray<C, EE>::allStrictlyGreaterThan(
+    size_t var,
+    Exponent exp,
+    const C& conf
+  ) {
+    for (const_iterator it = begin(); it != end(); ++it)
+      if (!(exp < conf.getExponent(it->get(), var)))
+        return false;
+    return true;
+  }
+
+  template<class C, class EE>
+  bool KDEntryArray<C, EE>::allLessThanOrEqualTo(
+    size_t var,
+    Exponent exp,
+    const C& conf
+  ) {
+    for (const_iterator it = begin(); it != end(); ++it)
+      if (exp < conf.getExponent(it->get(), var))
         return false;
     return true;
   }

@@ -2,10 +2,8 @@
 #define MONOMIAL_GUARD
 
 #include <vector>
+#include <ostream>
 
-/*
-typedef std::vector<int> Monomial;
-//*/
 class Monomial {
 public:
   typedef int Exponent;
@@ -38,34 +36,17 @@ private:
 #endif
   Exponent* _exponents;
 };
-//*/
 
-/*
-class Monomial {
-public:
-  typedef int Exponent;
+inline std::ostream& operator<<(std::ostream& out, const Monomial& monomial) {
+#ifdef DEBUG
+  out << "(Monomial:";
+  for (size_t i = 0; i < monomial.size(); ++i)
+    out << ' ' << monomial[i];
+  out << ')';
+#else
+  out << "(Monomial)";
+#endif
+  return out;
+}
 
-  Monomial(std::vector<Exponent>& v): _exponents(v) {}
-  operator std::vector<Exponent>&() {return _exponents;}
-  operator const std::vector<Exponent>&() const {return _exponents;}
-
-  Exponent& operator[](size_t index) {
-    ASSERT(index < _exponents.size());
-    return _exponents[index];
-  }
-  const Exponent& operator[](size_t index) const {
-    ASSERT(index < _exponents.size());
-    return _exponents[index];
-  }
-  void push_back(const Exponent& exponent) {
-    _exponents.push_back(exponent);
-  }
-  bool operator==(const Monomial& monomial) const {
-    return _exponents == monomial._exponents;
-  }
-
-private:
-  std::vector<Exponent> _exponents;
-};
-//*/
 #endif

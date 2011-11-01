@@ -4,6 +4,7 @@
 #include "stdinc.h"
 #include "DivMask.h"
 #include "BinaryKDTree.h"
+#include "PackedKDTree.h"
 #include "memtailor/memtailor.h"
 #include <list>
 #include <string>
@@ -27,10 +28,24 @@ namespace mathic {
   template<class Configuration>
   class KDTree;
 
+  namespace KDTreeInternal {
+    // cannot do this inside KDTree as template partial specializations
+    // cannot be done inside a class.
+    template<class C, bool Pack>
+    struct SelectTree {
+      typedef BinaryKDTree<C> Tree;
+    };
+    template<class C>
+    struct SelectTree<C, true> {
+      typedef PackedKDTree<C> Tree;
+    };
+  }
+
   template<class C>
   class KDTree {
   private:
-    typedef BinaryKDTree<C> Tree;
+    // for figuring out which kd tree implementation to use
+    typedef typename KDTreeInternal::SelectTree<C, C::PackedTree>::Tree Tree;
     typedef typename Tree::ExtEntry ExtEntry;
     typedef typename Tree::ExtMonoRef ExtMonoRef;
   public:
@@ -69,7 +84,7 @@ namespace mathic {
 
     /** Returns a reference to this object's configuration object. */
     const C& getConfiguration() const {
-      return const_cast<BinaryKDTree<C>&>(_tree).getConfiguration();
+      return const_cast<Tree&>(_tree).getConfiguration();
     }
 
     /** Removes all multiples of monomial. A duplicate counts
@@ -250,7 +265,7 @@ namespace mathic {
 
     // All DivMasks calculated using this.
     typename Tree::DivMaskCalculator _divMaskCalculator;
-    BinaryKDTree<C> _tree;
+    Tree _tree;
     size_t _size;
   };
 
@@ -258,7 +273,8 @@ namespace mathic {
   std::string KDTree<C>::getName() const {
     std::stringstream out;
     const C& conf = getConfiguration();
-    out << "KDTree leaf:" << conf.getLeafSize();
+    out << "KDTree(" << (C::PackedTree ? "packed" : "binary") << ')';
+    out << " leaf:" << conf.getLeafSize();
     if (UseDivMask && conf.getDoAutomaticRebuilds()) {
       out << " autob:" << conf.getRebuildRatio()
           << '/' << conf.getRebuildMin();
