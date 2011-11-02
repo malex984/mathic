@@ -211,7 +211,7 @@ namespace mathic {
 
     void clear();
 
-    size_t getMemoryUsage() const;
+    size_t getMemoryUse() const;
 
     C& getConfiguration() {return _conf;}
 
@@ -507,8 +507,8 @@ namespace mathic {
   }
 
   template<class C>
-  size_t BinaryKDTree<C>::getMemoryUsage() const {
-	size_t sum = _arena.getMemoryUsage();
+  size_t BinaryKDTree<C>::getMemoryUse() const {
+	size_t sum = _arena.getMemoryUse();
 	sum += _tmp.capacity() * sizeof(_tmp.front());
 	return sum;
   }

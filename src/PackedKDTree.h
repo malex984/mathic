@@ -132,7 +132,7 @@ namespace mathic {
 
     void clear();
 
-    size_t getMemoryUsage() const;
+    size_t getMemoryUse() const;
 
     void print(std::ostream& out) const;
 
@@ -413,9 +413,9 @@ stopped:;
   }
 
   template<class C>
-  size_t PackedKDTree<C>::getMemoryUsage() const {
+  size_t PackedKDTree<C>::getMemoryUse() const {
     // todo: not accurate
-	size_t sum = _arena.getMemoryUsage();
+	size_t sum = _arena.getMemoryUse();
 	sum += _tmp.capacity() * sizeof(_tmp.front());
 	return sum;
   }

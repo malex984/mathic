@@ -218,7 +218,7 @@ namespace mathic {
 		any memory that an Entry may point to. Does include
 		sizeof(Entry) as well as unused memory that is being kept to
 		avoid frequent allocations. */
-    size_t getMemoryUsage() const {return _tree.getMemoryUsage();}
+    size_t getMemoryUse() const {return _tree.getMemoryUse();}
 
   private:
     KDTree(const KDTree<C>&); // unavailable

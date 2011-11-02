@@ -117,7 +117,7 @@ namespace mathic {
 		any memory that an Entry may point to. Does include
 		sizeof(Entry) as well as unused memory that is being kept to
 		avoid frequent allocations. */
-    size_t getMemoryUsage() const;
+    size_t getMemoryUse() const;
 
   private:
     DivList(const DivList<C>&); // unavailable
@@ -550,7 +550,7 @@ namespace mathic {
   }
 
   template<class C>
-  size_t DivList<C>::getMemoryUsage() const {
+  size_t DivList<C>::getMemoryUse() const {
 	return _list.capacity() * sizeof(_list.front());
   }
 }
