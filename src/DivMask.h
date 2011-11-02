@@ -7,7 +7,7 @@
 #include <algorithm>
 
 // Value x means do 2^x mask checks before printing stats
-#define MATHIC_TRACK_DIV_MASK_HIT_RATIO 25
+//#define MATHIC_TRACK_DIV_MASK_HIT_RATIO 25
 #ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
 #include <iostream>
 #include "ColumnPrinter.h"
@@ -18,6 +18,7 @@ namespace mathic {
   namespace DivMaskStats {
     extern unsigned long maskComputes; // div masks computed
     extern unsigned long maskChecks; // how many times mask is checked
+    extern unsigned long maskHits; // times canDivide returns false
     extern unsigned long divChecks; // times divisibility is checked with mask
     extern unsigned long divDivides; // mask can't hit as there is divisibility
     extern unsigned long divHits; // times mask rules out divisibility
@@ -52,8 +53,12 @@ namespace mathic {
     }
 
     bool canDivide(const DivMask& mask) const {
+      const bool canDiv = ((_mask & ~mask._mask) == 0);
 #ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
       ++DivMaskStats::maskChecks;
+      if (!canDiv)
+        ++DivMaskStats::maskHits;
+
       // print stats every 2^MATHIC_TRACK_DIV_MASK_HIT_RATIO time
       const unsigned long mod = (1 << MATHIC_TRACK_DIV_MASK_HIT_RATIO) - 1;
       if ((DivMaskStats::maskChecks & mod) == 0) {
@@ -73,6 +78,12 @@ namespace mathic {
         pr[1] << ColumnPrinter::commafy(DivMaskStats::maskChecks) << '\n';
         pr[2] << '\n';
         pr[3] << '\n';
+
+        pr[0] << "mask hits:\n";
+        pr[1] << ColumnPrinter::commafy(DivMaskStats::maskHits) << '\n';
+        pr[2] << ColumnPrinter::percent
+          (DivMaskStats::maskHits, DivMaskStats::maskChecks) << '\n';
+        pr[3] << "of mask checks\n";
 
         pr[0] << "mask div checks:\n";
         pr[1] << ColumnPrinter::commafy(DivMaskStats::divChecks) << '\n';
@@ -98,7 +109,7 @@ namespace mathic {
       }
 #endif
 
-      return (_mask & ~mask._mask) == 0;
+      return canDiv;
     }
 
     void combineAnd(const DivMask& mask) {_mask &= mask._mask;}
@@ -132,7 +143,7 @@ namespace mathic {
       const C& _conf;
     };
 
-    typedef unsigned long MaskType;
+    typedef unsigned int MaskType;
     DivMask(MaskType mask): _mask(mask) {}
 
   private:
@@ -190,19 +201,31 @@ namespace mathic {
       if (bitsForVar == 0)
         continue;
 
-      const bool useRank = true;
+      const bool useRank = false;
       if (useRank) {
         std::sort(begin, end, ExponentComparer<C>(var, conf));
         size_t size = std::distance(begin, end);
-        size_t offset = size / bitsForVar;
+        size_t offset = size / (bitsForVar + 1);
         if (offset== 0)
           offset = 1;
+        Exponent lastExp;
+        size_t lastJ = 0;
         for (size_t i = 1; i <= bitsForVar; ++i) {
           size_t j = i * offset;
+          if (i > 1 && j < lastJ)
+            j = lastJ + 1;
           if (j >= size)
             j = size - 1;
+          if (i > 1) {
+            while (j < size && conf.getExponent(begin[j], var) == lastExp)
+              ++j;
+            if (j == size)
+              break;
+          }
           _bits.push_back(
             std::make_pair(var, conf.getExponent(begin[j], var)));
+          lastJ = j;
+          lastExp = conf.getExponent(begin[j], var);
           if (j == size - 1)
             break;
         }
@@ -248,8 +271,8 @@ namespace mathic {
   }
 
   template<class C>
-    template<class T>
-    DivMask::MaskType DivMask::Calculator<C, true>::
+  template<class T>
+  DivMask::MaskType DivMask::Calculator<C, true>::
     compute(const T& t, const C& conf) const {
 #ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
       ++DivMaskStats::maskComputes;
@@ -258,7 +281,7 @@ namespace mathic {
     const const_iterator end = _bits.end();
     DivMask::MaskType mask = 0;
     for (const_iterator it = _bits.begin(); it != end; ++it)
-      mask = (mask << 1) | (conf.getExponent(t, it->first) > it->second);
+      mask = (mask << 1) | (conf.getExponent(t, it->first) > it->second);   
     return mask;
   }
 
