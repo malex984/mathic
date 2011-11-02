@@ -70,18 +70,8 @@ namespace mathic {
         return static_cast<Interior&>(*this);
       }
 
-      /** Partitions [begin, end) into two parts. The
-          returned node has the information about the split, while the returned
-          iterator it is such that the equal-or-less part of the partition
-          is [begin, it) and the strictly-greater part is [it, end). These two
-          ranges should be used to construct nodes that are then set as the
-          children of the returned node. */
-      template<class Iter>
-        static std::pair<Interior*, Iter> preSplit
-        (size_t var, Iter begin, Iter end, memt::Arena& arena, const C& conf);
-
     protected:
-    KDTreeNode(bool leaf): _isLeaf(leaf) {}
+      KDTreeNode(bool leaf): _isLeaf(leaf) {}
 
     private:
       KDTreeNode(const KDTreeNode&); // unavailable
@@ -186,7 +176,11 @@ namespace mathic {
       mathic::KDEntryArray<C, ExtEntry>& entries() {return _entries;}
       const KDEntryArray<C, ExtEntry>& entries() const {return _entries;}
 
-      Interior& split(Interior* parent, memt::Arena& arena, const C& conf);
+      /** When this node is full, call this to insert an element. It
+       splits the elements in this noe into two leaves and returns
+       a new interior node that is the parent of them. */
+      Interior& splitInsert(const ExtEntry& entry, Interior* parent,
+        memt::Arena& arena, const C& conf);
 
     private:
       KDEntryArray<C, ExtEntry> _entries;
@@ -247,7 +241,7 @@ namespace mathic {
   template<class C>
   BinaryKDTree<C>::BinaryKDTree(const C& configuration):
   _conf(configuration) {
-    MATHIC_ASSERT(C::LeafSize >= 2);
+    MATHIC_ASSERT(C::LeafSize > 0);
     _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
     MATHIC_ASSERT(debugIsValid());
   }
@@ -296,17 +290,16 @@ namespace mathic {
 
     MATHIC_ASSERT(leaf->entries().size() <= C::LeafSize);
     if (leaf->entries().size() == C::LeafSize) {
-      Interior& interior = leaf->split(parent, _arena, _conf);
-      interior.updateToLowerBound(extEntry);
+      Interior& interior = leaf->splitInsert(extEntry, parent, _arena, _conf);
       if (parent == 0) {
         ASSERT(leaf == _root);
         _root = &interior;
       }
-      leaf = &interior.getChildFor(extEntry, _conf).asLeaf();
+    } else {
+      MATHIC_ASSERT(leaf->entries().size() < C::LeafSize);
+      leaf->entries().insert(extEntry, _conf);
+      MATHIC_ASSERT(debugIsValid());
     }
-    MATHIC_ASSERT(leaf->entries().size() < C::LeafSize);
-    leaf->entries().insert(extEntry, _conf);
-    MATHIC_ASSERT(debugIsValid());
   }
 
   template<class C>
@@ -330,20 +323,25 @@ namespace mathic {
         node = new (_arena.allocObjectNoCon<Leaf>())
           Leaf(insertBegin, insertEnd, _arena, calc, _conf);
       else {
-        const size_t var =
+        size_t var =
           (parent == 0 ? static_cast<size_t>(-1) : parent->getVar());
-        std::pair<Interior*, Iter> p =
-          Node::preSplit(var, insertBegin, insertEnd, _arena, _conf);
-        MATHIC_ASSERT(p.second != insertBegin && p.second != insertEnd);
+
+        Exponent exp;
+        Iter middle = KDEntryArray<C, ExtEntry>::
+          split(insertBegin, insertEnd, var, exp, _conf);
+        Interior* interior = new (_arena.allocObjectNoCon<Interior>())
+          Interior(var, exp);
+
+        MATHIC_ASSERT(middle != insertBegin && middle != insertEnd);
         // push strictly-greater on todo
         Task task;
-        task.begin = p.second;
+        task.begin = middle;
         task.end = insertEnd;
-        task.parent = p.first;
+        task.parent = interior;
         todo.push_back(task);
         // set up equal-or-less
-        insertEnd = p.second;
-        node = p.first;
+        insertEnd = middle;
+        node = interior;
       }
 
       if (parent == 0) {
@@ -671,32 +669,15 @@ namespace mathic {
   };
 
   template<class C>
-  
-  template<class Iter>
-  std::pair<typename BinaryKDTree<C>::KDTreeInterior*, Iter> BinaryKDTree<C>::KDTreeNode::preSplit
-    (size_t var,
-     Iter begin,
-     Iter end,
-     memt::Arena& arena,
-     const C& conf) {
-    MATHIC_ASSERT(begin != end);
-    typename C::Exponent exp;
-    Iter middle = KDEntryArray<C, ExtEntry>::split(begin, end, var, exp, conf);
-    Interior* interior = new (arena.allocObjectNoCon<Interior>())
-      Interior(var, exp);
-    return std::make_pair(interior, middle);
-  }
-  
-  template<class C>
   typename BinaryKDTree<C>::KDTreeInterior&
-  BinaryKDTree<C>::KDTreeLeaf::split(Interior* parent, memt::Arena& arena, const C& conf) {
+  BinaryKDTree<C>::KDTreeLeaf::splitInsert(const ExtEntry& extEntry, Interior* parent, memt::Arena& arena, const C& conf) {
     MATHIC_ASSERT(conf.getVarCount() > 0);
-    MATHIC_ASSERT(entries().size() >= 2);
+    MATHIC_ASSERT(entries().size() > 0);
     size_t var = (parent == 0 ? static_cast<size_t>(-1) : parent->getVar());
     typename C::Exponent exp;
 
     iterator middle = KDEntryArray<C, ExtEntry>::split
-      (entries().begin(), entries().end(), var, exp, conf);
+      (entries().begin(), entries().end(), var, exp, conf, &extEntry);
     Leaf& other = *new (arena.allocObjectNoCon<Leaf>()) Leaf(middle, entries().end(), arena, conf);
     while (middle != entries().end())
       entries().pop_back();
@@ -720,6 +701,11 @@ namespace mathic {
         parent->setStrictlyGreater(&interior);
       }
     }
+
+    interior.updateToLowerBound(extEntry);
+    Leaf* insertLeaf = &interior.getChildFor(extEntry, conf).asLeaf();
+    ASSERT(insertLeaf->entries().size() < C::LeafSize);
+    insertLeaf->entries().insert(extEntry, conf);
 
     return interior;
   }

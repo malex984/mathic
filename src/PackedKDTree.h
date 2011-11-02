@@ -80,17 +80,11 @@ namespace mathic {
       mathic::KDEntryArray<C, ExtEntry>& entries() {return _entries;}
       const KDEntryArray<C, ExtEntry>& entries() const {return _entries;}
 
-      Node* split(Child* childFromParent, memt::Arena& arena, const C& conf);
-
-      /** Partitions [begin, end) into two parts. The
-          returned node has the information about the split, while the returned
-          iterator it is such that the equal-or-less part of the partition
-          is [begin, it) and the strictly-greater part is [it, end). These two
-          ranges should be used to construct nodes that are then set as the
-          children of the returned node. */
-/*      template<class Iter>
-        static std::pair<Interior*, Iter> preSplit
-        (size_t var, Iter begin, Iter end, memt::Arena& arena, const C& conf);*/
+      Node* splitInsert(
+        const ExtEntry& extEntry,
+        Child* childFromParent,
+        memt::Arena& arena,
+        const C& conf);
 
     private:
       Node(const Node&); // unavailable
@@ -170,7 +164,7 @@ namespace mathic {
   template<class C>
   PackedKDTree<C>::PackedKDTree(const C& configuration):
   _conf(configuration) {
-    MATHIC_ASSERT(C::LeafSize >= 2);
+    MATHIC_ASSERT(C::LeafSize > 0);
     _root = Node::makeNode(_arena, _conf);
     MATHIC_ASSERT(debugIsValid());
   }
@@ -249,14 +243,13 @@ stopped:;
       if (child == node->childEnd()) {
         MATHIC_ASSERT(node->entries().size() <= C::LeafSize);
         if (node->entries().size() < C::LeafSize)
-          break;
-        // split node as it is full
-        ASSERT(node == _root || parentChild != 0);
-        const size_t childOffset = child - node->childBegin();
-        node = node->split(parentChild, _arena, _conf);
-        child = node->childBegin() + childOffset;
-        if (parentChild == 0)
-          _root = node;
+          node->entries().insert(extEntry, _conf);
+        else { // split full node
+          node = node->splitInsert(extEntry, parentChild, _arena, _conf);
+          if (parentChild == 0)
+            _root = node;
+        }
+        break;
       } else if (node->inChild(child, extEntry, _conf)) {
         parentChild = &*child;
         node = child->node;
@@ -264,14 +257,7 @@ stopped:;
       } else
         ++child;
     }
-
-    // insert into node
-    MATHIC_ASSERT(child == node->childEnd());
-    MATHIC_ASSERT(node->entries().size() < C::LeafSize);
-    node->entries().insert(extEntry, _conf);
     MATHIC_ASSERT(debugIsValid());
-
-    //print(std::cerr); std::cerr << std::flush; // todo: debug code, remove
   }
 
   template<class C>
@@ -537,13 +523,14 @@ stopped:;
   };
 
   template<class C>
-  typename PackedKDTree<C>::Node* PackedKDTree<C>::Node::split(
+  typename PackedKDTree<C>::Node* PackedKDTree<C>::Node::splitInsert(
+    const ExtEntry& extEntry,
     Child* childFromParent,
     memt::Arena& arena,
     const C& conf
   ) {
     MATHIC_ASSERT(conf.getVarCount() > 0);
-    MATHIC_ASSERT(entries().size() >= 2);
+    MATHIC_ASSERT(entries().size() > 0);
     size_t var;
     if (hasChildren())
       var = (childEnd() - 1)->var;
@@ -560,8 +547,7 @@ stopped:;
 
     typename KDEntryArray<C, ExtEntry>::iterator middle =
       KDEntryArray<C, ExtEntry>::split
-      (entries().begin(), entries().end(), var, exp, conf);
-    ASSERT(middle != entries().begin());
+      (entries().begin(), entries().end(), var, exp, conf, &extEntry);
 
     Node* copied = makeNode(entries().begin(), middle, arena, conf,
       std::distance(childBegin(), childEnd()) + 1);
@@ -582,6 +568,12 @@ stopped:;
 
     if (conf.getSortOnInsert())
       std::sort(entries().begin(), entries().end(), Comparer<C>(conf));
+
+    if (copied->inChild(copied->childEnd() - 1, extEntry, conf))
+      entries().insert(extEntry, conf);
+    else
+      copied->entries().insert(extEntry, conf);
+
     return copied;
   }
 }

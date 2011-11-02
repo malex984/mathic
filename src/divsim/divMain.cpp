@@ -64,14 +64,13 @@ int main() {
   for (int mini = 1; mini <= 1; ++mini) {
     for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
       for (int useDivCache = 0; useDivCache <= 1; ++useDivCache) {
+        sim.run<KDTreeModel<1,1,1,1> >(mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<1,0,1,1> >(mini,sortOnInsert,useDivCache, 0.5, 10);
+        sim.run<KDTreeModel<0,0,1,1> >(mini,sortOnInsert,useDivCache, 0.5, 10);
 
         sim.run<KDTreeModel<1,1,1,2> >(mini,sortOnInsert,useDivCache, 0.5, 10);
         sim.run<KDTreeModel<1,0,1,2> >(mini,sortOnInsert,useDivCache, 0.5, 10);
         sim.run<KDTreeModel<0,0,1,2> >(mini,sortOnInsert,useDivCache, 0.5, 10);
-
-        sim.run<KDTreeModel<1,1,1,10> >(mini,sortOnInsert,useDivCache, 0.0, 0);
-        sim.run<KDTreeModel<1,0,1,10> >(mini,sortOnInsert,useDivCache, 0.0, 0);
-        sim.run<KDTreeModel<0,0,1,10> >(mini,sortOnInsert,useDivCache, 0.0, 0);
 
         sim.run<KDTreeModel<1,1,1,40> >(mini,sortOnInsert,useDivCache, 0.5, 10);
         sim.run<KDTreeModel<1,0,1,40> >(mini,sortOnInsert,useDivCache, 0.5, 10);

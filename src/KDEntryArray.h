@@ -68,9 +68,19 @@ namespace mathic {
      equal to exp exponent of var and [mid,end) has strictly greater
      exponent. The initial value of var is a hint that var + 1 could
      be a good place to start the search for a suitable value of var.
-     begin must not equal end. */
+     begin must not equal end.
+     
+     If not null, the entry os taken into account when deciding which
+     split to perform. The Entry is NOT inserted   into [begin, end). */
     template<class Iter>
-    static Iter split(Iter begin, Iter end, size_t& var, Exponent& exp, const C& conf);
+    static Iter split(
+      Iter begin,
+      Iter end,
+      size_t& var,
+      Exponent& exp,
+      const C& conf,
+      const ExtEntry* extEntry = 0
+    );
 
   private:
     static Entry& getEntry(Entry& e) {return e;}
@@ -119,13 +129,22 @@ namespace mathic {
     Iter end,
     size_t& var,
     Exponent& exp,
-    const C& conf) {
+    const C& conf,
+    const ExtEntry* extEntry
+  ) {
     MATHIC_ASSERT(begin != end);
     while (true) {
       var = (var + 1) % conf.getVarCount();
 
-      typename C::Exponent min = conf.getExponent(getEntry(*begin), var);
-      typename C::Exponent max = conf.getExponent(getEntry(*begin), var);
+      typename C::Exponent min;
+      typename C::Exponent max;
+      if (extEntry == 0) {
+        min = conf.getExponent(getEntry(*begin), var);
+        max = conf.getExponent(getEntry(*begin), var);
+      }  else {
+        min = conf.getExponent(getEntry(*extEntry), var);
+        max = conf.getExponent(getEntry(*extEntry), var);
+      }
       for (Iter it = begin; it != end; ++it) {
         min = std::min(min, conf.getExponent(getEntry(*it), var));
         max = std::max(max, conf.getExponent(getEntry(*it), var));
