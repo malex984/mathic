@@ -283,7 +283,8 @@ namespace mathic {
     Node* node = _root;
     while (node->isInterior()) {
       parent = &node->asInterior();
-      parent->updateToLowerBound(extEntry);
+      if (C::UseTreeDivMask)
+        parent->updateToLowerBound(extEntry);
       node = &parent->getChildFor(extEntry, _conf);
     }
     Leaf* leaf = &node->asLeaf();
@@ -372,7 +373,7 @@ namespace mathic {
     ASSERT(_root != 0);
 
     if (C::UseTreeDivMask) {
-      // Set div tree masks bottom up.
+      // record nodes in tree using breadth first search
       typedef std::vector<Interior*> NodeCont;
       NodeCont nodes;
       if (_root->isInterior())
@@ -384,6 +385,7 @@ namespace mathic {
         if (node->getStrictlyGreater().isInterior())
           nodes.push_back(&node->getStrictlyGreater().asInterior());
       }
+      // compute div masks in reverse order of breath first search
       typename NodeCont::reverse_iterator it = nodes.rbegin();
       typename NodeCont::reverse_iterator end = nodes.rend();
       for (; it != end; ++it) {
@@ -556,6 +558,7 @@ namespace mathic {
     if (_root->isLeaf() && _root->asLeaf().entries().empty())
       return true;
 
+    // record all nodes
     std::vector<Node*> nodes;
     nodes.push_back(_root);
     size_t sizeSum = 0;
@@ -569,17 +572,12 @@ namespace mathic {
         sizeSum += node->asLeaf().entries().size();
     }
 
+    // check the recorded nodes
     MATHIC_ASSERT(_tmp.empty());
     for (size_t i = 0; i < nodes.size(); ++i) {
       Node* nodei = nodes[i];
       if (nodei->isLeaf()) {
-        Leaf& leaf = nodei->asLeaf();
-        typedef typename Leaf::const_iterator LeafCIter;
-        if (C::UseTreeDivMask) {
-          for (LeafCIter it = leaf.entries().begin(); it != leaf.entries().end(); ++it) {
-            MATHIC_ASSERT(leaf.entries().getDivMask().canDivide(it->getDivMask()));
-          }
-        }
+        ASSERT(nodei->asLeaf().entries().debugIsValid());
         continue;
       }
       Interior& interior = nodei->asInterior();
@@ -687,9 +685,7 @@ namespace mathic {
     Interior& interior = *new (arena.allocObjectNoCon<Interior>())
       Interior(*this, other, var, exp);
     if (C::UseTreeDivMask) {
-      entries().resetDivMask();
-      for (const_iterator it = entries().begin(); it != entries().end(); ++it)
-        entries().updateToLowerBound(*it);
+      entries().recalculateTreeDivMask();
       interior.updateToLowerBound(entries());
       interior.updateToLowerBound(other.entries());
     }

@@ -332,7 +332,7 @@ namespace mathic {
     DivMask getDivMask() const {MATHIC_ASSERT(false); return DivMask();}
     bool canDivide(const HasDivMask<false>& t) const {return true;}
     template<bool B>
-      void updateToLowerBound(const HasDivMask<B>& entry) {}
+    void updateToLowerBound(const HasDivMask<B>& entry) {}
   };
 
   template<class T>
@@ -343,7 +343,7 @@ namespace mathic {
   public:
   Extender(): HasDivMask<true>(), _t() {}
     template<class C>
-      Extender(ConstReference t, const Calculator<C>& calc, const C& conf):
+    Extender(ConstReference t, const Calculator<C>& calc, const C& conf):
     HasDivMask<true>(t, calc, conf), _t(t) {}
 
     template<class S, class C>

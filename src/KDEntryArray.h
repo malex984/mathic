@@ -7,7 +7,7 @@
 
 namespace mathic {
   template<class C, class EE>
-  class KDEntryArray : public mathic::DivMask::HasDivMask<C::UseTreeDivMask> {
+  class KDEntryArray : public DivMask::HasDivMask<C::UseTreeDivMask> {
   public:
     typedef typename C::Entry Entry;
     typedef typename C::Exponent Exponent;
@@ -27,6 +27,11 @@ namespace mathic {
     KDEntryArray(Iter begin, Iter end, memt::Arena& arena, const C& conf);
 
     void clear();
+
+    void recalculateTreeDivMask();
+#ifdef DEBUG
+    bool debugIsValid() const;
+#endif
 
     iterator begin() {return reinterpret_cast<ExtEntry*>(_beginMemory);}
     const_iterator begin() const {
@@ -81,6 +86,9 @@ namespace mathic {
       const C& conf,
       const ExtEntry* extEntry = 0
     );
+
+    using DivMask::HasDivMask<C::UseTreeDivMask>::resetDivMask;
+    using DivMask::HasDivMask<C::UseTreeDivMask>::getDivMask;
 
   private:
     static Entry& getEntry(Entry& e) {return e;}
@@ -296,6 +304,11 @@ namespace mathic {
     template<class EM>
     typename KDEntryArray<C, EE>::iterator
     KDEntryArray<C, EE>::findDivisor(const EM& extMonomial, const C& conf) {
+      // todo: don't do it if LeafSize == 1 as then it is superfluous.
+      // todo: done in other find divisor functions?
+    if (C::UseTreeDivMask && !getDivMask().canDivide(extMonomial.getDivMask()))
+      return end();
+
     if (!conf.getSortOnInsert()) {
       const iterator stop = end();
       for (iterator it = begin(); it != stop; ++it)
@@ -368,6 +381,26 @@ namespace mathic {
         return false;
     return true;
   }
+
+  template<class C, class EE>
+  void KDEntryArray<C, EE>::recalculateTreeDivMask() {
+    if (!C::UseTreeDivMask)
+      return;
+    for (const_iterator it = begin(); it != end(); ++it)
+      updateToLowerBound(*it);
+  }
+#ifdef DEBUG
+  template<class C, class EE>
+  bool KDEntryArray<C, EE>::debugIsValid() const {
+    ASSERT(static_cast<size_t>(end() - begin()) <= C::LeafSize);
+    if (C::UseTreeDivMask) {
+      for (const_iterator it = begin(); it != end(); ++it) {
+        MATHIC_ASSERT(getDivMask().canDivide(it->getDivMask()));
+      }
+    }
+    return true;
+  }
+#endif
 }
 
 #endif

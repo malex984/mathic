@@ -59,7 +59,7 @@ namespace mathic {
         return sizeof(Node) + childCount * sizeof(Child);
       }
 
-      struct Child {
+      struct Child : public mathic::DivMask::HasDivMask<C::UseTreeDivMask> {
         size_t var;
         Exponent exponent;
         Node* node;
@@ -85,6 +85,10 @@ namespace mathic {
         Child* childFromParent,
         memt::Arena& arena,
         const C& conf);
+
+#ifdef MATHIC_DEBUG
+      bool debugIsValid() const;
+#endif
 
     private:
       Node(const Node&); // unavailable
@@ -188,7 +192,7 @@ namespace mathic {
     memt::Arena& arena,
     const C& conf,
     size_t childCount):
-  _entries(begin, end, arena, conf) {
+    _entries(begin, end, arena, conf) {
     _childrenEnd = childBegin() + childCount;
   }
 
@@ -235,6 +239,7 @@ stopped:;
 
   template<class C>
   void PackedKDTree<C>::insert(const ExtEntry& extEntry) {
+    MATHIC_ASSERT(debugIsValid());
     // find node in which to insert extEntry
     typename Node::Child* parentChild = 0;
     Node* node = _root;
@@ -250,7 +255,10 @@ stopped:;
             _root = node;
         }
         break;
-      } else if (node->inChild(child, extEntry, _conf)) {
+      }
+      if (C::UseTreeDivMask)
+        child->updateToLowerBound(extEntry);
+      if (node->inChild(child, extEntry, _conf)) {
         parentChild = &*child;
         node = child->node;
         child = node->childBegin();
@@ -318,6 +326,43 @@ stopped:;
       children.clear();
     }
     MATHIC_ASSERT(_root != 0);
+
+    if (C::UseTreeDivMask) {
+      // record nodes in tree using breadth first search
+      typedef std::vector<Node*> NodeCont;
+      NodeCont nodes;
+      nodes.push_back(_root);
+      for (size_t i = 0; i < nodes.size(); ++i) {
+        Node* node = nodes[i];
+        for (typename Node::iterator child = node->childBegin();
+          child != node->childEnd(); ++child)
+          nodes.push_back(child->node);
+      }
+      // compute div masks in reverse order of breath first search
+      typename NodeCont::reverse_iterator it = nodes.rbegin();
+      typename NodeCont::reverse_iterator end = nodes.rend();
+      for (; it != end; ++it) {
+        Node* node = *it;
+        typedef std::reverse_iterator<typename Node::iterator> riter;
+        riter rbegin = riter(node->childEnd());
+        riter rend = riter(node->childBegin());
+        for (riter child = rbegin; child != rend; ++child) {
+          child->resetDivMask();
+          if (child == rbegin)
+            child->updateToLowerBound(node->entries());
+          else {
+            riter prev = child;
+            --prev;
+            child->updateToLowerBound(*prev);
+          }
+          if (child->node->hasChildren())
+            child->updateToLowerBound(*child->node->childBegin());
+          else
+            child->updateToLowerBound(child->node->entries());
+        }
+        ASSERT(node->debugIsValid());
+      }
+    }
     MATHIC_ASSERT(debugIsValid());
   }
 
@@ -456,20 +501,26 @@ stopped:;
 
     MATHIC_ASSERT(_root != 0);
 
+    // record all nodes
     std::vector<Node*> nodes;
     nodes.push_back(_root);
     for (size_t i = 0; i < nodes.size(); ++i) {
       Node* node = nodes[i];
+      ASSERT(node->entries().debugIsValid());
       for (typename Node::iterator it = node->childBegin();
         it != node->childEnd(); ++it) {
         MATHIC_ASSERT(it->var < _conf.getVarCount());
+        MATHIC_ASSERT(!C::UseTreeDivMask ||
+          it->canDivide(node->entries()));
         nodes.push_back(it->node);
       }
     }
 
+    // check the recorded nodes
     MATHIC_ASSERT(_tmp.empty());
     for (size_t i = 0; i < nodes.size(); ++i) {
       Node* ancestor = nodes[i];
+
       for (typename Node::iterator ancestorIt = ancestor->childBegin();
         ancestorIt != ancestor->childEnd(); ++ancestorIt) {
         MATHIC_ASSERT(_tmp.empty());
@@ -480,25 +531,37 @@ stopped:;
         while (!_tmp.empty()) {
           Node* node = _tmp.back();
           _tmp.pop_back();
+          for (typename Node::iterator it = node->childBegin();
+            it != node->childEnd(); ++it) {
+            MATHIC_ASSERT(!C::UseTreeDivMask || ancestorIt->canDivide(*it));
+            _tmp.push_back(it->node);
+          }
           MATHIC_ASSERT(node->entries().
             allStrictlyGreaterThan(var, exp, _conf));
-          for (typename Node::iterator it = node->childBegin();
-            it != node->childEnd(); ++it)
-            _tmp.push_back(it->node);
+          MATHIC_ASSERT(!C::UseTreeDivMask ||
+            ancestorIt->canDivide(node->entries()));
         }
         // check less than or equal to sub tree.
-        MATHIC_ASSERT(ancestor->entries().allLessThanOrEqualTo(var, exp, _conf));
+        MATHIC_ASSERT(ancestor->entries().
+          allLessThanOrEqualTo(var, exp, _conf));
+        // go through the rest of the children
         typename Node::iterator restIt = ancestorIt;
-        for (++restIt; restIt != ancestor->childEnd(); ++restIt)
+        for (++restIt; restIt != ancestor->childEnd(); ++restIt) {
+          MATHIC_ASSERT(!C::UseTreeDivMask || ancestorIt->canDivide(*restIt));
           _tmp.push_back(restIt->node);
+        }
         while (!_tmp.empty()) {
           Node* node = _tmp.back();
           _tmp.pop_back();
+          for (typename Node::iterator it = node->childBegin();
+            it != node->childEnd(); ++it) {
+            MATHIC_ASSERT(!C::UseTreeDivMask || ancestorIt->canDivide(*it));
+            _tmp.push_back(it->node);
+          }
           MATHIC_ASSERT(node->entries().
             allLessThanOrEqualTo(var, exp, _conf));
-          for (typename Node::iterator it = node->childBegin();
-            it != node->childEnd(); ++it)
-            _tmp.push_back(it->node);
+          MATHIC_ASSERT(!C::UseTreeDivMask ||
+            ancestorIt->canDivide(node->entries()));
         }
       }
     }
@@ -549,32 +612,62 @@ stopped:;
       KDEntryArray<C, ExtEntry>::split
       (entries().begin(), entries().end(), var, exp, conf, &extEntry);
 
+    // ** copy relevant part of *this into new space
     Node* copied = makeNode(entries().begin(), middle, arena, conf,
       std::distance(childBegin(), childEnd()) + 1);
     std::copy(childBegin(), childEnd(), copied->childBegin());
-    Child newChild;
+    Child& newChild = *(copied->childEnd() - 1);
     newChild.var = var;
     newChild.exponent = exp;
     newChild.node = this;
-    *(copied->childEnd() - 1) = newChild;
     if (childFromParent != 0)
       childFromParent->node = copied;
+    if (C::UseTreeDivMask) {
+      newChild.resetDivMask();
+      newChild.updateToLowerBound(entries());
+      newChild.updateToLowerBound(extEntry);
+    }
+
+    // ** fix up remaining part of *this to be the child of copied
     // OK to call std::copy as begin is not in the range [middle, end).
     std::copy(middle, entries().end(), entries().begin());
     const size_t targetSize = std::distance(middle, entries().end());
     while (entries().size() > targetSize)
       entries().pop_back();
-    _childrenEnd = childBegin();
-
     if (conf.getSortOnInsert())
       std::sort(entries().begin(), entries().end(), Comparer<C>(conf));
+    if (C::UseTreeDivMask)
+      entries().recalculateTreeDivMask();
+    _childrenEnd = childBegin();
 
     if (copied->inChild(copied->childEnd() - 1, extEntry, conf))
       entries().insert(extEntry, conf);
     else
       copied->entries().insert(extEntry, conf);
 
+    MATHIC_ASSERT(debugIsValid());
+    MATHIC_ASSERT(copied->debugIsValid());
+
     return copied;
+  }
+
+  template<class C>
+  bool PackedKDTree<C>::Node::debugIsValid() const {
+    ASSERT(entries().debugIsValid());
+    ASSERT(childBegin() <= childEnd());
+    if (C::UseTreeDivMask) {
+      for (const_iterator child = childBegin(); child != childEnd(); ++child) {
+        if (child != childEnd() - 1)
+          MATHIC_ASSERT(child->canDivide(*(child + 1)));
+        else
+          MATHIC_ASSERT(child->canDivide(entries()));
+        if (child->node->hasChildren())
+          MATHIC_ASSERT(child->canDivide(*child->node->childBegin()));
+        else
+          MATHIC_ASSERT(child->canDivide(child->node->entries()));
+      }
+    }
+    return true;
   }
 }
 
