@@ -12,7 +12,7 @@ int main() {
   mic::Timer timer;
   std::cout << "Generating simulation. ";
 
-
+    
 #ifdef DEBUG
   sim.makeStandard(10, 400, 100, true);
 #else
@@ -22,9 +22,9 @@ int main() {
   std::cout << std::endl;
 
 #ifndef DEBUG
-  sim.run<KDTreeModel<1,0,1,2> >(1, 0, 0, 1.0, 1000); // best tree, mask
+  sim.run<KDTreeModel<1,1,1,1> >(1, 0, 0, 1.0, 1000); // best tree, mask
+  sim.run<KDTreeModel<1,1,0,1> >(1, 0, 0, 1.0, 1000); // best tree, mask
   return 0;
-  sim.run<KDTreeModel<1,0,0,2> >(1, 0, 0, 1.0, 1000); // best tree, mask
 
   sim.run<KDTreeModel<0,0,1,2> >(1, 0, 0, 0.0, 0); // best tree, no mask
   sim.run<KDTreeModel<0,0,0,2> >(1, 0, 0, 0.0, 0); // best tree, no mask
