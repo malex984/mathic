@@ -4,6 +4,7 @@
 #include "stdinc.h"
 #include "DivMask.h"
 #include "memtailor/memtailor.h"
+#include "Comparer.h"
 
 namespace mathic {
   template<class C, class EE>

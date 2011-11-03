@@ -5,6 +5,11 @@ rawDivSources := divsim/Simulation.cpp divsim/divMain.cpp
 rawPqSources := pqsim/Item.cpp pqsim/Model.cpp pqsim/Simulator.cpp	\
   pqsim/pqMain.cpp
 
+rawTestSources = libs/gtest.cpp test/DivFinder.cpp
+
+GTEST_DIR = libs/gtest/
+GTEST_VERSION = 1.6.0
+
 ifndef ldflags
   ldflags = $(LDFLAGS)
 endif
@@ -17,10 +22,12 @@ ifndef BIN_INSTALL_DIR
   BIN_INSTALL_DIR = "/usr/local/bin/"
 endif
 
-cflags = $(CFLAGS) $(CPPFLAGS) -Wall -ansi -Isrc/ \
-         -Wno-uninitialized -Wno-unused-parameter -Ilibs/memtailor/include
+cflags = $(CFLAGS) $(CPPFLAGS) -Wall -Isrc/ -Wno-uninitialized	\
+  -Wno-unused-parameter -Ilibs/memtailor/include -isystem $(GTEST_DIR)	\
+  -isystem $(GTEST_DIR)include
 pqProgram = pq
 divProgram = div
+testProgram = matest
 
 ifndef MODE
  MODE=release
@@ -42,7 +49,6 @@ endif
 ifeq ($(MODE), shared)
   outdir = bin/shared/
   cflags += -O2 -fPIC
-  library = libfrobby.so
   MATCH=true
 endif
 ifeq ($(MODE), profile)
@@ -76,61 +82,16 @@ divSources = $(patsubst %.cpp, src/%.cpp, $(rawSources) $(rawDivSources))
 
 objs = $(patsubst %.cpp, $(outdir)%.o, $(rawSources))
 allObjs = $(patsubst %.cpp, $(outdir)%.o, \
-  $(rawSources) $(rawPqSources) $(rawDivSources))
+  $(rawSources) $(rawPqSources) $(rawDivSources) $(rawTestSources))
 pqObjs = $(patsubst %.cpp, $(outdir)%.o, $(rawSources) $(rawPqSources))
 divObjs = $(patsubst %.cpp, $(outdir)%.o, $(rawSources) $(rawDivSources))
+testObjs = $(patsubst %.cpp, $(outdir)%.o, $(rawSources) $(rawTestSources))
 
 # ***** Compilation
 
-.PHONY: all depend clean bin/$(divProgram) bin/$(pqProgram) test library distribution clear fixspace
+.PHONY: all depend clean bin/$(divProgram) bin/$(pqProgram) test distribution clear fixspace bin/$(testProgram)
 
-all: bin/$(pqProgram) $(outdir)$(pqProgram) bin/$(divProgram) $(outdir)$(divProgram)
-
-# ****************** Testing
-# use TESTARGS of
-#  _valgrind to run under valgrind.
-#  _debugAlloc to test recovery when running out of memory.
-#  _full to obtain extra tests by verifying relations
-#    between outputs of different actions, and generally testing
-#    everything that can be tested.
-# _full cannot follow the other options because it is picked up at an earlier
-# point in the test system than they are. There are more options - see
-# test/testScripts/testhelper for a full list.
-#
-# Only miniTest and bareTest support TESTARGS, and some options are not
-# available unless MODE=debug.
-
-# The correct choice to do a reasonably thorough test of an
-# installation of Frobby.
-test: all
-	test/runTests
-
-# Run all tests that it makes sense to run.
-fullTest: all
-	test/runTests _full
-	test/runSplitTests _full
-
-# Good for testing Frobby after a small change.
-microTest: all
-	test/runTests _few $(TESTARGS)
-miniTest: all
-	test/runTests $(TESTARGS)
-
-# Runs all tests and allows full control over the arguments.
-bareTest: all
-	test/runTests $(TESTARGS) 
-	test/runSplitTests $(TESTARGS)
-
-# Run benchmarks to detect performance regressions. When MODE=profile,
-# profile files for the benchmarked actions will be placed in bin/.
-bench: all
-	cd test/bench; ./runbench $(benchArgs)
-benchHilbert: all
-	cd test/bench; ./run_hilbert_bench $(benchArgs)
-benchOptimize: all
-	cd test/bench; ./run_optimize_bench $(benchArgs)
-benchAlexdual: all
-	cd test/bench; ./run_alexdual_bench $(benchArgs)
+all: bin/$(pqProgram) $(outdir)$(pqProgram) bin/$(divProgram) $(outdir)$(divProgram) bin/$(testProgram) test bin/$(testProgram)
 
 # Make symbolic link to program from bin/
 bin/$(divProgram): $(outdir)$(divProgram)
@@ -176,17 +137,32 @@ ifeq ($(MODE), release)
 	strip $@
 endif
 
+test: $(outdir)$(testProgram)
+	@$(outdir)$(testProgram)
 
-# Link object files into library
-library: bin/$(library)
-bin/$(library): $(objs) | bin/
-	rm -f bin/$(library)
-ifeq ($(MODE), shared)
-	$(CXX) -shared -o bin/$(library) $(ldflags) \
-	  $(patsubst $(outdir)main.o,,$(objs))
-else
-	ar crs bin/$(library) $(patsubst $(outdir)main.o,,$(objs))
+
+# Make symbolic link to program from bin/
+bin/$(testProgram): $(outdir)$(testProgram)
+ifneq ($(MODE), analysis)
+	mkdir -p $(dir $@); rm -f $@; ln -s ../$< $@
 endif
+
+# Link object files into executable
+$(outdir)$(testProgram): $(testObjs) | $(outdir)
+	@mkdir -p $(dir $@)
+ifeq ($(MODE), analysis)
+	echo > $@
+endif
+ifneq ($(MODE), analysis)
+	$(CXX) $(testObjs) $(ldflags) -o $@
+	if [ -f $@.exe ]; then \
+      mv -f $@.exe $@; \
+	fi
+endif
+ifeq ($(MODE), release)
+	strip $@
+endif
+
 
 # Compile and output object files.
 # In analysis mode no file is created, so create one
@@ -208,49 +184,16 @@ endif
 
 -include $(allObjs:.o=.d)
 
-# Installation.
-install:
-	if [ "`uname|grep CYGWIN`" = "" ]; then \
-		sudo install bin/frobby $(BIN_INSTALL_DIR); \
-	else \
-		install bin/frobby $(BIN_INSTALL_DIR); \
-	fi  # Cygwin has no sudo
-
-# ***** Documentation
-
-# We need to run latex three times to make sure that references are done
-# properly in the output.
-doc: docPs docPdf
-docPs:
-	rm -rf bin/doc
-	mkdir bin/doc
-	for i in 1 2 3; do latex doc/manual.tex -output-directory=bin/doc/; done
-	cd bin; dvips doc/manual.dvi
-docPdf:
-	rm -rf bin/doc
-	mkdir bin/doc
-	for i in 1 2 3; do pdflatex doc/manual.tex -output-directory=bin/doc/; done
-	mv bin/doc/manual.pdf bin
-docDviOnce: # Useful to view changes when writing the manual
-	latex doc/manual.tex -output-directory=bin/doc
-
-# It may seem wasteful to run doxygen three times to generate three
-# kinds of output. However, the latex output for creating a pdf file
-# and for creating a PostScript file is different, and so at least two
-# runs are necessary. Making the HTML output a third run is cleaner
-# than tacking it onto one or both of the other two targets.
-develDoc: develDocHtml develDocPdf develDocPs
-develDocHtml:
-	cat doc/doxygen.conf doc/doxHtml|doxygen -
-develDocPdf:
-	rm -rf bin/develDoc/latexPdf bin/develDoc/warningLog
-	cat doc/doxygen.conf doc/doxPdf|doxygen -
-	cd bin/develDoc/latexPdf; for f in `ls *.eps`; do epstopdf $$f; done # Cygwin fix
-	cd bin/develDoc/latexPdf/; make refman.pdf; mv refman.pdf ../develDoc.pdf
-develDocPs:
-	rm -rf bin/develDoc/latexPs bin/develDoc/warningLog
-	cat doc/doxygen.conf doc/doxPs|doxygen -
-	cd bin/develDoc/latexPs/; make refman.ps; mv refman.ps ../develDoc.ps
+gtest: libs/gtest
+libs/gtest:
+	rm -rf bin/tmp/ libs/gtest-$(GTEST_VERSION) libs/gtest
+	@mkdir -p bin/tmp/
+	@mkdir -p libs/
+	(cd bin/tmp; wget http://googletest.googlecode.com/files/gtest-$(GTEST_VERSION).zip);
+	cd bin/tmp; unzip gtest-$(GTEST_VERSION).zip;
+	rm -rf bin/tmp/gtest-$(GTEST_VERSION).zip;
+	mv bin/tmp/gtest-$(GTEST_VERSION) libs/
+	cd libs; ln -s gtest-$(GTEST_VERSION) gtest
 
 clean: tidy
 	rm -rf bin
