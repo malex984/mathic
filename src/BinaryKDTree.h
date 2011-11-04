@@ -445,17 +445,23 @@ namespace mathic {
     while (true) {
       while (node->isInterior()) {
         Interior& interior = node->asInterior();
+        if (C::UseTreeDivMask &&
+            !interior.getDivMask().canDivide(extMonomial.getDivMask()))
+          goto next;
         if (interior.getExponent() <
             _conf.getExponent(extMonomial.get(), interior.getVar()))
           _tmp.push_back(&interior.getStrictlyGreater());
         node = &interior.getEqualOrLess();
       }
       MATHIC_ASSERT(node->isLeaf());
-      Leaf& leaf = node->asLeaf();
-      if (!leaf.entries().findAllDivisors(extMonomial, output, _conf)) {
-        _tmp.clear();
-        break;
+      {
+        Leaf& leaf = node->asLeaf();
+        if (!leaf.entries().findAllDivisors(extMonomial, output, _conf)) {
+          _tmp.clear();
+          break;
+        }
       }
+next:
       if (_tmp.empty())
         break;
       node = _tmp.back();

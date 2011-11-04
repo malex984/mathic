@@ -372,21 +372,28 @@ stopped:;
     MATHIC_ASSERT(_tmp.empty());
     Node* node = _root;
     while (true) {
-      // look for divisor in entries of node
-      typename KDEntryArray<C, ExtEntry>::iterator it =
-        node->entries().findDivisor(extMonomial, _conf);
-      if (it != node->entries().end()) {
-        MATHIC_ASSERT(_conf.divides(it->get(), extMonomial.get()));
-        _tmp.clear();
-        return &it->get();
-      }
-
-      // remember relevant children
+      // record relevant children for later processing
       for (typename Node::const_iterator it = node->childBegin();
-        it != node->childEnd(); ++it)
+        it != node->childEnd(); ++it) {
+        if (C::UseTreeDivMask &&
+          !it->getDivMask().canDivide(extMonomial.getDivMask()))
+          goto next;
         if (node->inChild(it, extMonomial, _conf))
           _tmp.push_back(it->node);
+      }
 
+      // look for divisor in entries of node
+      {
+        typename KDEntryArray<C, ExtEntry>::iterator it =
+          node->entries().findDivisor(extMonomial, _conf);
+        if (it != node->entries().end()) {
+          MATHIC_ASSERT(_conf.divides(it->get(), extMonomial.get()));
+          _tmp.clear();
+          return &it->get();
+        }
+      }
+
+next:
       // grab next node to process
       if (_tmp.empty())
         break;
@@ -399,18 +406,26 @@ stopped:;
 
   template<class C>
   template<class DO>
-  void PackedKDTree<C>::findAllDivisors(const ExtMonoRef& extMonomial, DO& output) {
+  void PackedKDTree<C>::findAllDivisors(
+    const ExtMonoRef& extMonomial,
+    DO& output
+  ) {
     MATHIC_ASSERT(_tmp.empty());
     Node* node = _root;
     while (true) {
+      for (typename Node::const_iterator it = node->childBegin();
+        it != node->childEnd(); ++it) {
+        if (C::UseTreeDivMask &&
+          !it->getDivMask().canDivide(extMonomial.getDivMask()))
+          goto next; // div mask rules this sub tree out
+        if (node->inChild(it, extMonomial, _conf))
+          _tmp.push_back(it->node);
+      }
       if (!node->entries().findAllDivisors(extMonomial, output, _conf)) {
         _tmp.clear();
         break;
       }
-      for (typename Node::const_iterator it = node->childBegin();
-        it != node->childEnd(); ++it)
-        if (node->inChild(it, extMonomial, _conf))
-          _tmp.push_back(it->node);
+next:
       if (_tmp.empty())
         break;
       node = _tmp.back();
@@ -651,6 +666,7 @@ stopped:;
     return copied;
   }
 
+#ifdef MATHIC_DEBUG
   template<class C>
   bool PackedKDTree<C>::Node::debugIsValid() const {
     ASSERT(entries().debugIsValid());
@@ -669,6 +685,7 @@ stopped:;
     }
     return true;
   }
+#endif
 }
 
 #endif
