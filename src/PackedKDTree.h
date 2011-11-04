@@ -310,7 +310,7 @@ stopped:;
         child.end = end;
         child.var = var;
         children.push_back(child);
-        // set up equal-or-less
+        // now operate on the equal-or-less part of the range
         end = middle;
       }
       Node* node = Node::makeNode
