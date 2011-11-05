@@ -143,6 +143,23 @@ namespace mathic {
       const C& _conf;
     };
 
+    struct VarData {
+      size_t var; // the variable in question
+
+      // let e be the average of the minimum and maximum exponent of var.
+      // then split is the number of elements whose exponent of var is
+      // <= average, or it is the number of elements whose exponent of var
+      // is > average, whichever is those two numbers is smaller.
+      size_t split;
+
+      // How many bits of the DivMask to dedicate to this variable.
+      size_t bitsForVar;
+
+      bool operator<(const VarData& data) const {
+        return split > data.split; // larger split first in order
+      }
+    };
+
     typedef unsigned int MaskType;
     DivMask(MaskType mask): _mask(mask) {}
 
@@ -187,7 +204,8 @@ namespace mathic {
   template<class Iter>
   void DivMask::Calculator<C, true>::
   rebuild(Iter begin, Iter end, const C& conf) {
-    if (begin == end) {
+    const size_t size = std::distance(begin, end);
+    if (size == 0) {
       rebuildDefault(conf);
       return;
     }
@@ -195,9 +213,46 @@ namespace mathic {
     _bits.clear();
     const size_t varCount = conf.getVarCount();
     const size_t TotalBits = sizeof(MaskType) * BitsPerByte;
+
+    // ** Determine information about each variable
+    std::vector<VarData> datas;
     for (size_t var = 0; var < varCount; ++var) {
-      const size_t bitsForVar =
-        TotalBits / varCount + (varCount - var - 1 < TotalBits % varCount);
+      Exponent min = conf.getExponent(*begin, 0);
+      Exponent max = min;
+      for (Iter it = begin; it != end; ++it) {
+        Exponent exp = conf.getExponent(*it, var);
+        if (max < exp)
+          max = exp;
+        if (exp < min)
+          min = exp;
+      }
+      Exponent average = min + (max - min) / 2; // this formula avoids overflow
+      size_t split = 0;
+      for (Iter it = begin; it != end; ++it)
+        if (conf.getExponent(*it, var) < average)
+          ++split;
+      if (split > size / 2)
+        split = size - split;
+      VarData data;
+      data.var = var;
+      data.split = split;
+      datas.push_back(data);
+    }
+    std::sort(datas.begin(), datas.end());
+    MATHIC_ASSERT(datas.size() == varCount);
+
+    // distribute bits to variables according to the data collected
+    std::vector<size_t> bitsForVars(varCount);
+    for (size_t i = 0; i < varCount; ++i) {
+      const size_t var = datas[i].var;
+      bitsForVars[var] = TotalBits / varCount;
+      if (i < TotalBits % varCount)
+        ++bitsForVars[var];
+    }
+
+    // calculate the meaning of each bit and put it in _bits
+    for (size_t var = 0; var < varCount; ++var) {
+      const size_t bitsForVar = bitsForVars[var];
       if (bitsForVar == 0)
         continue;
 
@@ -230,14 +285,14 @@ namespace mathic {
             break;
         }
       } else {
-        // determine minimum and maximum
         Exponent min = conf.getExponent(*begin, 0);
         Exponent max = min;
         for (Iter it = begin; it != end; ++it) {
-          if (max < conf.getExponent(*begin, var))
-            max = conf.getExponent(*begin, var);
-          if (conf.getExponent(*begin, var) < min)
-            min = conf.getExponent(*begin, var);
+          Exponent exp = conf.getExponent(*it, var);
+          if (max < exp)
+            max = exp;
+          if (exp < min)
+            min = exp;
         }
 
         // divide the range [a,b] into bitsForVar equal pieces
