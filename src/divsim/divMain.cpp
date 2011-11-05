@@ -16,14 +16,13 @@ int main() {
 #ifdef DEBUG
   sim.makeStandard(10, 400, 100, true);
 #else
-  sim.makeStandard(10, 5000, 1000000, true);
+  sim.makeStandard(10, 500000, 0, false);
 #endif
   timer.print(std::cout);
   std::cout << std::endl;
 
 #ifndef DEBUG
   sim.run<KDTreeModel<1,1,1,1> >(1, 0, 0, 1.0, 1000); // best tree, mask
-  sim.run<KDTreeModel<1,1,0,1> >(1, 0, 0, 1.0, 1000); // best tree, mask
   return 0;
 
   sim.run<KDTreeModel<0,0,1,2> >(1, 0, 0, 0.0, 0); // best tree, no mask
@@ -59,8 +58,8 @@ int main() {
   sim.run<DivListModel<1> >(1, 0, 1);
   //*/
 
+  sim.run<KDTreeModel<0,0,1,1> >(1, 0, 0, 0.0, 0);
   sim.run<DivListModel<0,0> >(1, 1, 0, 0.5, 500);
-  sim.run<KDTreeModel<0,0,1,2> >(1, 0, 0, 0.0, 0);
   for (int mini = 1; mini <= 1; ++mini) {
     for (int sortOnInsert = 0; sortOnInsert <= 1; ++sortOnInsert) {
       for (int useDivCache = 0; useDivCache <= 1; ++useDivCache) {

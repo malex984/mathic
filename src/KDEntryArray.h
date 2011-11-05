@@ -5,6 +5,7 @@
 #include "DivMask.h"
 #include "memtailor/memtailor.h"
 #include "Comparer.h"
+#include <stdexcept>
 
 namespace mathic {
   template<class C, class EE>
@@ -142,7 +143,8 @@ namespace mathic {
     const ExtEntry* extEntry
   ) {
     MATHIC_ASSERT(begin != end);
-    while (true) {
+    const size_t varCount = conf.getVarCount();
+    for (size_t i = 0; i < varCount; ++i) {
       var = (var + 1) % conf.getVarCount();
 
       typename C::Exponent min;
@@ -158,7 +160,6 @@ namespace mathic {
         min = std::min(min, conf.getExponent(getEntry(*it), var));
         max = std::max(max, conf.getExponent(getEntry(*it), var));
       }
-      // todo: avoid infinite loop if all duplicates
       if (min == max)
         continue;
       // this formula for the average avoids overflow
@@ -166,6 +167,8 @@ namespace mathic {
       SplitEqualOrLess cmp(var, exp, conf);
       return std::partition(begin, end, cmp);
     }
+    ASSERT(false);
+    throw std::logic_error("ERROR: Inserted duplicate entry into a KD tree.");
   }
 
   template<class C, class EE>
@@ -271,6 +274,14 @@ namespace mathic {
   template<class EM, class MO>
   size_t KDEntryArray<C, EE>::removeMultiples
     (const EM& monomial, MO& out, const C& conf) {
+    if (C::LeafSize == 1) { // special case for performance
+      if (empty() || !monomial.divides(*begin(), conf))
+        return 0;
+      out.push_back(begin()->get());
+      pop_back();
+      return 1;
+    }
+
     iterator it = begin();
     iterator oldEnd = end();
     for (; it != oldEnd; ++it) {
@@ -289,7 +300,7 @@ namespace mathic {
       } else
         out.push_back(it->get());
     }
-    // cannot just adjust _end as the superfluous
+    // cannot just set _end directly as the superfluous
     // entries at the end need to be destructed.
     const size_t newSize = std::distance(begin(), newEnd);
     const size_t removedCount = size() - newSize;
@@ -305,12 +316,18 @@ namespace mathic {
     template<class EM>
     typename KDEntryArray<C, EE>::iterator
     KDEntryArray<C, EE>::findDivisor(const EM& extMonomial, const C& conf) {
-      // todo: don't do it if LeafSize == 1 as then it is superfluous.
-      // todo: done in other find divisor functions?
-    if (C::UseTreeDivMask && !getDivMask().canDivide(extMonomial.getDivMask()))
+    if (C::UseTreeDivMask &&
+      C::LeafSize > 1 && // no reason to do it for just 1 leaf
+      !getDivMask().canDivide(extMonomial.getDivMask()))
       return end();
 
-    if (!conf.getSortOnInsert()) {
+    if (C::LeafSize == 1) { // special case for performance
+      if (!empty() && begin()->divides(extMonomial, conf))
+        return begin();
+      else
+        return end();
+    }
+    else if (!conf.getSortOnInsert()) {
       const iterator stop = end();
       for (iterator it = begin(); it != stop; ++it)
         if (it->divides(extMonomial, conf))
@@ -331,7 +348,16 @@ namespace mathic {
   template<class EM, class DO>
   bool KDEntryArray<C, EE>::
     findAllDivisors(const EM& extMonomial, DO& out, const C& conf) {
-    if (!conf.getSortOnInsert()) {
+    if (C::UseTreeDivMask &&
+      C::LeafSize > 1 && // no reason to do it for just 1 leaf
+      !getDivMask().canDivide(extMonomial.getDivMask()))
+      return end();
+
+    if (C::LeafSize == 1) { // special case for performance
+      return empty() ||
+        !begin()->divides(extMonomial, conf) ||
+        out.proceed(begin()->get());
+    } else  if (!conf.getSortOnInsert()) {
       const iterator stop = end();
       for (iterator it = begin(); it != stop; ++it)
         if (it->divides(extMonomial, conf))
@@ -352,6 +378,8 @@ namespace mathic {
   template<class C, class EE>
   template<class EO>
   bool KDEntryArray<C, EE>::forAll(EO& output) {
+    if (C::LeafSize == 1) // special case for performance
+      return empty() || output.proceed(begin()->get());
     const iterator stop = end();
     for (iterator it = begin(); it != stop; ++it)
       if (!output.proceed(it->get()))
@@ -387,14 +415,15 @@ namespace mathic {
   void KDEntryArray<C, EE>::recalculateTreeDivMask() {
     if (!C::UseTreeDivMask)
       return;
+    resetDivMask();
     for (const_iterator it = begin(); it != end(); ++it)
       updateToLowerBound(*it);
   }
 #ifdef DEBUG
   template<class C, class EE>
   bool KDEntryArray<C, EE>::debugIsValid() const {
-    ASSERT(static_cast<size_t>(end() - begin()) <= C::LeafSize);
-    if (C::UseTreeDivMask) {
+    MATHIC_ASSERT(static_cast<size_t>(end() - begin()) <= C::LeafSize);
+    if (C::UseTreeDivMask && C::LeafSize > 1) {
       for (const_iterator it = begin(); it != end(); ++it) {
         MATHIC_ASSERT(getDivMask().canDivide(it->getDivMask()));
       }
