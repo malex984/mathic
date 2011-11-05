@@ -34,6 +34,11 @@ namespace mathic {
   private:
     std::clock_t _clocksAtReset;
   };
+
+  inline std::ostream& operator<<(std::ostream& out, const Timer& timer) {
+    timer.print(out);
+    return out;
+  }
 }
 
 #endif

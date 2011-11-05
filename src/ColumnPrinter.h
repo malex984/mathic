@@ -28,6 +28,14 @@ namespace mathic {
     static std::string percent(
       unsigned long long numerator,
       unsigned long long denominator);
+    static std::string percent(double ratio);
+
+
+	/** Returns d as a string printed to 1 decimal place, rounded up at 0.5 */
+    static std::string oneDecimal(double d);
+
+	/** Prints as X bytes, X kilobytes, X megabytes etc. */
+    static std::string bytesInUnit(unsigned long long bytes);
 
   private:
 	struct Col {

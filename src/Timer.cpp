@@ -38,7 +38,6 @@ namespace mathic {
     seconds %= 60;
     minutes %= 60;
 
-    out << '(';
     if (hours != 0)
       out << hours << 'h';
     if (minutes != 0 || hours != 0)
@@ -47,6 +46,6 @@ namespace mathic {
     out << (milliseconds / 100);
     out << ((milliseconds / 10) % 10);
     out << (milliseconds % 10);
-    out << "s)";
+    out << "s";
   }
 }

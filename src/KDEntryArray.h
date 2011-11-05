@@ -167,7 +167,7 @@ namespace mathic {
       SplitEqualOrLess cmp(var, exp, conf);
       return std::partition(begin, end, cmp);
     }
-    ASSERT(false);
+    MATHIC_ASSERT(false);
     throw std::logic_error("ERROR: Inserted duplicate entry into a KD tree.");
   }
 

@@ -135,11 +135,33 @@ namespace mathic {
   std::string ColumnPrinter::percent(
       unsigned long long numerator,
       unsigned long long denominator) {
-    double ratio = static_cast<double>(numerator) / denominator;
+    return percent(static_cast<double>(numerator) / denominator);
+  }
+
+  std::string ColumnPrinter::percent(double ratio) {
+    return oneDecimal(ratio * 100) + '%';
+  }
+
+  std::string ColumnPrinter::oneDecimal(double d) {
     std::ostringstream out;
-    // round up to nearest whole number of percent
-    unsigned long long l = static_cast<unsigned long long>(ratio * 1000 + 0.5);
-    out << l / 10 << '.' << l % 10 << '%';
+    unsigned long long l = static_cast<unsigned long long>(d * 10 + 0.5);
+    out << l / 10 << '.' << l % 10;
+	return out.str();
+  }
+
+  std::string ColumnPrinter::bytesInUnit(unsigned long long bytes) {
+	std::ostringstream out;
+	if (bytes < 1024) {
+	  out << bytes << 'b';
+    } else {
+	  const char* units[] = {"kb", "mb", "gb", "tb"};
+	  const size_t unitCount = sizeof(units) / sizeof(*units);
+	  double amount = static_cast<double>(bytes) / 1024.0;
+	  size_t i = 0;
+	  for (i = 0; i < unitCount && amount >= 1024; ++i)
+        amount /= 1024.0;
+	  out << oneDecimal(amount) << units[i];
+    }
     return out.str();
   }
 
