@@ -21,7 +21,7 @@ namespace mathic {
 	void push(Entry entry);
 	void push(const Entry* begin, const Entry* end);
 	Entry pop();
-	Entry top();
+	Entry top() const;
 	bool empty() const {return _tree.empty();}
 	void print(std::ostream& out) const;
 
@@ -70,6 +70,7 @@ namespace mathic {
 
   template<class C>
 	void TourTree<C>::push(Entry entry) {
+	MATHIC_ASSERT(isValid());
 	if (!_tree.hasFreeCapacity(2))
 	  reallocate();
 	if (empty()) {
@@ -149,7 +150,6 @@ namespace mathic {
 		  break;
 	  }
 	}
-	MATHIC_ASSERT(isValid());
 	Player* player = _tree[Node()];
 	player->entry = right->entry; // let right take the winner's place
 	MATHIC_ASSERT(right == &_players.back());
@@ -171,7 +171,7 @@ namespace mathic {
   }
 
   template<class C>
-	typename TourTree<C>::Entry TourTree<C>::top() {
+	typename TourTree<C>::Entry TourTree<C>::top() const {
 	MATHIC_ASSERT(!empty());
 	return _tree[Node()]->entry;
   }
