@@ -235,14 +235,13 @@ namespace mathic {
     memt::Arena _arena; // Everything permanent allocated from here.
     C _conf; // User supplied configuration.
     mutable std::vector<Node*> _tmp; // For navigating the tree.
-    Node* _root; // Root of the tree. Cannot be null.
+    Node* _root; // Root of the tree. Can be null!
   };
 
   template<class C>
   BinaryKDTree<C>::BinaryKDTree(const C& configuration):
-  _conf(configuration) {
+  _conf(configuration), _root(0) {
     MATHIC_ASSERT(C::LeafSize > 0);
-    _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
     MATHIC_ASSERT(debugIsValid());
   }
 
@@ -255,6 +254,8 @@ namespace mathic {
   template<class MO>
   size_t BinaryKDTree<C>::removeMultiples(const ExtMonoRef& extMonomial, MO& out) {
     MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return 0;
     size_t removedCount = 0;
     Node* node = _root;
     while (true) {
@@ -280,6 +281,8 @@ namespace mathic {
   template<class C>
   void BinaryKDTree<C>::insert(const ExtEntry& extEntry) {
     Interior* parent = 0;
+    if (_root == 0)
+      _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
     Node* node = _root;
     while (node->isInterior()) {
       parent = &node->asInterior();
@@ -307,8 +310,8 @@ namespace mathic {
   template<class Iter>
   void BinaryKDTree<C>::reset(Iter insertBegin, Iter insertEnd, const DivMaskCalculator& calc) {
     clear();
-    _arena.freeAllAllocs();
-    _root = 0; // temporary value
+    if (insertBegin == insertEnd)
+      return;
 
     typedef InsertTodo<Iter> Task;
     typedef std::vector<Task> TaskCont;
@@ -403,6 +406,8 @@ namespace mathic {
 
     MATHIC_ASSERT(debugIsValid());
     MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return 0;
     Node* node = _root;
     while (true) {
       while (node->isInterior()) {
@@ -441,6 +446,8 @@ namespace mathic {
   template<class DO>
   void BinaryKDTree<C>::findAllDivisors(const ExtMonoRef& extMonomial, DO& output) {
     MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return;
     Node* node = _root;
     while (true) {
       while (node->isInterior()) {
@@ -474,6 +481,8 @@ next:
   template<class EO>
   void BinaryKDTree<C>::forAll(EO& output) {
     MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return;
     Node* node = _root;
     while (true) {
       while (node->isInterior()) {
@@ -499,7 +508,8 @@ next:
   void BinaryKDTree<C>::clear() {
     MATHIC_ASSERT(_tmp.empty());
     // Call Entry destructors
-    _tmp.push_back(_root);
+    if (_root != 0)
+      _tmp.push_back(_root);
     while (!_tmp.empty()) {
       Node* node = _tmp.back();
       _tmp.pop_back();
@@ -511,7 +521,7 @@ next:
       node->asLeaf().entries().clear();
     }
     _arena.freeAllAllocs();
-    _root = new (_arena.allocObjectNoCon<Leaf>()) Leaf(_arena, _conf);
+    _root = 0;
   }
 
   template<class C>
@@ -525,33 +535,35 @@ next:
   void BinaryKDTree<C>::print(std::ostream& out) const {
     out << "<<<<<<<< BinaryKDTree >>>>>>>>\n";
     MATHIC_ASSERT(_tmp.empty());
-    Node* node = _root;
-    while (true) {
-      if (node->isInterior()) {
-        Interior& interior = node->asInterior();
-        out << "**** Interior Node " << &interior << '\n';
-        out << "Split on " << interior.getVar() <<
-          '^' << interior.getExponent() << '\n';
-        out << "Child <=: " << &interior.getEqualOrLess() << '\n';
-        out << "Child > : " << &interior.getStrictlyGreater() << '\n';
-        out << '\n';
-        _tmp.push_back(&interior.getEqualOrLess());
-        _tmp.push_back(&interior.getStrictlyGreater());
-      } else {
-        Leaf& leaf = node->asLeaf();
-        out << "**** Leaf Node " << &leaf << '\n';
-        for (size_t i = 0; i < leaf.entries().size(); ++i) {
-          out << "Entry " << (i + 1) << ": "
-            << leaf.entries().begin()[i].get() << '\n';
+    if (_root != 0) {
+      Node* node = _root;
+      while (true) {
+        if (node->isInterior()) {
+          Interior& interior = node->asInterior();
+          out << "**** Interior Node " << &interior << '\n';
+          out << "Split on " << interior.getVar() <<
+            '^' << interior.getExponent() << '\n';
+          out << "Child <=: " << &interior.getEqualOrLess() << '\n';
+          out << "Child > : " << &interior.getStrictlyGreater() << '\n';
+          out << '\n';
+          _tmp.push_back(&interior.getEqualOrLess());
+          _tmp.push_back(&interior.getStrictlyGreater());
+        } else {
+          Leaf& leaf = node->asLeaf();
+          out << "**** Leaf Node " << &leaf << '\n';
+          for (size_t i = 0; i < leaf.entries().size(); ++i) {
+            out << "Entry " << (i + 1) << ": "
+              << leaf.entries().begin()[i].get() << '\n';
+          }
+          out << '\n';
         }
-        out << '\n';
+        if (_tmp.empty())
+          break;
+        node = _tmp.back();
+        _tmp.pop_back();
       }
-      if (_tmp.empty())
-        break;
-      node = _tmp.back();
-      _tmp.pop_back();
+      MATHIC_ASSERT(_tmp.empty());
     }
-    MATHIC_ASSERT(_tmp.empty());
   }
 
 #ifdef MATHIC_DEBUG
@@ -560,8 +572,7 @@ next:
     MATHIC_ASSERT(_tmp.empty());
     MATHIC_ASSERT(!_conf.getDoAutomaticRebuilds() || _conf.getRebuildRatio() > 0);
 
-    MATHIC_ASSERT(_root != 0);
-    if (_root->isLeaf() && _root->asLeaf().entries().empty())
+    if (_root == 0)
       return true;
 
     // record all nodes

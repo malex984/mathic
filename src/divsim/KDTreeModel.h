@@ -6,11 +6,16 @@
 #include <string>
 #include <vector>
 
-template<bool UseDivMask, bool UseTreeDivMask, bool PackedTree, size_t LeafSize>
+template<
+  bool UseDivMask,
+  bool UseTreeDivMask,
+  bool PackedTree,
+  size_t LeafSize,
+  bool AllowRemovals>
 class KDTreeModelConfiguration;
 
 /** Helper class for KDTreeModel. */
-template<bool UDM, bool UTDM, bool PT, size_t LS>
+template<bool UDM, bool UTDM, bool PT, size_t LS, bool AR>
 class KDTreeModelConfiguration {
  public:
   typedef int Exponent;
@@ -69,6 +74,7 @@ class KDTreeModelConfiguration {
   static const bool UseTreeDivMask = UTDM;
   static const bool PackedTree = PT;
   static const size_t LeafSize = LS;
+  static const bool AllowRemovals = AR;
 
   unsigned long long getExpQueryCount() const {return _expQueryCount;}
 
@@ -87,12 +93,13 @@ template<
   bool UseDivMask,
   bool UseTreeDivMask,
   bool PackedTree,
-  size_t LeafSize
+  size_t LeafSize,
+  bool AllowRemovals
 >
 class KDTreeModel {
  private:
   typedef KDTreeModelConfiguration
-    <UseDivMask, UseTreeDivMask, PackedTree, LeafSize> C;
+    <UseDivMask, UseTreeDivMask, PackedTree, LeafSize, AllowRemovals> C;
   typedef mathic::KDTree<C> Finder;
  public:
   typedef typename Finder::Monomial Monomial;
@@ -151,8 +158,8 @@ class KDTreeModel {
   bool _minimizeOnInsert;
 };
 
-template<bool UDM, bool UTDM, bool PT, size_t LS>
-inline void KDTreeModel<UDM, UTDM, PT, LS>::insert(const Entry& entry) {
+template<bool UDM, bool UTDM, bool PT, size_t LS, bool AR>
+inline void KDTreeModel<UDM, UTDM, PT, LS, AR>::insert(const Entry& entry) {
   if (!_minimizeOnInsert) {
     _finder.insert(entry);
     return;
@@ -163,9 +170,9 @@ inline void KDTreeModel<UDM, UTDM, PT, LS>::insert(const Entry& entry) {
   _finder.insert(entry);
 }
 
-template<bool UDM, bool UTDM, bool PT, size_t LS>
+template<bool UDM, bool UTDM, bool PT, size_t LS, bool AR>
 template<class MultipleOutput>
-inline void KDTreeModel<UDM, UTDM, PT, LS>::
+inline void KDTreeModel<UDM, UTDM, PT, LS, AR>::
 insert(const Entry& entry, MultipleOutput& removed) {
   if (!_minimizeOnInsert) {
     _finder.insert(entry);
@@ -177,8 +184,8 @@ insert(const Entry& entry, MultipleOutput& removed) {
   _finder.insert(entry);
 }
 
-template<bool UDM, bool UTDM, bool PT, size_t LS>
-inline std::string KDTreeModel<UDM, UTDM, PT, LS>::getName() const {
+template<bool UDM, bool UTDM, bool PT, size_t LS, bool AR>
+inline std::string KDTreeModel<UDM, UTDM, PT, LS, AR>::getName() const {
   return _finder.getName() +
     (_minimizeOnInsert ? " remin" : " nomin");
 }

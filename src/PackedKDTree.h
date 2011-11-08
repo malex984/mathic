@@ -162,19 +162,19 @@ namespace mathic {
     memt::Arena _arena; // Everything permanent allocated from here.
     C _conf; // User supplied configuration.
     mutable std::vector<Node*> _tmp; // For navigating the tree.
-    Node* _root; // Root of the tree. Cannot be null.
+    Node* _root; // Root of the tree. Can be null!
   };
 
   template<class C>
   PackedKDTree<C>::PackedKDTree(const C& configuration):
-  _conf(configuration) {
+  _conf(configuration), _root(0) {
     MATHIC_ASSERT(C::LeafSize > 0);
-    _root = Node::makeNode(_arena, _conf);
     MATHIC_ASSERT(debugIsValid());
   }
 
   template<class C>
   PackedKDTree<C>::~PackedKDTree() {
+    MATHIC_ASSERT(debugIsValid());
     clear();
   }
 
@@ -216,6 +216,8 @@ namespace mathic {
     MO& out
   ) {
     MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return 0;
     size_t removedCount = 0;
     Node* node = _root;
     while (true) {
@@ -242,6 +244,8 @@ stopped:;
     MATHIC_ASSERT(debugIsValid());
     // find node in which to insert extEntry
     typename Node::Child* parentChild = 0;
+    if (_root == 0)
+      _root = Node::makeNode(_arena, _conf);
     Node* node = _root;
     typename Node::iterator child = node->childBegin();
     while (true) {
@@ -272,8 +276,8 @@ stopped:;
   template<class Iter>
   void PackedKDTree<C>::reset(Iter insertBegin, Iter insertEnd, const DivMaskCalculator& calc) {
     clear();
-    _arena.freeAllAllocs();
-    _root = 0; // temporary value
+    if (insertBegin == insertEnd)
+      return;
 
     typedef InsertTodo<Iter> Task;
     typedef std::vector<Task> TaskCont;
@@ -370,6 +374,8 @@ stopped:;
   typename PackedKDTree<C>::Entry* PackedKDTree<C>::findDivisor
     (const ExtMonoRef& extMonomial) {
     MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return 0;
     Node* node = _root;
     while (true) {
       // record relevant children for later processing
@@ -411,6 +417,8 @@ next:
     DO& output
   ) {
     MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return;
     Node* node = _root;
     while (true) {
       for (typename Node::const_iterator it = node->childBegin();
@@ -438,6 +446,8 @@ next:
   template<class EO>
   void PackedKDTree<C>::forAll(EO& output) {
     MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return;
     Node* node = _root;
     while (true) {
       if (!node->entries().forAll(output)) {
@@ -459,7 +469,8 @@ next:
   void PackedKDTree<C>::clear() {
     MATHIC_ASSERT(_tmp.empty());
     // Call Entry destructors
-    _tmp.push_back(_root);
+    if (_root != 0)
+      _tmp.push_back(_root);
     while (!_tmp.empty()) {
       Node* node = _tmp.back();
       _tmp.pop_back();
@@ -469,7 +480,7 @@ next:
         _tmp.push_back(it->node);
     }
     _arena.freeAllAllocs();
-    _root = Node::makeNode(_arena, _conf);
+    _root = 0;
   }
 
   template<class C>
@@ -484,6 +495,8 @@ next:
   void PackedKDTree<C>::print(std::ostream& out) const {
     out << "<<<<<<<< PackedKDTree >>>>>>>>\n";
     MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return;
     Node* node = _root;
     while (true) {
       out << "**** Node " << node << "\nchildren:\n";
@@ -513,8 +526,8 @@ next:
     //print(std::cerr); std::cerr << std::flush; // todo: debug remove
     MATHIC_ASSERT(_tmp.empty());
     MATHIC_ASSERT(!_conf.getDoAutomaticRebuilds() || _conf.getRebuildRatio() > 0);
-
-    MATHIC_ASSERT(_root != 0);
+    if (_root == 0)
+      return true;
 
     // record all nodes
     std::vector<Node*> nodes;

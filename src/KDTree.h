@@ -282,7 +282,8 @@ namespace mathic {
     out << (C::UseDivMask && !C::UseTreeDivMask ? " dmask" : "")
         << (C::UseTreeDivMask ? " tree-dmask" : "")
         << (conf.getSortOnInsert() ? " sort" : "")
-        << (conf.getUseDivisorCache() ? " cache" : "");
+        << (conf.getUseDivisorCache() ? " cache" : "")
+        << (C::AllowRemovals ? "" : " no-removals");
     return out.str();
   }
 

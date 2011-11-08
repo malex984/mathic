@@ -274,6 +274,7 @@ namespace mathic {
   template<class EM, class MO>
   size_t KDEntryArray<C, EE>::removeMultiples
     (const EM& monomial, MO& out, const C& conf) {
+    MATHIC_ASSERT(C::AllowRemovals);
     if (C::LeafSize == 1) { // special case for performance
       if (empty() || !monomial.divides(*begin(), conf))
         return 0;
@@ -322,7 +323,9 @@ namespace mathic {
       return end();
 
     if (C::LeafSize == 1) { // special case for performance
-      if (!empty() && begin()->divides(extMonomial, conf))
+      ASSERT(C::AllowRemovals || !empty());
+      if ((!C::AllowRemovals || !empty()) &&
+        begin()->divides(extMonomial, conf))
         return begin();
       else
         return end();
@@ -354,7 +357,8 @@ namespace mathic {
       return end();
 
     if (C::LeafSize == 1) { // special case for performance
-      return empty() ||
+      ASSERT(C::AllowRemovals || !empty());
+      return (C::AllowRemovals && empty()) ||
         !begin()->divides(extMonomial, conf) ||
         out.proceed(begin()->get());
     } else  if (!conf.getSortOnInsert()) {
@@ -378,8 +382,10 @@ namespace mathic {
   template<class C, class EE>
   template<class EO>
   bool KDEntryArray<C, EE>::forAll(EO& output) {
-    if (C::LeafSize == 1) // special case for performance
-      return empty() || output.proceed(begin()->get());
+    if (C::LeafSize == 1) { // special case for performance
+      ASSERT(C::AllowRemovals || !empty());
+      return (C::AllowRemovals && empty()) || output.proceed(begin()->get());
+    }
     const iterator stop = end();
     for (iterator it = begin(); it != stop; ++it)
       if (!output.proceed(it->get()))
@@ -422,6 +428,7 @@ namespace mathic {
 #ifdef DEBUG
   template<class C, class EE>
   bool KDEntryArray<C, EE>::debugIsValid() const {
+    MATHIC_ASSERT(C::AllowRemovals || !empty());
     MATHIC_ASSERT(static_cast<size_t>(end() - begin()) <= C::LeafSize);
     if (C::UseTreeDivMask && C::LeafSize > 1) {
       for (const_iterator it = begin(); it != end(); ++it) {
