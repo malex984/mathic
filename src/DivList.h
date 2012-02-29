@@ -81,13 +81,24 @@ namespace mathic {
       bool removeMultiples
       (const Monomial& monomial, MultipleOutput& out);
 
-    iterator findDivisor(const Monomial& monomial);
-    const_iterator findDivisor(const Monomial& monomial) const;
+    bool removeElement(const Monomial& monomial);
+
+    Entry* findDivisor(const Monomial& monomial);
+    const Entry* findDivisor(const Monomial& monomial) const;
 
     template<class DO>
     void findAllDivisors(const Monomial& monomial, DO& out);
     template<class DO>
     void findAllDivisors(const Monomial& monomial, DO& out) const;
+
+    template<class DO>
+    void findAllMultiples(const Monomial& monomial, DO& out);
+
+    template<class Output>
+    void findAllMultiples(const Monomial& monomial, Output& output) const {
+      ConstEntryOutput<Output> constOutput(output);
+      const_cast<DivList<C>&>(*this).findAllMultiples(monomial, constOutput);
+    }
 
     template<class EntryOutput>
     void forAll(EntryOutput& output);
@@ -414,8 +425,8 @@ namespace mathic {
   }
 
   template<class C>
-    template<class MO>
-    bool DivList<C>::removeMultiples(const Monomial& monomial, MO& out) {
+  template<class MO>
+  bool DivList<C>::removeMultiples(const Monomial& monomial, MO& out) {
     ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
 #ifdef MATHIC_DEBUG
     const size_t origSize = size();
@@ -428,38 +439,55 @@ namespace mathic {
   }
 
   template<class C>
-    bool DivList<C>::removeMultiples(const Monomial& monomial) {
+  bool DivList<C>::removeMultiples(const Monomial& monomial) {
     DummyMultipleOutput out;
     return removeMultiples(monomial, out);
   }
 
   template<class C>
-    typename DivList<C>::iterator
-    DivList<C>::findDivisor(const Monomial& monomial) {
+  bool DivList<C>::removeElement(const Monomial& monomial) {
+    const size_t varCount = _conf.getVarCount();
+    for (ListIter it = _list.begin(); it != _list.end(); ++it) {
+      for (size_t var = 0; var < varCount; ++var) {
+        if (_conf.getExponent(monomial, var) !=
+          _conf.getExponent(it->get(), var)) {
+          goto skip;
+        }
+      }
+      _list.erase(it);
+      return true;
+    skip:;
+    }
+    return false;
+  }
+
+  template<class C>
+  typename DivList<C>::Entry*
+  DivList<C>::findDivisor(const Monomial& monomial) {
     ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
 
     if (!_conf.getSortOnInsert()) {
       const ListIter listEnd = _list.end();
       for (ListIter it = _list.begin(); it != listEnd; ++it) {
         if (it->divides(extMonomial, _conf))
-          return iterator(it);
+          return &it->get();
       }
-      return iterator(listEnd);
-    } else
-      return
-        iterator(DivListHelper::findDivisorSorted(_conf, _list, extMonomial));
+      return 0;
+    } else {
+      ListIter it = DivListHelper::findDivisorSorted(_conf, _list, extMonomial);
+      return it == _list.end() ? 0 : &it->get();
+    }
   }
 
   template<class C>
-  typename DivList<C>::const_iterator
-    DivList<C>::findDivisor(const Monomial& monomial) const {
+  const typename DivList<C>::Entry*
+  DivList<C>::findDivisor(const Monomial& monomial) const {
     return const_cast<DivList<C>&>(*this).findDivisor(monomial);
   }
 
   template<class C>
   template<class DO>
-    void DivList<C>::
-    findAllDivisors(const Monomial& monomial, DO& out) {
+  void DivList<C>::findAllDivisors(const Monomial& monomial, DO& out) {
     ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
     if (!_conf.getSortOnInsert()) {
       const ListIter listEnd = _list.end();
@@ -469,6 +497,18 @@ namespace mathic {
             break;
     } else
       DivListHelper::findAllDivisorsSorted(_conf, _list, extMonomial, out);
+  }
+
+  template<class C>
+  template<class DO>
+  void DivList<C>::findAllMultiples(const Monomial& monomial, DO& out) {
+    // todo: consider doing sorted version
+    ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
+    const ListIter listEnd = _list.end();
+    for (ListIter it = _list.begin(); it != listEnd; ++it)
+      if (extMonomial.divides(*it, _conf))
+        if (!out.proceed(it->get()))
+          break;
   }
 
   template<class C>

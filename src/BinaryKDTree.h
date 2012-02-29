@@ -196,15 +196,22 @@ namespace mathic {
     template<class MultipleOutput>
     size_t removeMultiples(const ExtMonoRef& monomial, MultipleOutput& out);
 
+    bool removeElement(const Monomial& monomial);
+
     void insert(const ExtEntry& entry);
 
     template<class Iter>
     void reset(Iter begin, Iter end, const DivMaskCalculator& calc);
 
-    Entry* findDivisor(const ExtMonoRef& monomial);
+    inline Entry* findDivisor(const ExtMonoRef& monomial);
 
     template<class DivisorOutput>
-    void findAllDivisors(const ExtMonoRef& monomial, DivisorOutput& out);
+    inline void findAllDivisors
+      (const ExtMonoRef& monomial, DivisorOutput& out);
+
+    template<class Output>
+    inline void findAllMultiples
+      (const ExtMonoRef& monomial, Output& out);
 
     template<class EntryOutput>
     void forAll(EntryOutput& out);
@@ -276,6 +283,20 @@ namespace mathic {
     MATHIC_ASSERT(_tmp.empty());
     MATHIC_ASSERT(debugIsValid());
     return removedCount;
+  }
+
+  template<class C>
+  bool BinaryKDTree<C>::removeElement(const Monomial& monomial) {
+    MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return 0;
+    Node* node = _root;
+
+    while (node->isInterior())
+      node = node->asInterior().getChildFor(monomial, _conf);
+    const bool value = node->asLeaf().removeElement(monomial);
+    MATHIC_ASSERT(debugIsValid());
+    return value;
   }
 
   template<class C>
@@ -464,6 +485,38 @@ namespace mathic {
       {
         Leaf& leaf = node->asLeaf();
         if (!leaf.entries().findAllDivisors(extMonomial, output, _conf)) {
+          _tmp.clear();
+          break;
+        }
+      }
+next:
+      if (_tmp.empty())
+        break;
+      node = _tmp.back();
+      _tmp.pop_back();
+    }
+    MATHIC_ASSERT(_tmp.empty());
+  }
+
+  template<class C>
+  template<class DO>
+  void BinaryKDTree<C>::findAllMultiples(const ExtMonoRef& extMonomial, DO& output) {
+    MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return;
+    Node* node = _root;
+    while (true) {
+      while (node->isInterior()) {
+        Interior& interior = node->asInterior();
+        if (!(interior.getExponent() <
+            _conf.getExponent(extMonomial.get(), interior.getVar())))
+          _tmp.push_back(&interior.getEqualOrLess());
+        node = &interior.getStrictlyGreater();
+      }
+      MATHIC_ASSERT(node->isLeaf());
+      {
+        Leaf& leaf = node->asLeaf();
+        if (!leaf.entries().findAllMultiples(extMonomial, output, _conf)) {
           _tmp.clear();
           break;
         }

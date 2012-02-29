@@ -142,6 +142,12 @@ namespace mathic {
     return oneDecimal(ratio * 100) + '%';
   }
 
+  std::string ColumnPrinter::ratio(
+    unsigned long long numerator,
+    unsigned long long denominator) {
+    return oneDecimal(static_cast<double>(numerator) / denominator);
+  }
+
   std::string ColumnPrinter::oneDecimal(double d) {
     std::ostringstream out;
     unsigned long long l = static_cast<unsigned long long>(d * 10 + 0.5);

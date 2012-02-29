@@ -27,6 +27,26 @@ namespace mathic {
 
 	void decreaseTop(Entry newEntry);
 
+    template<class T>
+    void forAll(T& t) const {
+      typedef typename std::vector<Player>::const_iterator Iter;
+      Iter end = _players.end();
+      for (Iter it = _players.begin(); it != end; ++it)
+        if (!t.proceed(it->entry))
+          return;
+    }
+
+    template<class T>
+    void forAll(T& t) {
+      typedef typename std::vector<Player>::iterator Iter;
+      Iter end = _players.end();
+      for (Iter it = _players.begin(); it != end; ++it)
+        if (!t.proceed(it->entry))
+          return;
+    }
+
+    void clear();
+
     size_t getMemoryUse() const;
 
   private:
@@ -49,6 +69,12 @@ namespace mathic {
 	std::vector<Player> _players;
 	Configuration _conf;
   };
+
+  template<class C>
+  void TourTree<C>::clear() {
+    _tree.clear();
+    _players.clear();
+  }
 
   template<class C>
   size_t TourTree<C>::getMemoryUse() const {

@@ -72,9 +72,9 @@ namespace mathic {
       const_iterator childEnd() const {return _childrenEnd;}
 
       bool hasChildren() const {return childBegin() != childEnd();}
-      template<class Ext>
-      bool inChild(const_iterator child, const Ext& ext, const C& conf) const {
-        return child->exponent < conf.getExponent(ext.get(), child->var);
+      template<class ME> // ME is MonomialOrEntry
+      bool inChild(const_iterator child, const ME me, const C& conf) const {
+        return child->exponent < conf.getExponent(me, child->var);
       }
 
       mathic::KDEntryArray<C, ExtEntry>& entries() {return _entries;}
@@ -121,15 +121,22 @@ namespace mathic {
     template<class MultipleOutput>
     size_t removeMultiples(const ExtMonoRef& monomial, MultipleOutput& out);
 
+    bool removeElement(const Monomial& monomial);
+
     void insert(const ExtEntry& entry);
 
     template<class Iter>
     void reset(Iter begin, Iter end, const DivMaskCalculator& calc);
 
-    Entry* findDivisor(const ExtMonoRef& monomial);
+    inline Entry* findDivisor(const ExtMonoRef& monomial);
 
     template<class DivisorOutput>
-    void findAllDivisors(const ExtMonoRef& monomial, DivisorOutput& out);
+    inline void findAllDivisors
+      (const ExtMonoRef& monomial, DivisorOutput& out);
+
+    template<class DivisorOutput>
+    inline void findAllMultiples
+      (const ExtMonoRef& monomial, DivisorOutput& out);
 
     template<class EntryOutput>
     void forAll(EntryOutput& out);
@@ -174,7 +181,6 @@ namespace mathic {
 
   template<class C>
   PackedKDTree<C>::~PackedKDTree() {
-    MATHIC_ASSERT(debugIsValid());
     clear();
   }
 
@@ -224,7 +230,7 @@ namespace mathic {
       for (typename Node::const_iterator it = node->childBegin();
         it != node->childEnd(); ++it) {
         _tmp.push_back(it->node);
-        if (node->inChild(it, extMonomial, _conf))
+        if (node->inChild(it, extMonomial.get(), _conf))
           goto stopped;
       }
       removedCount += node->entries().removeMultiples(extMonomial, out, _conf);
@@ -237,6 +243,26 @@ stopped:;
     MATHIC_ASSERT(_tmp.empty());
     MATHIC_ASSERT(debugIsValid());
     return removedCount;
+  }
+
+  template<class C>
+  bool PackedKDTree<C>::removeElement(const Monomial& monomial) {
+    MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return false;
+    Node* node = _root;
+ 
+    typename Node::iterator child = node->childBegin();
+    while (child != node->childEnd()) {
+      if (node->inChild(child, monomial, _conf)) {
+        node = child->node;
+        child = node->childBegin();
+      } else
+        ++child;
+    }
+    const bool value = node->entries().removeElement(monomial, _conf);
+    MATHIC_ASSERT(debugIsValid());
+    return value;
   }
 
   template<class C>
@@ -262,7 +288,7 @@ stopped:;
       }
       if (C::UseTreeDivMask)
         child->updateToLowerBound(extEntry);
-      if (node->inChild(child, extEntry, _conf)) {
+      if (node->inChild(child, extEntry.get(), _conf)) {
         parentChild = &*child;
         node = child->node;
         child = node->childBegin();
@@ -384,7 +410,7 @@ stopped:;
         if (C::UseTreeDivMask &&
           !it->getDivMask().canDivide(extMonomial.getDivMask()))
           goto next;
-        if (node->inChild(it, extMonomial, _conf))
+        if (node->inChild(it, extMonomial.get(), _conf))
           _tmp.push_back(it->node);
       }
 
@@ -426,10 +452,40 @@ next:
         if (C::UseTreeDivMask &&
           !it->getDivMask().canDivide(extMonomial.getDivMask()))
           goto next; // div mask rules this sub tree out
-        if (node->inChild(it, extMonomial, _conf))
+        if (node->inChild(it, extMonomial.get(), _conf))
           _tmp.push_back(it->node);
       }
       if (!node->entries().findAllDivisors(extMonomial, output, _conf)) {
+        _tmp.clear();
+        break;
+      }
+next:
+      if (_tmp.empty())
+        break;
+      node = _tmp.back();
+      _tmp.pop_back();
+    }
+    MATHIC_ASSERT(_tmp.empty());
+  }
+
+  template<class C>
+  template<class DO>
+  void PackedKDTree<C>::findAllMultiples(
+    const ExtMonoRef& extMonomial,
+    DO& output
+  ) {
+    MATHIC_ASSERT(_tmp.empty());
+    if (_root == 0)
+      return;
+    Node* node = _root;
+    while (true) {
+      for (typename Node::const_iterator it = node->childBegin();
+        it != node->childEnd(); ++it) {
+          _tmp.push_back(it->node);
+          if (node->inChild(it, extMonomial.get(), _conf))
+            goto next;
+      }
+      if (!node->entries().findAllMultiples(extMonomial, output, _conf)) {
         _tmp.clear();
         break;
       }
@@ -523,7 +579,7 @@ next:
 #ifdef MATHIC_DEBUG
   template<class C>
   bool PackedKDTree<C>::debugIsValid() const {
-    //print(std::cerr); std::cerr << std::flush; // todo: debug remove
+    //print(std::cerr); std::cerr << std::flush;
     MATHIC_ASSERT(_tmp.empty());
     MATHIC_ASSERT(!_conf.getDoAutomaticRebuilds() || _conf.getRebuildRatio() > 0);
     if (_root == 0)
@@ -668,7 +724,7 @@ next:
       entries().recalculateTreeDivMask();
     _childrenEnd = childBegin();
 
-    if (copied->inChild(copied->childEnd() - 1, extEntry, conf))
+    if (copied->inChild(copied->childEnd() - 1, extEntry.get(), conf))
       entries().insert(extEntry, conf);
     else
       copied->entries().insert(extEntry, conf);

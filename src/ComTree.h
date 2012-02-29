@@ -85,6 +85,8 @@ namespace mathic {
 
 	void print(std::ostream& out) const;
 
+    void clear();
+
     size_t getMemoryUse() const;
 
 #ifdef MATHIC_DEBUG
@@ -98,6 +100,11 @@ namespace mathic {
 	Node _lastLeaf;
 	Node _capacityEnd;
   };
+
+  template<class E, bool FI>
+  void ComTree<E, FI>::clear() {
+    _lastLeaf = Node(0);
+  }
 
   template<class E, bool FI>
   size_t ComTree<E, FI>::getMemoryUse() const {

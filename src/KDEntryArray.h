@@ -58,11 +58,18 @@ namespace mathic {
     template<class EM, class MO>
     size_t removeMultiples(const EM& monomial, MO& out, const C& conf);
 
+    template<class M>
+    bool removeElement(const M& monomial, const C& conf);
+
     template<class EM>
-    iterator findDivisor(const EM& extMonomial, const C& conf);
+    inline iterator findDivisor(const EM& extMonomial, const C& conf);
 
     template<class EM, class DO>
-    bool findAllDivisors(const EM& extMonomial, DO& out, const C& conf);
+    inline bool findAllDivisors(const EM& extMonomial, DO& out, const C& conf);
+
+    template<class EM, class Output>
+    inline bool findAllMultiples
+      (const EM& extMonomial, Output& out, const C& conf);
 
     template<class EO>
     bool forAll(EO& eo);
@@ -314,9 +321,30 @@ namespace mathic {
   }
 
   template<class C, class EE>
-    template<class EM>
-    typename KDEntryArray<C, EE>::iterator
-    KDEntryArray<C, EE>::findDivisor(const EM& extMonomial, const C& conf) {
+  template<class M>
+  bool KDEntryArray<C, EE>::removeElement(const M& monomial, const C& conf) {
+    const size_t varCount = conf.getVarCount();
+    const_iterator stop = end();
+    for (iterator it = begin(); it != stop; ++it) {
+      for (size_t var = 0; var < varCount; ++var)
+        if (conf.getExponent(monomial, var) != conf.getExponent(it->get(), var))
+          goto skip;
+      if (it != end()) {
+        const_iterator next = it;
+        for (++next; next != end(); ++it, ++next)
+          *it = *next;
+      }
+      pop_back();
+      return true;
+    skip:;
+    }
+    return false;
+  }
+
+  template<class C, class EE>
+  template<class EM>
+  typename KDEntryArray<C, EE>::iterator
+  KDEntryArray<C, EE>::findDivisor(const EM& extMonomial, const C& conf) {
     if (C::UseTreeDivMask &&
       C::LeafSize > 1 && // no reason to do it for just 1 leaf
       !getDivMask().canDivide(extMonomial.getDivMask()))
@@ -376,6 +404,26 @@ namespace mathic {
           if (!out.proceed(it->get()))
             return false;
     }
+    return true;
+  }
+
+  template<class C, class EE>
+  template<class EM, class DO>
+  bool KDEntryArray<C, EE>::
+  findAllMultiples(const EM& extMonomial, DO& out, const C& conf) {
+    if (C::LeafSize == 1) { // special case for performance
+      ASSERT(C::AllowRemovals || !empty());
+      return (C::AllowRemovals && empty()) ||
+        !extMonomial.divides(*begin(), conf) ||
+        out.proceed(begin()->get());
+    }
+
+    // todo: consider making sorted version
+    const iterator stop = end();
+    for (iterator it = begin(); it != stop; ++it)
+      if (extMonomial.divides(*it, conf))
+        if (!out.proceed(it->get()))
+          return false;
     return true;
   }
 

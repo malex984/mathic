@@ -24,6 +24,11 @@ namespace mathic {
 
       * size_t getLeafSize() const
       Return the fixed maximal size of a leaf.
+
+      * static const bool AllowRemovals
+      If false, it is an error to call methods that remove elements from
+      the data structure. This can be a slight speed up in some cases.
+      Clear and rebuild is still allowed even if this field is false.
   */
   template<class Configuration>
   class KDTree;
@@ -90,6 +95,9 @@ namespace mathic {
     /** Removes all multiples of monomial. A duplicate counts
         as a multiple. Returns true if any multiples were removed. */
     bool removeMultiples(const Monomial& monomial) {
+      MATHIC_ASSERT(C::AllowRemovals);
+      if (!C::AllowRemovals)
+        throw std::logic_error("Removal request while removals disabled.");
       DummyMultipleOutput out;
       return removeMultiples(monomial, out);
     }
@@ -99,10 +107,31 @@ namespace mathic {
         Calls out.push_back(entry) for each entry that is removed. */
     template<class MultipleOutput>
     bool removeMultiples(const Monomial& monomial, MultipleOutput& out) {
+      MATHIC_ASSERT(C::AllowRemovals);
+      if (!C::AllowRemovals)
+        throw std::logic_error("Removal request while removals disabled.");
       ExtMonoRef extMonomial(monomial, _divMaskCalculator, getConfiguration());
       size_t removedCount = _tree.removeMultiples(extMonomial, out);
       reportChanges(0, removedCount);
       return removedCount > 0;
+    }
+
+    /** Calls out.proceed(entry) for each entry that monomial divides.
+        The method returns if proceed returns false, otherwise the
+        search for divisors proceeds. */
+    template<class Output>
+    void findAllMultiples(const Monomial& monomial, Output& out) {
+      ExtMonoRef extMonomial(monomial, _divMaskCalculator, getConfiguration());
+      _tree.findAllMultiples(extMonomial, out);
+    }
+
+    /** Calls out.proceed(entry) for each entry that monomial divides.
+        The method returns if proceed returns false, otherwise the
+        search for divisors proceeds. */
+    template<class Output>
+    void findAllMultiples(const Monomial& monomial, Output& output) const {
+      ConstEntryOutput<Output> constOutput(output);
+      const_cast<KDTree<C>&>(*this).findAllMultiples(monomial, constOutput);
     }
 
     /** Inserts entry into the data structure. Does NOT remove multiples
@@ -137,9 +166,18 @@ namespace mathic {
       reportChanges(inserted, 0);
     }
 
+    /** Removes an element whose exponents are equal to monomial's. Returns
+      if there are no such monomials in the data structure. */
+    bool removeElement(const Monomial& monomial) {
+      MATHIC_ASSERT(C::AllowRemovals);
+      if (!C::AllowRemovals)
+        throw std::logic_error("Removal request while removals disabled.");
+      return _tree.removeElement(monomial);
+    }
+
     /** Returns a pointer to an entry that divides monomial. Returns null if no
         entries divide monomial. */
-    Entry* findDivisor(const Monomial& monomial) {
+    inline Entry* findDivisor(const Monomial& monomial) {
       // todo: do this on extended monomials. requires cache to be extended.
       const C& conf = getConfiguration();
       if (conf.getUseDivisorCache() &&
@@ -154,9 +192,9 @@ namespace mathic {
       return divisor;
     }
 
-    /** Returns the position of a divisor of monomial. Returns end() if no
+    /** Returns the position of a divisor of monomial. Returns null if no
         entries divide monomial. */
-    const Entry* findDivisor(const Monomial& monomial) const {
+    inline const Entry* findDivisor(const Monomial& monomial) const {
       return const_cast<KDTree<C>&>(*this).findDivisor(monomial);
     }
 

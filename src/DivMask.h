@@ -8,6 +8,7 @@
 
 // Value x means do 2^x mask checks before printing stats
 //#define MATHIC_TRACK_DIV_MASK_HIT_RATIO 25
+//#define MATHIC_TRACK_DIV_MASK_HIT_RATIO 30
 #ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
 #include <iostream>
 #include "ColumnPrinter.h"
