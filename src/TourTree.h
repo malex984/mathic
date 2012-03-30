@@ -17,9 +17,10 @@ namespace mathic {
 	Configuration& getConfiguration() {return _conf;}
 	const Configuration& getConfiguration() const {return _conf;}
 
-	std::string getName() const;
+    std::string getName() const;
 	void push(Entry entry);
-	void push(const Entry* begin, const Entry* end);
+    template<class It>
+	void push(It begin, It end);
 	Entry pop();
 	Entry top() const;
 	bool empty() const {return _tree.empty();}
@@ -133,7 +134,8 @@ namespace mathic {
   }
 
   template<class C>
-	void TourTree<C>::push(const Entry* begin, const Entry* end) {
+  template<class It>
+  void TourTree<C>::push(It begin, It end) {
 	for (; begin != end; ++begin)
 	  push(*begin);
   }

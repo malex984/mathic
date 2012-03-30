@@ -51,7 +51,7 @@ namespace mathic {
 	void swap(ComTree& tree);
 
 	struct Node {
-    Node(): _index(fi ? S : 1) {} // the root node is the default
+      Node(): _index(fi ? S : 1) {} // the root node is the default
 
 	  Node parent() const;
 	  Node left() const;

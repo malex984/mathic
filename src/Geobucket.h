@@ -140,11 +140,26 @@ namespace mathic {
 	// If Configuration::supportDeduplication is true, then no value must
 	// be present twice in [begin, end).
 	template<class It>
-	  void push(It begin, It end);
+    void push(It begin, It end);
+    void clear();
 	Entry pop();
 	Entry top() const;
 	bool empty() const;
 	void print(std::ostream& out) const;
+
+    template<class T>
+    void forAll(T& t) const {
+      for (Bucket* bucket = _bucketBegin; bucket != _bucketEnd; ++bucket) {
+        const Entry* stop = bucket->end();
+        for (const Entry* entry = bucket->begin(); entry != stop; ++entry) {
+          if (!t.proceed(*entry)) {
+            MATHIC_ASSERT(isValid());
+            return;
+          }
+        }
+      }
+	  MATHIC_ASSERT(isValid());
+    }
 
     size_t getMemoryUse() const;
 
@@ -301,6 +316,7 @@ namespace mathic {
 	_front(_conf, _entryCount) {
 	MATHIC_ASSERT(_conf.geoBase > 1);
 	addBucket(); // this avoids the special case of no buckets.
+    ASSERT(_front.debugIsValid(_bucketBegin, _bucketEnd));
   }
 
   template<class C>
@@ -414,7 +430,16 @@ namespace mathic {
   }
 
   template<class C>
-	typename Geobucket<C>::Entry Geobucket<C>::pop() {
+  void Geobucket<C>::clear() {
+    _entryCount = 0;
+    _front.clear();
+    for (Bucket* bucket = _bucketBegin; bucket != _bucketEnd; ++bucket)
+      bucket->clear();
+	MATHIC_ASSERT(isValid());
+  }
+
+  template<class C>
+  typename Geobucket<C>::Entry Geobucket<C>::pop() {
 	Bucket* maxBucket =
 	  const_cast<Bucket*>(_front.getMax(_bucketBegin, _bucketEnd));
 	Entry top = maxBucket->back();

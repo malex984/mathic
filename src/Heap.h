@@ -10,22 +10,22 @@
 namespace mathic {
   /** A heap priority queue.
 
-	  Configuration serves the same role as for Geobucket. It must have these
-	  fields that work as for Geobucket.
+  Configuration serves the same role as for Geobucket. It must have these
+  fields that work as for Geobucket.
 
-	  * A type Entry
-	  * A type CompareResult
-	  * A const or static method: CompareResult compare(Entry, Entry)
-	  * A const or static method: bool cmpLessThan(CompareResult)
-	  * A static const bool supportDeduplication
-	  * A static or const method: bool cmpEqual(CompareResult)
+  * A type Entry
+  * A type CompareResult
+  * A const or static method: CompareResult compare(Entry, Entry)
+  * A const or static method: bool cmpLessThan(CompareResult)
+  * A static const bool supportDeduplication
+  * A static or const method: bool cmpEqual(CompareResult)
 
-	  It also has these additional fields:
+  It also has these additional fields:
 
-	  * A static const bool fastIndex
-	  If this field is true, then a faster way of calculating indexes is used.
-	  This requires sizeof(Entry) to be a power of two! This can be achieved
-	  by adding padding to Entry, but this class does not do that for you.
+  * A static const bool fastIndex
+  If this field is true, then a faster way of calculating indexes is used.
+  This requires sizeof(Entry) to be a power of two! This can be achieved
+  by adding padding to Entry, but this class does not do that for you.
   */
   template<class C>
 	class Heap {
@@ -37,9 +37,19 @@ namespace mathic {
 	Configuration& getConfiguration() {return _conf;}
 	const Configuration& getConfiguration() const {return _conf;}
 
+    template<class T>
+    void forAll(T& t) const {
+      Node stop = _tree.lastLeaf().next();
+      for (Node it = Node(); it != stop; ++it)
+        if (!t.proceed(_tree[it]))
+          return;
+    }
+
 	std::string getName() const;
 	void push(Entry entry);
-	void push(const Entry* begin, const Entry* end);
+    template<class It>
+	void push(It begin, It end);
+    void clear();
 	Entry pop();
 	Entry top() const {return _tree[Node()];}
 	bool empty() const {return _tree.empty();}
@@ -87,7 +97,8 @@ namespace mathic {
   }
 
   template<class C>
-	void Heap<C>::push(const Entry* begin, const Entry* end) {
+  template<class It>
+  void Heap<C>::push(It begin, It end) {
 	for (; begin != end; ++begin)
 	  push(*begin);
   }
@@ -99,7 +110,13 @@ namespace mathic {
   }
 
   template<class C>
-	typename Heap<C>::Entry Heap<C>::pop() {
+  void Heap<C>::clear() {
+    _tree.clear();
+	MATHIC_ASSERT(isValid());
+  }
+
+  template<class C>
+  typename Heap<C>::Entry Heap<C>::pop() {
 	Entry top = _tree[Node()];
 	Entry movedValue = _tree[_tree.lastLeaf()];
 	_tree.popBack();

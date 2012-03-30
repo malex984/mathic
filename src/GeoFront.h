@@ -42,11 +42,15 @@ namespace mathic {
 	  MATHIC_ASSERT(!C::trackFront);
 	}
 
+    void clear() {
+      _cachedMaxBucket = 0;
+    }
+
 	void reserveCapacity(size_t newCapacity) {}
 	void bucketsInvalidated(Bucket* oldBegin, Bucket* newBegin) {
 	  _cachedMaxBucket = 0;
 	}
-	bool empty() const {MATHIC_ASSERT(false); return true;}
+	bool empty() const {return _entryCountRef == 0;}
 
 	void insert(Bucket* bucket) {_cachedMaxBucket = 0;}
 	void remove(Bucket* bucket) {_cachedMaxBucket = 0;}
@@ -141,16 +145,17 @@ namespace mathic {
   public:
 	GeoFront(const C& conf, size_t& entryCountRef);
 
-	Bucket** begin() {return _buckets.empty() ? 0 : &_buckets.front();}
-	Bucket*const* begin() const {return _buckets.empty() ? 0 : &_buckets.front();}
-	Bucket** end() {return begin() + _buckets.size();}
-	Bucket*const* end() const {return begin() + _buckets.size();}
+	Bucket** begin() {return _bucketBegin;}
+	Bucket*const* begin() const {return _bucketBegin;}
+	Bucket** end() {return _bucketEnd;}
+	Bucket*const* end() const {return _bucketEnd;}
 
 	/** Can contain this many   */
 	void reserveCapacity(size_t newCapacity);
 	void bucketsInvalidated(Bucket* oldBegin, Bucket* newBegin);
-	bool empty() const {return _buckets.empty();}
+	bool empty() const {return _bucketBegin == _bucketEnd;}
 
+    void clear();
 	void insert(Bucket* bucket);
 	void remove(Bucket* bucket);
 	void keyIncreased(Bucket* bucket);
@@ -166,60 +171,64 @@ namespace mathic {
     size_t getMemoryUse() const;
 
   private:
-	std::vector<Bucket*> _buckets;
+    size_t size() const {return _bucketEnd - _bucketBegin;}
+    size_t capacity() const {return _bucketCapacityEnd - _bucketBegin;}
+
 	Bucket** _bucketBegin;
 	Bucket** _bucketEnd;
+    Bucket** _bucketCapacityEnd;
 	mutable size_t& _entryCountRef;
 	const C& _conf;
-#ifdef MATHIC_DEBUG
-	size_t _debugCapacityEnd;
-#endif
   };
 
   template<class C, class B>
-  size_t GeoFront<C, B, true>::getMemoryUse() const {
-    return _buckets.capacity() * sizeof(_buckets.front());
+  void GeoFront<C, B, true>::clear() {
+    _bucketEnd = _bucketBegin;
   }
 
   template<class C, class B>
-	GeoFront<C, B, true>::GeoFront(const C& conf, size_t& entryCountRef):
-	_bucketBegin(0),
-	_bucketEnd(0),
-	_entryCountRef(entryCountRef),
-	_conf(conf) {
-	  MATHIC_ASSERT(C::trackFront);
-	}
+  size_t GeoFront<C, B, true>::getMemoryUse() const {
+    return capacity() * sizeof(*_bucketBegin);
+  }
 
   template<class C, class B>
-	void GeoFront<C, B, true>::reserveCapacity(size_t newCapacity) {
+  GeoFront<C, B, true>::GeoFront(const C& conf, size_t& entryCountRef):
+	_bucketBegin(0),
+	_bucketEnd(0),
+    _bucketCapacityEnd(0),
+	_entryCountRef(entryCountRef),
+	_conf(conf) {
+    MATHIC_ASSERT(C::trackFront);
+  }
+
+  template<class C, class B>
+  void GeoFront<C, B, true>::reserveCapacity(size_t newCapacity) {
+    ASSERT(newCapacity >= size());
 	if (newCapacity == 0)
 	  newCapacity = 1;
-	B** oldBegin = _bucketBegin;
-	_buckets.reserve(newCapacity);
-	if (_buckets.empty()) {
-	  _buckets.push_back(0);
-	  _bucketBegin = &_buckets.front();
-	  _buckets.pop_back();
-	} else
-	  _bucketBegin = &_buckets.front();
-	_bucketEnd = _bucketBegin + _buckets.size();
+    size_t const oldSize = size();
+	B** const oldBegin = _bucketBegin;  
+    B** const oldEnd = _bucketEnd;
+    _bucketBegin = new B*[newCapacity];
+	_bucketEnd = _bucketBegin + oldSize;
+    _bucketCapacityEnd = _bucketBegin + newCapacity;
+    std::copy(oldBegin, oldEnd, _bucketBegin);
 
-	// the tokens point into _buckets, so map them to an index
+	// the tokens point into the old space, so map them to an index
 	// and then back to a pointer into the newly allocated memory.
-	if (oldBegin == 0)
-	  return;
 	for (B** bucket = _bucketBegin; bucket != _bucketEnd; ++bucket) {
 	  B** token = (*bucket)->getFrontToken();
 	  token = (token - oldBegin) + _bucketBegin;
 	  (*bucket)->setFrontToken(token);
 	}
+    delete[] oldBegin;
   }
 
   template<class C, class B>
 	void GeoFront<C, B, true>::bucketsInvalidated
 	(B* oldBegin, B* newBegin) {
 	// _buckets points into an array of buckets that has been reallocated,
-	// so we need to back to an index and back to update the points
+	// so we need to go to an index and back to update the pointers
 	// to point into the new memory area.
 	if (empty())
 	  return;
@@ -234,7 +243,10 @@ namespace mathic {
 	MATHIC_ASSERT(bucket != 0);
 	MATHIC_ASSERT(bucket->_frontPos == 0);
 	MATHIC_ASSERT(!bucket->empty());
-	_buckets.push_back(bucket);
+    if (_bucketEnd == _bucketCapacityEnd)
+      reserveCapacity(size() + 1);
+    *_bucketEnd = bucket;
+    ++_bucketEnd;
 	bucket->_frontPos = end() - 1;
 	keyIncreased(bucket);
   }
@@ -304,7 +316,7 @@ namespace mathic {
 	  *(i - 1) = *i;
 	  (*i)->_frontPos = i - 1;
 	}
-	_buckets.pop_back();
+    --_bucketEnd;
 	bucket->_frontPos = 0;
   }
 
@@ -335,9 +347,6 @@ namespace mathic {
 #ifdef MATHIC_DEBUG
   template<class C, class B>
 	bool GeoFront<C, B, true>::debugIsValid(B* bucketBegin, B* bucketEnd) const {
-	MATHIC_ASSERT(_buckets.capacity() >= _buckets.size());
-	MATHIC_ASSERT(static_cast<size_t>(end() - begin()) <= _buckets.size());
-
 	std::vector<const B*> nonEmpty;
 	size_t size = bucketEnd - bucketBegin;
 	for (size_t b = 0; b < size; ++b) {
@@ -349,14 +358,15 @@ namespace mathic {
 		nonEmpty.push_back(&(bucketBegin[b]));
 	  }
 	}
-	std::vector<B*> frontCopy(_buckets);
+	std::vector<B*> frontCopy(_bucketBegin, _bucketEnd);
 	std::sort(nonEmpty.begin(), nonEmpty.end());
 	std::sort(frontCopy.begin(), frontCopy.end());
 	MATHIC_ASSERT(std::equal(frontCopy.begin(), frontCopy.end(), nonEmpty.begin()));
-	for (size_t i = 1; i < _buckets.size(); ++i) {
-	  MATHIC_ASSERT(!_conf.cmpLessThan
-			 (_conf.compare(_buckets[i - 1]->back(), _buckets[i]->back())));
-	}
+    if (!empty()) {
+      for (B** it = _bucketBegin + 1; it != _bucketEnd; ++it)
+        MATHIC_ASSERT(!_conf.cmpLessThan
+          (_conf.compare((*(it - 1))->back(), (*it)->back())));
+    }
 	return true;
   }
 #endif
