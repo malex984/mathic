@@ -106,7 +106,7 @@ class DivListModel {
   void insert(const Entry& entry, MultipleOutput& removed);
 
   Entry* findDivisor(const Monomial& monomial) {
-    iterator it = _finder.findDivisor(monomial);
+    iterator it = _finder.findDivisorIterator(monomial);
     if (_moveDivisorToFront && it != _finder.end()) {
       _finder.moveToFront(it);
       it = _finder.begin();

@@ -83,6 +83,8 @@ namespace mathic {
 
     bool removeElement(const Monomial& monomial);
 
+    iterator findDivisorIterator(const Monomial& monomial);
+
     Entry* findDivisor(const Monomial& monomial);
     const Entry* findDivisor(const Monomial& monomial) const;
 
@@ -459,6 +461,22 @@ namespace mathic {
     skip:;
     }
     return false;
+  }
+
+  template<class C>
+  typename DivList<C>::iterator
+  DivList<C>::findDivisorIterator(const Monomial& monomial) {
+    ExtMonoRef extMonomial(monomial, _divMaskCalculator, _conf);
+
+    if (!_conf.getSortOnInsert()) {
+      ListIter listEnd = _list.end();
+      for (ListIter it = _list.begin(); it != listEnd; ++it) {
+        if (it->divides(extMonomial, _conf))
+          return iterator(it);
+      }
+      return iterator(listEnd);
+    } else
+      return iterator(DivListHelper::findDivisorSorted(_conf, _list, extMonomial));
   }
 
   template<class C>
