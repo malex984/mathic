@@ -3,6 +3,8 @@
 // utilities
 #include "../../src/Timer.h"
 #include "../../src/ColumnPrinter.h"
+#include "../../src/ElementDeleter.h"
+#include "../../src/error.h"
 
 // divisor query data structures
 #include "../../src/DivList.h"
@@ -13,3 +15,9 @@
 #include "../../src/StlSet.h"
 #include "../../src/Heap.h"
 #include "../../src/Geobucket.h"
+
+// CLI package
+#include "../../src/Action.h"
+#include "../../src/BoolParameter.h"
+#include "../../src/CliParameter.h"
+#include "../../src/CliParser.h"

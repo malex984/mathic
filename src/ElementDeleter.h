@@ -129,7 +129,7 @@ namespace mathic {
   void noThrowPushBack(Container& container, std::auto_ptr<Element> pointer) throw () {
     try {
       exceptionSafePushBack(container, pointer);
-    } catch (const bad_alloc&) {
+    } catch (const std::bad_alloc&) {
       // Ignore the exception.
     }
   }

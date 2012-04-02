@@ -55,7 +55,13 @@ namespace mathic {
     default-constructs a ConcreteProduct. */
   template<class ConcreteProduct, class AbstractProduct>
   void nameFactoryRegister
-    (NameFactory<AbstractProduct>& factory, std::string name);
+    (NameFactory<AbstractProduct>& factory, const std::string& name);
+
+  /** Registers the name ConcreteProduct::staticName() to a function that
+    default-constructs a ConcreteProduct. */
+  template<class ConcreteProduct, class AbstractProduct>
+  void nameFactoryRegister
+    (NameFactory<AbstractProduct>& factory);
 
   /** Registers the string returned by ConcreteProduct::staticName()
    to a function that default-constructs a ConcreteProduct. */

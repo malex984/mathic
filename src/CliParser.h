@@ -12,6 +12,10 @@ namespace mathic {
     template<class ConcreteAction>
     void registerAction(const std::string& name);
 
+    // picks the name up from ConcreteAction::staticName().
+    template<class ConcreteAction>
+    void registerAction();
+
     std::auto_ptr<Action> parse(int argc, char** argv);
     std::auto_ptr<Action> parse(const std::vector<std::string>& commandLine);
 
@@ -20,8 +24,13 @@ namespace mathic {
   };
 
   template<class ConcreteAction>
-  void registerAction(const std::string& name) {
+  void CliParser::registerAction(const std::string& name) {
     nameFactoryRegister<ConcreteAction>(_actions, name);
+  };
+
+  template<class ConcreteAction>
+  void CliParser::registerAction() {
+    nameFactoryRegister<ConcreteAction>(_actions);
   };
 }
 

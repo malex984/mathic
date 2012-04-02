@@ -23,12 +23,19 @@ namespace mathic {
     }
   }
 
+  CliParser::CliParser(): _actions("action") {}
+
+  std::auto_ptr<Action> CliParser::parse(int argc, char** argv) {
+    std::vector<std::string> commandLine(argv, argv + argc);
+    return parse(commandLine);
+  }
+
   std::auto_ptr<Action> CliParser::parse
     (const std::vector<std::string>& commandLine) {
     if (commandLine.empty())
       throwError<UnknownNameException>("No action specified.");
     std::auto_ptr<Action> action =
-      createWithPrefix(_actions, commandLine.front());
+      createWithPrefix(_actions, commandLine[0]);
 
     std::vector<CliParameter*> params;
     action->pushBackParameters(params);
@@ -42,14 +49,14 @@ namespace mathic {
           break;
       if (token.empty())
         continue;
-      if (token.front() != '-')
+      if (token[0] != '-')
         reportError("Expected an option when reading \"" +
                     token + "\", but options start with a dash (-).\n");
       std::string noDash(token.begin() + 1, token.end());
       std::string name = uniqueNameWithPrefix(paramNames, noDash);
 
       std::string optionArgument;
-      if (i < commandLine.size() && commandLine[i].front() != '-') {
+      if (i < commandLine.size() && commandLine[i][0] != '-') {
         optionArgument = commandLine[i];
         for (++i; i < commandLine.size(); ++i)
           if (!commandLine[i].empty())

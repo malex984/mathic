@@ -28,7 +28,7 @@ namespace mathic {
 
     // Append the parameters for this action to the passed-in container.
     // Do not clear the passed-in container.
-    virtual void pushBackParameters(std::vector<CliParameter*>& parameters);
+    virtual void pushBackParameters(std::vector<CliParameter*>& parameters) = 0;
   };
 }
 
