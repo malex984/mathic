@@ -23,7 +23,20 @@ namespace mathic {
     }
   }
 
+  void CliParser::pushBackRegisteredActionNames(
+    std::vector<std::string>& names
+  ) const {
+    _actions.namesWithPrefix("", names);
+  }
+
+
   CliParser::CliParser(): _actions("action") {}
+
+  std::auto_ptr<Action> CliParser::createActionWithPrefix(
+    const std::string& prefix
+  ) {
+    return createWithPrefix(_actions, prefix);
+  }
 
   std::auto_ptr<Action> CliParser::parse(int argc, char** argv) {
     std::vector<std::string> commandLine(argv, argv + argc);
@@ -34,21 +47,31 @@ namespace mathic {
     (const std::vector<std::string>& commandLine) {
     if (commandLine.empty())
       throwError<UnknownNameException>("No action specified.");
-    std::auto_ptr<Action> action =
-      createWithPrefix(_actions, commandLine[0]);
+    std::auto_ptr<Action> action = createActionWithPrefix(commandLine[0]);
 
     std::vector<CliParameter*> params;
     action->pushBackParameters(params);
     ParamNames paramNames = makeParamNames(params);
 
-    size_t i = 1;
-    while (i < commandLine.size()) {
-      std::string const& token = commandLine[i];
-      for (++i; i < commandLine.size(); ++i)
-        if (!commandLine[i].empty())
-          break;
-      if (token.empty())
+    std::vector<std::string> options;
+    std::vector<std::string> directOptions;
+    bool sawDash = false;
+    for (size_t i = 1; i < commandLine.size(); ++i) {
+      if (commandLine[i].empty())
         continue;
+      if (commandLine[i][0] == '-')
+        sawDash = true;
+      if (sawDash)
+        options.push_back(commandLine[i]);
+      else
+        directOptions.push_back(commandLine[i]);
+    }
+
+    action->directOptions(directOptions, *this);
+
+    size_t i = 1;
+    for (size_t i = 1; i < options.size(); ++i) {
+      std::string const& token = options[i];
       if (token[0] != '-')
         reportError("Expected an option when reading \"" +
                     token + "\", but options start with a dash (-).\n");

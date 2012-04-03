@@ -11,3 +11,7 @@
 #include "../../src/ElementDeleter.cpp"
 #include "../../src/NameFactory.cpp"
 #include "../../src/error.cpp"
+#include "../../src/HelpAction.cpp"
+#include "../../src/IntegerParameter.cpp"
+#include "../../src/StringParameter.cpp"
+#include "../../src/display.cpp"

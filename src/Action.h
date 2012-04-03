@@ -6,10 +6,17 @@
 
 namespace mathic {
   class CliParameter;
+  class CliParser;
 
   class Action {
   public:
     virtual ~Action();
+
+    // Called with tokens that precede any option of the
+    // form -option. The default is to give an error saying
+    // that a dash was expected if tokens is not empty.
+    virtual void directOptions
+      (std::vector<std::string> tokens, CliParser& parser);
 
     // Do what it is this action does.
     virtual void performAction() = 0;
@@ -29,6 +36,9 @@ namespace mathic {
     // Append the parameters for this action to the passed-in container.
     // Do not clear the passed-in container.
     virtual void pushBackParameters(std::vector<CliParameter*>& parameters) = 0;
+
+    // Return true if this class is HelpAction.
+    virtual bool isHelpAction() const {return false;}
   };
 }
 

@@ -16,11 +16,24 @@ namespace mathic {
     template<class ConcreteAction>
     void registerAction();
 
+    void registerHelpAction
+      (const std::string& preMessage, const std::string& postMessage);
+
+    void pushBackRegisteredActionNames(
+      std::vector<std::string>& names
+    ) const;
+
+    const std::string& helpPreMessage() const {return _helpPreMessage;}
+    const std::string& helpPostMessage() const {return _helpPostMessage;}
+
     std::auto_ptr<Action> parse(int argc, char** argv);
     std::auto_ptr<Action> parse(const std::vector<std::string>& commandLine);
+    std::auto_ptr<Action> createActionWithPrefix(const std::string& prefix);
 
   private:
     NameFactory<Action> _actions;
+    std::string _helpPreMessage;
+    std::string _helpPostMessage;
   };
 
   template<class ConcreteAction>

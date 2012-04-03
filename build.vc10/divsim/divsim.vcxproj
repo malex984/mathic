@@ -85,13 +85,17 @@
     <ClCompile Include="..\..\src\CliParameter.cpp" />
     <ClCompile Include="..\..\src\CliParser.cpp" />
     <ClCompile Include="..\..\src\ColumnPrinter.cpp" />
+    <ClCompile Include="..\..\src\display.cpp" />
     <ClCompile Include="..\..\src\DivMask.cpp" />
     <ClCompile Include="..\..\src\divsim\divMain.cpp" />
     <ClCompile Include="..\..\src\divsim\Simulation.cpp" />
     <ClCompile Include="..\..\src\ElementDeleter.cpp" />
     <ClCompile Include="..\..\src\error.cpp" />
+    <ClCompile Include="..\..\src\HelpAction.cpp" />
+    <ClCompile Include="..\..\src\IntegerParameter.cpp" />
     <ClCompile Include="..\..\src\libs\memtailor.cpp" />
     <ClCompile Include="..\..\src\NameFactory.cpp" />
+    <ClCompile Include="..\..\src\StringParameter.cpp" />
     <ClCompile Include="..\..\src\Timer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -102,6 +106,7 @@
     <ClInclude Include="..\..\src\CliParser.h" />
     <ClInclude Include="..\..\src\ColumnPrinter.h" />
     <ClInclude Include="..\..\src\Comparer.h" />
+    <ClInclude Include="..\..\src\display.h" />
     <ClInclude Include="..\..\src\DivFinder.h" />
     <ClInclude Include="..\..\src\DivList.h" />
     <ClInclude Include="..\..\src\DivMask.h" />
@@ -112,11 +117,14 @@
     <ClInclude Include="..\..\src\divsim\stdinc.h" />
     <ClInclude Include="..\..\src\ElementDeleter.h" />
     <ClInclude Include="..\..\src\error.h" />
+    <ClInclude Include="..\..\src\HelpAction.h" />
+    <ClInclude Include="..\..\src\IntegerParameter.h" />
     <ClInclude Include="..\..\src\KDEntryArray.h" />
     <ClInclude Include="..\..\src\KDTree.h" />
     <ClInclude Include="..\..\src\NameFactory.h" />
     <ClInclude Include="..\..\src\PackedKDTree.h" />
     <ClInclude Include="..\..\src\stdinc.h" />
+    <ClInclude Include="..\..\src\StringParameter.h" />
     <ClInclude Include="..\..\src\Timer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

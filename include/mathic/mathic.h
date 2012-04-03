@@ -21,3 +21,7 @@
 #include "../../src/BoolParameter.h"
 #include "../../src/CliParameter.h"
 #include "../../src/CliParser.h"
+#include "../../src/HelpAction.h"
+#include "../../src/IntegerParameter.h"
+#include "../../src/StringParameter.h"
+#include "../../src/display.h"
