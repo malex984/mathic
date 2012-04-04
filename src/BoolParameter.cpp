@@ -24,7 +24,7 @@ namespace mathic {
     else if (argument == "off")
       _value = false;
     else {
-      reportError("Unknown " + name() + " was given the argument \"" +
+      reportError("Option -" + name() + " was given the argument \"" +
         argument + "\". The only valid arguments are \"on\" and \"off\".");
     }
   }

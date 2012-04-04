@@ -70,7 +70,7 @@ namespace mathic {
     action->directOptions(directOptions, *this);
 
     size_t i = 1;
-    for (size_t i = 1; i < options.size(); ++i) {
+    for (size_t i = 0; i < options.size(); ++i) {
       std::string const& token = options[i];
       if (token[0] != '-')
         reportError("Expected an option when reading \"" +
@@ -79,11 +79,9 @@ namespace mathic {
       std::string name = uniqueNameWithPrefix(paramNames, noDash);
 
       std::string optionArgument;
-      if (i < commandLine.size() && commandLine[i][0] != '-') {
-        optionArgument = commandLine[i];
-        for (++i; i < commandLine.size(); ++i)
-          if (!commandLine[i].empty())
-            break;
+      if (i + 1 < options.size() && options[i + 1][0] != '-') {
+        optionArgument = options[i + 1];
+        ++i;
       }
 
       for (std::vector<CliParameter*>::iterator it = params.begin();; ++it) {
