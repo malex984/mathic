@@ -139,7 +139,8 @@ namespace mathic {
 	// [begin, end) must be sorted in decreasing order.
 	// If Configuration::supportDeduplication is true, then no value must
 	// be present twice in [begin, end).
-	template<class It> void push(It begin, It end);
+	template<class It>
+    void push(It begin, It end);
 	
     Entry pop();
     void clear();
@@ -149,6 +150,11 @@ namespace mathic {
 	bool empty() const;
     size_t size() const;
 	void print(std::ostream& out) const;
+
+    void decreaseTop(const Entry& entry) {
+      pop();
+      push(entry);
+    }
 
     template<class T>
     void forAll(T& t) const {
@@ -567,7 +573,7 @@ namespace mathic {
 	MATHIC_ASSERT(!from.empty());
 	MATHIC_ASSERT(&to != &from);
 	MATHIC_ASSERT(to.size() + from.size() <= to.capacity());
-	if (C::trackFront && _front.larger(&from, &to))
+	if (!C::trackFront || _front.larger(&from, &to))
 	  _front.swapKeys(&to, &from);
 	mergeToNonEmpty(to, from.begin(), from.end());
 	from.clear();

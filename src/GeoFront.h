@@ -56,7 +56,7 @@ namespace mathic {
 	void remove(Bucket* bucket) {_cachedMaxBucket = 0;}
 	void keyIncreased(Bucket* bucket) {_cachedMaxBucket = 0;}
 	void keyDecreased(Bucket* bucket) {_cachedMaxBucket = 0;}
-	void swapKeys(Bucket* a, Bucket* b) {}
+	void swapKeys(Bucket* a, Bucket* b) {_cachedMaxBucket = 0;}
 	bool larger(const Bucket* a, const Bucket* b) const {
 	  MATHIC_ASSERT(false);
 	  return false;

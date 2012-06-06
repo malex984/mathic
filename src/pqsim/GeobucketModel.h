@@ -1,5 +1,5 @@
-#ifndef GEOBUCKET_MODEL_GUARD
-#define GEOBUCKET_MODEL_GUARD
+#ifndef MATHIC_GEOBUCKET_MODEL_GUARD
+#define MATHIC_GEOBUCKET_MODEL_GUARD
 
 #include "Model.h"
 #include "Geobucket.h"
