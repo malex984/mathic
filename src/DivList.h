@@ -45,6 +45,24 @@ namespace mathic {
     };
   }
 
+  // This will set the various options in a way that usually works well.
+  // Simply derive from this to get these options for your own configuration.
+  // This class is useful if you do not want to figure out good values on
+  // your own.
+  class SuggestedOptionsDivList {
+    static const bool UseLinkedList = false;
+    static const bool UseDivMask = true;
+    static const bool AllowRemovals = true;
+
+    bool getSortOnInsert() const {return false;}
+    bool getUseDivisorCache() const {return true;}
+    bool getMinimizeOnInsert() const {return false;}
+
+    bool getDoAutomaticRebuilds() const {return true;}
+    double getRebuildRatio() const {return 0.5;}
+    size_t getRebuildMin() const {return 50;}
+  };
+
   template<class C>
   class DivList {
   public:
