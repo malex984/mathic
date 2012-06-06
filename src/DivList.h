@@ -120,8 +120,6 @@ namespace mathic {
     C& getConfiguration() {return _conf;}
     const C& getConfiguration() const {return _conf;}
 
-    void moveToFront(iterator pos);
-
     void rebuild();
 
 	/** Returns the number of bytes allocated by this object. Does not
@@ -272,23 +270,6 @@ namespace mathic {
       }
       MATHIC_ASSERT(list.size() + removedCount == origSize);
       return removedCount;
-    }
-
-    template<class E, class It>
-      void moveToFront(std::vector<E>& list, It pos) {
-      E valueToMove = *pos;
-      It begin = list.begin();
-      while (pos != begin) {
-        It prev = pos;
-        --pos;
-        *prev = *pos;
-      }
-      list.front() = valueToMove;
-    }
-
-    template<class E, class It>
-      void moveToFront(std::list<E>& list, It pos) {
-      list.splice(list.begin(), list, pos);
     }
 
     template<class C, class E>
@@ -568,12 +549,7 @@ namespace mathic {
   }
 
   template<class C>
-    void DivList<C>::moveToFront(iterator pos) {
-    DivListHelper::moveToFront(_list, pos.getInternal());
-  }
-
-  template<class C>
-    void DivList<C>::rebuild() {
+  void DivList<C>::rebuild() {
     const size_t totalSize = size();
     typedef memt::ArenaVector<Entry, true> TmpContainer;
     TmpContainer tmpCopy(memt::Arena::getArena(), totalSize);

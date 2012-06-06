@@ -106,12 +106,7 @@ class DivListModel {
   void insert(const Entry& entry, MultipleOutput& removed);
 
   Entry* findDivisor(const Monomial& monomial) {
-    iterator it = _finder.findDivisorIterator(monomial);
-    if (_moveDivisorToFront && it != _finder.end()) {
-      _finder.moveToFront(it);
-      it = _finder.begin();
-    }
-    return it == end() ? 0 : &*it;
+    return _finder.findDivisor(monomial);
   }
   const Entry* findDivisor(const Monomial& monomial) const {
     return const_cast<DivListModel<ULL, UDM>&>(*this).findDivisor(monomial);
@@ -136,10 +131,6 @@ class DivListModel {
 
   std::string getName() const;
 
-  iterator begin() {return _finder.begin();}
-  const_iterator begin() const {return _finder.begin();}
-  iterator end() {return _finder.end();}
-  const_iterator end() const {return _finder.end();}
   size_t size() const {return _finder.size();}
 
   unsigned long long getExpQueryCount() const {
@@ -160,12 +151,8 @@ inline void DivListModel<ULL, UDM>::insert(const Entry& entry) {
   }
   if (findDivisor(entry) != 0)
     return;
-  bool hasMultiples = _finder.removeMultiples(entry);
+  _finder.removeMultiples(entry);
   _finder.insert(entry);
-  if (_moveDivisorToFront && hasMultiples) {
-    iterator it = _finder.end();
-    _finder.moveToFront(--it);
-  }
 }
 
 template<bool ULL, bool UDM>
@@ -177,12 +164,8 @@ inline void DivListModel<ULL, UDM>::insert(const Entry& entry, MO& out) {
   }
   if (findDivisor(entry) != 0)
     return;
-  bool hasMultiples = _finder.removeMultiples(entry, out);
+  _finder.removeMultiples(entry, out);
   _finder.insert(entry);
-  if (_moveDivisorToFront && hasMultiples) {
-    iterator it = _finder.end();
-    _finder.moveToFront(--it);
-  }
 }
 
 template<bool ULL, bool UDM>
