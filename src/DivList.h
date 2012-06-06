@@ -46,7 +46,7 @@ namespace mathic {
   }
 
   template<class C>
-    class DivList {
+  class DivList {
   public:
     typedef C Configuration;
     typedef typename C::Entry Entry;
