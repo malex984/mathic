@@ -19,13 +19,14 @@ namespace mathic {
   }
 
   void BoolParameter::processArgument(const std::string& argument) {
-    if (argument.empty() || argument == "on")
+    if (argument.empty() || argument == "on" || argument == "1")
       _value = true;
-    else if (argument == "off")
+    else if (argument == "off" || argument == "0")
       _value = false;
     else {
       reportError("Option -" + name() + " was given the argument \"" +
-        argument + "\". The only valid arguments are \"on\" and \"off\".");
+        argument +
+        "\". The only valid arguments are \"on\", \"0\", \"off\" and \"1\".");
     }
   }
 }
