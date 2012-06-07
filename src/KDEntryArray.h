@@ -431,7 +431,7 @@ namespace mathic {
   template<class EO>
   bool KDEntryArray<C, EE>::forAll(EO& output) {
     if (C::LeafSize == 1) { // special case for performance
-      ASSERT(C::AllowRemovals || !empty());
+      MATHIC_ASSERT(C::AllowRemovals || !empty());
       return (C::AllowRemovals && empty()) || output.proceed(begin()->get());
     }
     const iterator stop = end();

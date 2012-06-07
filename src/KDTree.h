@@ -50,7 +50,8 @@ namespace mathic {
   // Simply derive from this to get these options for your own configuration.
   // This class is useful if you do not want to figure out good values on
   // your own.
-  class SuggestedOptionsKDTree {
+  class KDTreeSuggestedOptions {
+  public:
     static const bool UseTreeDivMask = true;
     static const bool UseLinkedList = false;
     static const bool UseDivMask = true;

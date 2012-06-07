@@ -390,7 +390,7 @@ stopped:;
           else
             child->updateToLowerBound(child->node->entries());
         }
-        ASSERT(node->debugIsValid());
+        MATHIC_ASSERT(node->debugIsValid());
       }
     }
     MATHIC_ASSERT(debugIsValid());

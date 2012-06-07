@@ -91,6 +91,7 @@
     <ClCompile Include="..\..\src\divsim\Simulation.cpp" />
     <ClCompile Include="..\..\src\ElementDeleter.cpp" />
     <ClCompile Include="..\..\src\error.cpp" />
+    <ClCompile Include="..\..\src\example\div.cpp" />
     <ClCompile Include="..\..\src\HelpAction.cpp" />
     <ClCompile Include="..\..\src\IntegerParameter.cpp" />
     <ClCompile Include="..\..\src\libs\memtailor.cpp" />

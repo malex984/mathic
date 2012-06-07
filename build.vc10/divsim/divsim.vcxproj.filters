@@ -66,6 +66,9 @@
     <ClCompile Include="..\..\src\StringParameter.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="..\..\src\example\div.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\..\src\ColumnPrinter.h">

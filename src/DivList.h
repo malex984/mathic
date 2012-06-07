@@ -49,7 +49,8 @@ namespace mathic {
   // Simply derive from this to get these options for your own configuration.
   // This class is useful if you do not want to figure out good values on
   // your own.
-  class SuggestedOptionsDivList {
+  class DivListSuggestedOptions {
+  public:
     static const bool UseLinkedList = false;
     static const bool UseDivMask = true;
     static const bool AllowRemovals = true;
