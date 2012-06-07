@@ -1,7 +1,8 @@
 #ifndef MATHIC_DIV_FINDER_GUARD
 #define MATHIC_DIV_FINDER_GUARD
 
-/** An object that supports queries for divisors of a monomial.
+/** An object that supports queries for divisors of a monomial and
+ related computations.
 
  This is an object for documentation purposes. Use the concrete
  implementations of this interface to get an actual DivFinder-like
@@ -23,7 +24,7 @@
 
  * A type Exponent
   These are exponents of the monomials. Exponent must have a copy constructor,
-  an operator= and an operator< for comparision with other exponents.
+  an operator= and an operator< for comparison with other exponents.
 
  * A function Exponent getExponent(Monomial m, size_t var) const
   Returns the exponent of the variable var in m. m can be a const reference.
@@ -37,6 +38,13 @@
  * A function size_t getVarCount() const
   Returns the number of variables. Variables are indexed from 0 to
   getVarCount() - 1. Must be a positive number.
+
+ There are many other options. Each data structure offers a standard
+ set of options as a class that you can derive from. If you want to
+ set the options yourself to something non-default then you can, but
+ this is an advanced feature that you do not have to deal with.
+ Here are some of the additional options. Each data structure
+ documents more options.
 
  * static const bool UseDivMask
   Set to true to use div masks to speed up queries. This must be a
@@ -53,7 +61,7 @@
  * A method bool isLessThan(Entry a, Monomial b) const
  * A method bool isLessThan(Monomial a, Entry b) const
  * A method bool isLessThan(Entry a, Entry b) const
-  isLessThan must define a total order < on entries/monomials. a and b can
+  isLessThan must define some total order < on entries/monomials. a and b can
   be const references. If Entry and Monomial are the same type then only
   one function is needed.
 

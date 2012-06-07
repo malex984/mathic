@@ -65,6 +65,14 @@ namespace mathic {
     bool getDoAutomaticRebuilds() const {return true;}
     double getRebuildRatio() const {return 0.5;}
     size_t getRebuildMin() const {return 50;}
+
+    template<class A, class B>
+    bool isLessThan(const A& a, const B& b) const {
+      // getSortOnInsert returns false, so this method should
+      // never be called.
+      MATHIC_ASSERT(false);
+      return false;
+    }
   };
 
   template<class C>
