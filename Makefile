@@ -196,7 +196,10 @@ libs/gtest:
 	cd libs; ln -s gtest-$(GTEST_VERSION) gtest
 
 clean: tidy
-	rm -rf bin
+	rm -rf bin build.vc10/ipch build.vc10/Debug build.vc10/Release \
+	  build.vc10/mathic.sdf \
+	  build.vc10/divsim/Debug build.vc10/divsim/Release \
+	  build.vc10/pqsim/Debug build.vc10/pqsim/Release
 
 # ***** Miscellaneous
 
