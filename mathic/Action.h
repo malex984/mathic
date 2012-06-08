@@ -2,7 +2,9 @@
 #define MATHIC_ACTION_GUARD
 
 #include "stdinc.h"
+
 #include <vector>
+#include <string>
 
 namespace mathic {
   class CliParameter;

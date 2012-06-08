@@ -2,8 +2,11 @@
 #define MATHIC_NAME_FACTORY_GUARD
 
 #include "stdinc.h"
+#include "error.h"
+
 #include <vector>
 #include <string>
+#include <memory>
 #include <algorithm>
 
 namespace mathic {

@@ -1,6 +1,7 @@
 #include "display.h"
 
 #include <cctype>
+#include <stdio.h>
 
 namespace mathic {
   namespace {

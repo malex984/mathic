@@ -1,0 +1,25 @@
+AC_INIT([mathic], [1.0])
+
+AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_AUX_DIR([.])
+AC_CONFIG_SRCDIR([mathic.h])
+# AC_CONFIG_HEADER([config.h])
+
+AM_MAINTAINER_MODE
+AM_INIT_AUTOMAKE([-Wall foreign])
+
+AM_PROG_CC_C_O
+AC_PROG_LN_S
+AC_PROG_INSTALL
+AC_PROG_CXX
+AM_PROG_AR
+
+LT_INIT
+
+dnl Check if build env is sane
+AM_SANITY_CHECK
+
+AC_CONFIG_FILES([Makefile])
+# AC_CONFIG_FILES([test/Makefile])
+
+AC_OUTPUT

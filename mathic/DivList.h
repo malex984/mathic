@@ -3,7 +3,7 @@
 
 #include "stdinc.h"
 #include "DivMask.h"
-#include "memtailor/memtailor.h"
+#include <memtailor/memtailor.h>
 #include "Comparer.h"
 #include <vector>
 #include <string>
