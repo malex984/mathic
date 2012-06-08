@@ -1,7 +1,7 @@
 #ifndef MATHIC_STL_SET_GUARD
 #define MATHIC_STL_SET_GUARD
 
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 #include <set>
 #include <string>
 #include <ostream>

@@ -2,6 +2,7 @@
 #define SIMULATOR_GUARD
 
 #include "Item.h"
+
 #include <queue>
 #include <vector>
 #include <ctime>

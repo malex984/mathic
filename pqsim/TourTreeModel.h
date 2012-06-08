@@ -1,8 +1,9 @@
 #ifndef TOUR_TREE_MODEL_GUARD
 #define TOUR_TREE_MODEL_GUARD
 
-#include "TourTree.h"
 #include "Model.h"
+
+#include <mathic/TourTree.h>
 
 template<bool FastIndex>
 struct TourTreeModelBase {

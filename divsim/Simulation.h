@@ -2,7 +2,9 @@
 #define SIMULATION_GUARD
 
 #include "Monomial.h"
-#include "Timer.h"
+
+#include <mathic/Timer.h>
+
 #include <vector>
 #include <iostream>
 #include <cstdlib>

@@ -1,8 +1,9 @@
 #ifndef HEAP_MODEL_GUARD
 #define HEAP_MODEL_GUARD
 
-#include "Heap.h"
 #include "Model.h"
+
+#include <mathic/Heap.h>
 
 template<bool FastIndex>
 struct HeapModelBase {

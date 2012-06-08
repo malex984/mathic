@@ -1,4 +1,4 @@
-#include "Timer.h"
+#include <mathic/Timer.h>
 
 namespace mathic {
   unsigned long Timer::getMilliseconds() const {

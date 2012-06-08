@@ -1,4 +1,4 @@
-#include "error.h"
+#include <mathic/error.h>
 #include <sstream>
 
 namespace mathic {

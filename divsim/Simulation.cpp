@@ -1,7 +1,8 @@
 #include "stdinc.h"
 #include "Simulation.h"
 
-#include "ColumnPrinter.h"
+#include <mathic/ColumnPrinter.h>
+
 #include <cstdlib>
 #include <algorithm>
 

@@ -2,6 +2,7 @@
 #define MODEL_GUARD
 
 #include "Item.h"
+
 #include <vector>
 
 namespace ModelHelper {

@@ -1,7 +1,7 @@
-#include "CliParser.h"
+#include <mathic/CliParser.h>
 
-#include "error.h"
-#include "CliParameter.h"
+#include <mathic/error.h>
+#include <mathic/CliParameter.h>
 
 namespace mathic {
   namespace {

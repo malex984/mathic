@@ -1,7 +1,7 @@
 #ifndef MATHIC_COM_TREE_GUARD
 #define MATHIC_COM_TREE_GUARD
 
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 #include <ostream>
 
 namespace mathic {

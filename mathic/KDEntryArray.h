@@ -1,10 +1,10 @@
 #ifndef MATHIC_K_D_ENTRY_ARRAY_GUARD
 #define MATHIC_K_D_ENTRY_ARRAY_GUARD
 
-#include "stdinc.h"
-#include "DivMask.h"
-#include <memtailor/memtailor.h>
-#include "Comparer.h"
+#include <mathic/stdinc.h>
+#include <mathic/DivMask.h>
+#include <memtailor.h>
+#include <mathic/Comparer.h>
 #include <stdexcept>
 
 namespace mathic {

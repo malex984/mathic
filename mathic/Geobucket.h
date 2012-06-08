@@ -1,12 +1,12 @@
 #ifndef MATHIC_GEOBUCKET_GUARD
 #define MATHIC_GEOBUCKET_GUARD
 
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 #include <string>
 #include <sstream>
 #include <vector>
 #include <algorithm>
-#include "GeoFront.h"
+#include <mathic/GeoFront.h>
 
 namespace mathic {
   enum GeobucketBucketStorage {

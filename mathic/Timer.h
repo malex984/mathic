@@ -1,7 +1,7 @@
 #ifndef MATHIC_TIMER_GUARD
 #define MATHIC_TIMER_GUARD
 
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 #include <ctime>
 #include <cstdio>
 #include <ostream>

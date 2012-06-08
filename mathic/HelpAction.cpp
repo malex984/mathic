@@ -1,10 +1,10 @@
-#include "HelpAction.h"
+#include <mathic/HelpAction.h>
 
-#include "CliParameter.h"
-#include "error.h"
-#include "display.h"
-#include "ColumnPrinter.h"
-#include "CliParser.h"
+#include <mathic/CliParameter.h>
+#include <mathic/error.h>
+#include <mathic/display.h>
+#include <mathic/ColumnPrinter.h>
+#include <mathic/CliParser.h>
 
 #include <iostream>
 #include <algorithm>

@@ -1,7 +1,7 @@
 #ifndef MATHIC_PARAMETER_GUARD
 #define MATHIC_PARAMETER_GUARD
 
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 #include <string>
 
 namespace mathic {

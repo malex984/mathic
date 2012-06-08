@@ -2,7 +2,8 @@
 #define MATHIC_GEOBUCKET_MODEL_GUARD
 
 #include "Model.h"
-#include "Geobucket.h"
+
+#include <mathic/Geobucket.h>
 
 template<
   bool TrackFront,

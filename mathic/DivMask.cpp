@@ -1,4 +1,4 @@
-#include "DivMask.h"
+#include <mathic/DivMask.h>
 
 #ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
 namespace mathic {

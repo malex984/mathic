@@ -1,0 +1,111 @@
+In file included from ../../divsim/divMain.cpp:3:
+In file included from ../../divsim/DivListModel.h:4:
+../../mathic/DivList.h:188:30: error: variable has incomplete type 'mathic::DivList::iterator'
+    bool operator==(iterator it) {return *this == const_iterator(it);}
+                             ^
+../../mathic/DivList.h:91:11: note: forward declaration of 'mathic::DivList::iterator'
+    class iterator;
+          ^
+../../mathic/DivList.h:189:30: error: variable has incomplete type 'mathic::DivList::iterator'
+    bool operator!=(iterator it) {return *this != const_iterator(it);}
+                             ^
+../../mathic/DivList.h:91:11: note: forward declaration of 'mathic::DivList::iterator'
+    class iterator;
+          ^
+In file included from ../../divsim/divMain.cpp:4:
+In file included from ../../divsim/KDTreeModel.h:6:
+In file included from ../../mathic/KDTree.h:6:
+In file included from ../../mathic/BinaryKDTree.h:6:
+../../mathic/KDEntryArray.h:237:5: error: use of undeclared identifier 'updateToLowerBound'
+    updateToLowerBound(entry);
+    ^
+    this->
+../../mathic/KDEntryArray.h:267:7: note: in instantiation of member function 'mathic::KDEntryArray<KDTreeModelConfiguration<true, true, true, 1, true>, mathic::DivMask::Extender<Monomial, true> >::push_back' requested here
+      push_back(entry);
+      ^
+../../mathic/PackedKDTree.h:281:27: note: in instantiation of member function 'mathic::KDEntryArray<KDTreeModelConfiguration<true, true, true, 1, true>, mathic::DivMask::Extender<Monomial, true> >::insert' requested here
+          node->entries().insert(extEntry, _conf);
+                          ^
+../../mathic/KDTree.h:172:13: note: in instantiation of member function 'mathic::PackedKDTree<KDTreeModelConfiguration<true, true, true, 1, true> >::insert' requested here
+      _tree.insert(extEntry);
+            ^
+../../divsim/KDTreeModel.h:166:13: note: in instantiation of member function 'mathic::KDTree<KDTreeModelConfiguration<true, true, true, 1, true> >::insert' requested here
+    _finder.insert(entry);
+            ^
+../../divsim/Simulation.h:252:18: note: in instantiation of member function 'KDTreeModel<true, true, true, 1, true>::insert' requested here
+          finder.insert(e._monomial);
+                 ^
+../../divsim/Simulation.h:119:3: note: in instantiation of function template specialization 'Simulation::run<KDTreeModel<true, true, true, 1, true> >' requested here
+  run(finder);
+  ^
+../../divsim/divMain.cpp:27:7: note: in instantiation of function template specialization 'Simulation::run<KDTreeModel<true, true, true, 1, true>, int, int, int, double, int>' requested here
+  sim.run<KDTreeModel<1,1,1,1,1> >(0, 0, 0, 1.0, 1000);
+      ^
+../../mathic/DivMask.h:369:10: note: must qualify identifier to find this declaration in dependent base class
+    void updateToLowerBound(const HasDivMask<true>& t) {
+         ^
+In file included from ../../divsim/divMain.cpp:4:
+In file included from ../../divsim/KDTreeModel.h:6:
+In file included from ../../mathic/KDTree.h:6:
+In file included from ../../mathic/BinaryKDTree.h:6:
+../../mathic/KDEntryArray.h:259:5: error: use of undeclared identifier 'updateToLowerBound'
+    updateToLowerBound(entry);
+    ^
+    this->
+../../mathic/KDEntryArray.h:270:7: note: in instantiation of member function 'mathic::KDEntryArray<KDTreeModelConfiguration<true, true, true, 1, true>, mathic::DivMask::Extender<Monomial, true> >::insert' requested here
+      insert(it, entry);
+      ^
+../../mathic/PackedKDTree.h:281:27: note: in instantiation of member function 'mathic::KDEntryArray<KDTreeModelConfiguration<true, true, true, 1, true>, mathic::DivMask::Extender<Monomial, true> >::insert' requested here
+          node->entries().insert(extEntry, _conf);
+                          ^
+../../mathic/KDTree.h:172:13: note: in instantiation of member function 'mathic::PackedKDTree<KDTreeModelConfiguration<true, true, true, 1, true> >::insert' requested here
+      _tree.insert(extEntry);
+            ^
+../../divsim/KDTreeModel.h:166:13: note: in instantiation of member function 'mathic::KDTree<KDTreeModelConfiguration<true, true, true, 1, true> >::insert' requested here
+    _finder.insert(entry);
+            ^
+../../divsim/Simulation.h:252:18: note: in instantiation of member function 'KDTreeModel<true, true, true, 1, true>::insert' requested here
+          finder.insert(e._monomial);
+                 ^
+../../divsim/Simulation.h:119:3: note: in instantiation of function template specialization 'Simulation::run<KDTreeModel<true, true, true, 1, true> >' requested here
+  run(finder);
+  ^
+../../divsim/divMain.cpp:27:7: note: in instantiation of function template specialization 'Simulation::run<KDTreeModel<true, true, true, 1, true>, int, int, int, double, int>' requested here
+  sim.run<KDTreeModel<1,1,1,1,1> >(0, 0, 0, 1.0, 1000);
+      ^
+../../mathic/DivMask.h:369:10: note: must qualify identifier to find this declaration in dependent base class
+    void updateToLowerBound(const HasDivMask<true>& t) {
+         ^
+In file included from ../../divsim/divMain.cpp:4:
+In file included from ../../divsim/KDTreeModel.h:6:
+In file included from ../../mathic/KDTree.h:6:
+In file included from ../../mathic/BinaryKDTree.h:6:
+../../mathic/KDEntryArray.h:474:7: error: use of undeclared identifier 'updateToLowerBound'
+      updateToLowerBound(*it);
+      ^
+      this->
+../../mathic/PackedKDTree.h:724:17: note: in instantiation of member function 'mathic::KDEntryArray<KDTreeModelConfiguration<true, true, true, 1, true>, mathic::DivMask::Extender<Monomial, true> >::recalculateTreeDivMask' requested here
+      entries().recalculateTreeDivMask();
+                ^
+../../mathic/PackedKDTree.h:283:24: note: in instantiation of member function 'mathic::PackedKDTree<KDTreeModelConfiguration<true, true, true, 1, true> >::Node::splitInsert' requested here
+          node = node->splitInsert(extEntry, parentChild, _arena, _conf);
+                       ^
+../../mathic/KDTree.h:172:13: note: in instantiation of member function 'mathic::PackedKDTree<KDTreeModelConfiguration<true, true, true, 1, true> >::insert' requested here
+      _tree.insert(extEntry);
+            ^
+../../divsim/KDTreeModel.h:166:13: note: in instantiation of member function 'mathic::KDTree<KDTreeModelConfiguration<true, true, true, 1, true> >::insert' requested here
+    _finder.insert(entry);
+            ^
+../../divsim/Simulation.h:252:18: note: in instantiation of member function 'KDTreeModel<true, true, true, 1, true>::insert' requested here
+          finder.insert(e._monomial);
+                 ^
+../../divsim/Simulation.h:119:3: note: in instantiation of function template specialization 'Simulation::run<KDTreeModel<true, true, true, 1, true> >' requested here
+  run(finder);
+  ^
+../../divsim/divMain.cpp:27:7: note: in instantiation of function template specialization 'Simulation::run<KDTreeModel<true, true, true, 1, true>, int, int, int, double, int>' requested here
+  sim.run<KDTreeModel<1,1,1,1,1> >(0, 0, 0, 1.0, 1000);
+      ^
+../../mathic/DivMask.h:369:10: note: must qualify identifier to find this declaration in dependent base class
+    void updateToLowerBound(const HasDivMask<true>& t) {
+         ^
+5 errors generated.

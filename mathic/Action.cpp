@@ -1,5 +1,5 @@
-#include "Action.h"
-#include "error.h"
+#include <mathic/Action.h>
+#include <mathic/error.h>
 
 namespace mathic {
   Action::~Action() {

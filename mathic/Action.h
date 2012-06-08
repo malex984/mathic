@@ -1,7 +1,7 @@
 #ifndef MATHIC_ACTION_GUARD
 #define MATHIC_ACTION_GUARD
 
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 
 #include <vector>
 #include <string>

@@ -1,7 +1,7 @@
 #ifndef MATHIC_ELEMENT_DELETER_GUARD
 #define MATHIC_ELEMENT_DELETER_GUARD
 
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 #include <memory>
 
 namespace mathic {

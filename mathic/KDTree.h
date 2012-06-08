@@ -1,11 +1,11 @@
 #ifndef MATHIC_K_D_TREE_GUARD
 #define MATHIC_K_D_TREE_GUARD
 
-#include "stdinc.h"
-#include "DivMask.h"
-#include "BinaryKDTree.h"
-#include "PackedKDTree.h"
-#include <memtailor/memtailor.h>
+#include <mathic/stdinc.h>
+#include <mathic/DivMask.h>
+#include <mathic/BinaryKDTree.h>
+#include <mathic/PackedKDTree.h>
+#include <memtailor.h>
 #include <list>
 #include <string>
 #include <algorithm>

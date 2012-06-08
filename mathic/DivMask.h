@@ -1,7 +1,7 @@
 #ifndef MATHIC_BIT_MASK_GUARD
 #define MATHIC_BIT_MASK_GUARD
 
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 #include <vector>
 #include <utility>
 #include <algorithm>
@@ -11,7 +11,7 @@
 //#define MATHIC_TRACK_DIV_MASK_HIT_RATIO 30
 #ifdef MATHIC_TRACK_DIV_MASK_HIT_RATIO
 #include <iostream>
-#include "ColumnPrinter.h"
+#include <mathic/ColumnPrinter.h>
 #endif
 
 namespace mathic {

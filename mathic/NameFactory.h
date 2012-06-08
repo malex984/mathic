@@ -1,8 +1,8 @@
 #ifndef MATHIC_NAME_FACTORY_GUARD
 #define MATHIC_NAME_FACTORY_GUARD
 
-#include "stdinc.h"
-#include "error.h"
+#include <mathic/stdinc.h>
+#include <mathic/error.h>
 
 #include <vector>
 #include <string>

@@ -1,4 +1,4 @@
-#include "ColumnPrinter.h"
+#include <mathic/ColumnPrinter.h>
 
 namespace mathic {
   namespace {

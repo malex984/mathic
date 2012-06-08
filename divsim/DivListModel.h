@@ -1,8 +1,10 @@
 #ifndef DIV_ARRAY_MODEL_GUARD
 #define DIV_ARRAY_MODEL_GUARD
 
-#include "DivList.h"
+#include <mathic/DivList.h>
+
 #include "Monomial.h"
+
 #include <string>
 #include <vector>
 

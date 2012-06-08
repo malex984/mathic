@@ -2,9 +2,10 @@
 // Mathic. We make both a KDTree and a DivList. We use a std::vector<int>
 // as a monomial to keep things simple.
 
+#include <mathic/KDTree.h>
+#include <mathic/DivList.h>
+
 #include <iostream>
-#include "KDTree.h"
-#include "DivList.h"
 #include <vector>
 
 // Divisor query data structures a parametrized on a configuration type

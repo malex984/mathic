@@ -1,4 +1,4 @@
-#include "display.h"
+#include <mathic/display.h>
 
 #include <cctype>
 #include <stdio.h>

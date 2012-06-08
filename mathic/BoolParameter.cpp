@@ -1,6 +1,6 @@
-#include "BoolParameter.h"
+#include <mathic/BoolParameter.h>
 
-#include "error.h"
+#include <mathic/error.h>
 
 namespace mathic {
   BoolParameter::BoolParameter(const std::string& name,

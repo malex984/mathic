@@ -1,8 +1,8 @@
 #ifndef MATHIC_TOUR_TREE_GUARD
 #define MATHIC_TOUR_TREE_GUARD
 
-#include "stdinc.h"
-#include "ComTree.h"
+#include <mathic/stdinc.h>
+#include <mathic/ComTree.h>
 #include <string>
 #include <vector>
 

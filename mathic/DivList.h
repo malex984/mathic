@@ -1,10 +1,12 @@
 #ifndef MATHIC_DIV_ARRAY_GUARD
 #define MATHIC_DIV_ARRAY_GUARD
 
-#include "stdinc.h"
-#include "DivMask.h"
-#include <memtailor/memtailor.h>
-#include "Comparer.h"
+#include <mathic/stdinc.h>
+#include <mathic/DivMask.h>
+#include <mathic/Comparer.h>
+
+#include <memtailor.h>
+
 #include <vector>
 #include <string>
 #include <list>

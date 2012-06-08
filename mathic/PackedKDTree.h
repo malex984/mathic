@@ -1,10 +1,10 @@
 #ifndef MATHIC_PACKED_K_D_TREE_GUARD
 #define MATHIC_PACKED_K_D_TREE_GUARD
 
-#include "stdinc.h"
-#include "DivMask.h"
-#include "KDEntryArray.h"
-#include <memtailor/memtailor.h>
+#include <mathic/stdinc.h>
+#include <mathic/DivMask.h>
+#include <mathic/KDEntryArray.h>
+#include <memtailor.h>
 #include <ostream>
 
 namespace mathic {

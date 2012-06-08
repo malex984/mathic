@@ -1,6 +1,6 @@
-#include "IntegerParameter.h"
+#include <mathic/IntegerParameter.h>
 
-#include "error.h"
+#include <mathic/error.h>
 #include <sstream>
 #include <cctype>
 

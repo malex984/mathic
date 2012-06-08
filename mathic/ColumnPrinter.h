@@ -1,7 +1,7 @@
 #ifndef MATHIC_COLUMN_PRINTER_GUARD
 #define MATHIC_COLUMN_PRINTER_GUARD
 
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 #include <sstream>
 #include <vector>
 #include <cstdio>

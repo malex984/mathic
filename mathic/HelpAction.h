@@ -1,8 +1,8 @@
 #ifndef MATHIC_HELP_ACTION_GUARD
 #define MATHIC_HELP_ACTION_GUARD
 
-#include "stdinc.h"
-#include "Action.h"
+#include <mathic/stdinc.h>
+#include <mathic/Action.h>
 #include <string>
 
 namespace mathic {

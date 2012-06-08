@@ -1,8 +1,8 @@
 #ifndef MATHIC_INTEGER_PARAMETER_GUARD
 #define MATHIC_INTEGER_PARAMETER_GUARD
 
-#include "stdinc.h"
-#include "CliParameter.h"
+#include <mathic/stdinc.h>
+#include <mathic/CliParameter.h>
 #include <utility>
 #include <string>
 

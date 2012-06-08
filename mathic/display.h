@@ -2,7 +2,7 @@
 #define MATHIC_DISPLAY_GUARD
 
 #include <string>
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 
 /** @file display.h
 

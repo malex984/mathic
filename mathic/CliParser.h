@@ -1,8 +1,8 @@
 #ifndef MATHIC_CLI_PARSER_GUARD
 #define MATHIC_CLI_PARSER_GUARD
 
-#include "NameFactory.h"
-#include "Action.h"
+#include <mathic/NameFactory.h>
+#include <mathic/Action.h>
 
 namespace mathic {
   class CliParser {

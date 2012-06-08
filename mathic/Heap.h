@@ -1,8 +1,8 @@
 #ifndef MATHIC_HEAP_GUARD
 #define MATHIC_HEAP_GUARD
 
-#include "stdinc.h"
-#include "ComTree.h"
+#include <mathic/stdinc.h>
+#include <mathic/ComTree.h>
 #include <vector>
 #include <ostream>
 #include <string>

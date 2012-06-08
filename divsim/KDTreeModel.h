@@ -2,7 +2,9 @@
 #define K_D_TREE_MODEL_GUARD
 
 #include "Monomial.h"
-#include "KDTree.h"
+
+#include <mathic/KDTree.h>
+
 #include <string>
 #include <vector>
 

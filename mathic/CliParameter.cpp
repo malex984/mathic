@@ -1,5 +1,5 @@
-#include "CliParameter.h"
-#include "error.h"
+#include <mathic/CliParameter.h>
+#include <mathic/error.h>
 
 namespace mathic {
   CliParameter::CliParameter(

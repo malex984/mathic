@@ -3,7 +3,9 @@
 #include "DivListModel.h"
 #include "KDTreeModel.h"
 #include "Simulation.h"
-#include "Timer.h"
+
+#include <mathic/Timer.h>
+
 #include <iostream>
 
 int main() {

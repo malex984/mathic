@@ -1,4 +1,4 @@
-#include "StringParameter.h"
+#include <mathic/StringParameter.h>
 
 namespace mathic {
   StringParameter::StringParameter(const std::string& name,

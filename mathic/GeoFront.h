@@ -1,7 +1,7 @@
 #ifndef MATHIC_GEO_FRONT_GUARD
 #define MATHIC_GEO_FRONT_GUARD
 
-#include "stdinc.h"
+#include <mathic/stdinc.h>
 #include <vector>
 #include <utility>
 
@@ -73,7 +73,7 @@ namespace mathic {
 	const Bucket* computeMax(Bucket* bucketBegin, Bucket* bucketEnd) const;
 
 	mutable const Bucket* _cachedMaxBucket;
-	mutable size_t& _entryCountRef;
+	mutable size_t& _entryCountRef; /// TODO!!
 	const C& _conf;
   };
 
@@ -177,7 +177,7 @@ namespace mathic {
 	Bucket** _bucketBegin;
 	Bucket** _bucketEnd;
     Bucket** _bucketCapacityEnd;
-	mutable size_t& _entryCountRef;
+	mutable size_t& _entryCountRef; /// TODO!!!
 	const C& _conf;
   };
 

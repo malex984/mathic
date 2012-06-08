@@ -1,7 +1,8 @@
 #include "stdinc.h"
 #include "Simulator.h"
 
-#include "ColumnPrinter.h"
+#include <mathic/ColumnPrinter.h>
+
 #include <queue>
 #include <iterator>
 #include <algorithm>
