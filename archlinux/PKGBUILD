@@ -7,7 +7,7 @@ pkgdesc="Data structures for use in Grobner basis computation."
 arch=(i686 x86_64)
 url="http://www.broune.com/"
 license=('license.txt')
-makedepends=('automake' 'autoconf' 'mercurial')
+makedepends=('automake' 'autoconf' 'mercurial' 'memtailor')
 checkdepends=('gtest')
 
 _hgname="$pkgname"
