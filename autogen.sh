@@ -1,4 +1,3 @@
 #!/bin/sh
 
-autoreconf -vifs `dirname "$0"`
-
+autoreconf --verbose --install --force `dirname "$0"`
