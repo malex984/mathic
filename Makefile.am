@@ -91,7 +91,7 @@ unittest_CXXFLAGS=\
   -I$(top_srcdir)/libs/gtest/\
   -I$(top_srcdir)/src/
 unittest_LDADD = $(DEPS_LIBS)
-unittest_LDFLAGS= $(top_builddir)/libmathic-$(MATHIC_API_VERSION).la
+unittest_LDFLAGS= $(top_builddir)/libmathic-$(MATHIC_API_VERSION).la -lpthread
 
 test_LIBS=
 unittest_SOURCES=src/test/DivFinder.cpp src/test/gtestInclude.cpp	\

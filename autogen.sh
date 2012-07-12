@@ -1,7 +1,8 @@
 #!/bin/sh
-srcdir="`dirname '$0'`"
 
-autoreconf --verbose --install --force $srcdir
+srcdir=`dirname "$0"`
+
+autoreconf --verbose --install --force "$srcdir"
 
 # Download gtest into libs/gtest if it does not already exist. If you
 # changed gtest and need to get the original version back, just delete
