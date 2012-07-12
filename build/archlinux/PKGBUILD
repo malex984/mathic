@@ -1,0 +1,52 @@
+# Maintainer: Oleksandr Motsak <http://goo.gl/mcpzY>
+
+pkgname=mathic
+pkgver=20120712
+pkgrel=1
+pkgdesc="Custom memory manager. Has an arena allocator and a memory pool."
+arch=(i686 x86_64)
+url="http://www.broune.com/"
+license=('license.txt')
+makedepends=('automake' 'autoconf' 'git' 'memtailor')
+
+# checkdepends=('gtest')
+
+_gitname="$pkgname"
+_gitroot="https://github.com/malex984/$pkgname.git"
+_gitbranch="new_plus_old_history"
+build()
+{
+	cd "$srcdir"
+	msg "Connecting to git server…"
+
+	if [ -d "$srcdir/$_gitname" ]
+	then
+		cd $_gitname && git pull && cd ..
+	else
+		git clone -b $_gitbranch $_gitroot
+	fi
+	
+	# setup
+	# NOTE: downloads gtest into the source directory (libs/)
+	"./$_gitname/autogen.sh"
+	
+	mkdir -p "BUILD"
+	
+	msg "Starting (out-of-source-tree) build..."
+	
+	cd "BUILD" && ../$_gitname/configure --prefix=/usr && make && cd ..
+}
+
+
+
+package()
+{
+	cd "$srcdir/BUILD"
+	make DESTDIR="${pkgdir}" install
+}
+
+check()
+{
+	cd "$srcdir/BUILD"
+	make check
+}
